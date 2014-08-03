@@ -1,108 +1,172 @@
 package zookeeper;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-public abstract class ZkMetric<V extends Writable> {
+public class ZkMetric {
 
 	public static final String ZK_METRIC_HOSTS_CONF = "zk.metric.hosts";
 	public static final String ZK_METRIC_PATH_CONF = "zk.metric.path";
 	public static final String ZK_METRIC_SESSION_TIMEOUT_CONF = "zk.metric.session.timeout";
 	
-	private final ZooKeeper zk;
-	private final CountDownLatch lock = new CountDownLatch(1);
+	private static final Set<String> paths = Collections.synchronizedSet(new LinkedHashSet<String>());
+	private static ZooKeeper zk = null;
 	
-	private V cache = null;
-	private boolean closed = false;
-	
-	public ZkMetric(Configuration conf) throws IOException, InterruptedException{
-		String hosts = conf.get(ZK_METRIC_HOSTS_CONF,"localhost:2181");
-		String path = conf.get(ZK_METRIC_HOSTS_CONF,"");
-		int sessionTimeout = conf.getInt(ZK_METRIC_SESSION_TIMEOUT_CONF, 10000);
-		zk = new ZooKeeper(hosts+path, sessionTimeout, watcher);
-		if(!lock.await(sessionTimeout, TimeUnit.SECONDS)){
-			throw new IOException("zookeeper connect took to long");
-		}
-	}
-	
-	private final Watcher watcher = new Watcher(){
-		@Override
-		public void process(WatchedEvent event) {
-			switch(event.getState()){
-			case SyncConnected:
-				lock.countDown();
-				break;
-			default:
-				break;
-			}
-		}
-	};
-	
-	public void put(V value){
+	private static final ZooKeeper getZookeeperInstance(Configuration conf) throws IOException, InterruptedException{
 		
-		if(closed)
-			throw new IllegalStateException("");
-		
-		if(cache == null){
-			
-		}
-	}
-	
-	public void submit(String group, String name, final V value) throws InterruptedException, IOException, KeeperException{
-		
-		
-		while(true){
-			
-			if(cache == null){
-				byte[] data = null;
-			}
-			
-			V result = cache == null ? value : merge(cache,value);
-			byte[] data = write(result);
-			
-			try {
-				zk.setData(name, data, version);
-			} catch (KeeperException e) {
-				switch (e.code()) {
-				case BADVERSION:
-					break;
-				case NONODE:
-					zk.create(name, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-					cache = result;
-					version = 0;
-					break;
-				
-				default:
-					throw e;
+		if(zk == null){
+			synchronized (ZkMetric.class) {
+				String hosts = conf.get(ZK_METRIC_HOSTS_CONF,"localhost:2181");
+				String path = conf.get(ZK_METRIC_HOSTS_CONF,"");
+				int sessionTimeout = conf.getInt(ZK_METRIC_SESSION_TIMEOUT_CONF, 10000);
+				final CountDownLatch lock = new CountDownLatch(1);
+				final Watcher watcher = new Watcher(){
+					@Override
+					public void process(WatchedEvent event) {
+						if(event.getState() == KeeperState.SyncConnected)
+							lock.countDown();
+					}			
+				};
+				zk = new ZooKeeper(hosts+path, sessionTimeout, watcher);
+				if(!lock.await(sessionTimeout, TimeUnit.SECONDS)){
+					throw new IOException("zookeeper connect took to long");
 				}
 			}
 		}
 		
-		
-		
+		return zk;
 	}
 	
-	protected abstract V merge(V v1, V v2);
+	public static final void init(Configuration conf, String path) throws InterruptedException, ZkMetricOperationException, IOException {
+		ZooKeeper zk = getZookeeperInstance(conf);
+		try {
+			zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+			paths.add(path);
+		} catch (KeeperException e) {
+			throw new ZkMetricOperationException(e);
+		}
+	}
 	
-	private final byte[] write(Writable v) throws IOException{
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		v.write(new DataOutputStream(out));
-		return out.toByteArray();
+	public static final <V extends DistributedMetric<?>> V get(Configuration conf, String path) throws ZkMetricOperationException, IOException, InterruptedException{
+
+		try {
+			ZooKeeper zk = getZookeeperInstance(conf);
+			byte[] data = zk.getData(path, false, null);
+			
+			if(data == null)
+				return null;
+			
+			DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
+			
+			@SuppressWarnings("unchecked")
+			Class<V> cls = (Class<V>) Class.forName(in.readUTF());
+			final V v = ReflectionUtils.newInstance(cls, conf);
+			v.readFields(in);
+			return v;
+		} catch (KeeperException | ClassNotFoundException e) {
+			throw new ZkMetricOperationException(e);
+		}
+	}
+
+	public static void set(Configuration conf, String path, DistributedMetric<?> m) throws ZkMetricOperationException, InterruptedException, IOException{
+		try{
+			
+			ZooKeeper zk = getZookeeperInstance(conf);
+
+			final String lock = initLock(zk, path);
+			
+			Stat stat = new Stat();
+			byte[] data = zk.getData(path, false, stat);
+			
+			DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
+			String classNamme = in.readUTF();
+			@SuppressWarnings("unchecked")
+			Class<DistributedMetric<DistributedMetric<?>>> cls = (Class<DistributedMetric<DistributedMetric<?>>>) Class.forName(classNamme);
+			final DistributedMetric<DistributedMetric<?>> v = ReflectionUtils.newInstance(cls, conf);
+			v.readFields(in);
+			v.merge(m);
+			
+			ByteArrayOutputStream byte_out = new ByteArrayOutputStream();
+			DataOutputStream out = new DataOutputStream(byte_out);
+			
+			out.writeUTF(classNamme);
+			v.write(out);
+			
+			zk.setData(path, byte_out.toByteArray(), stat.getVersion());
+			m.clear();
+			releaseLock(zk, lock);
+			
+		} catch (KeeperException | ClassNotFoundException e) {
+			throw new ZkMetricOperationException(e);
+		}
+	}
+	
+	public static final void close(Configuration conf) throws IOException, InterruptedException{
+		ZooKeeper zk = getZookeeperInstance(conf);
+		for(String path : paths)
+			zk.delete(path, -1, null, null);
+		zk.close();
+		zk = null;
+	}
+	
+	private static String initLock(ZooKeeper zk, String path) throws InterruptedException, KeeperException{
+		
+		final String lockPath = zk.create(path +"/lock", null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+		final String name = getName(lockPath);
+		
+		while(true){
+			final CountDownLatch lock = new CountDownLatch(1);
+			final List<String> nodes = zk.getChildren(path, new Watcher() {				
+				@Override
+				public void process(WatchedEvent event) {
+					if(event.getType() == EventType.NodeChildrenChanged){
+						lock.countDown();
+					}					
+				}
+			});
+			Collections.sort(nodes);
+			final int index = nodes.indexOf(name);
+			if(index == 0){
+				break;
+			}
+			if(index == -1){
+				throw new RuntimeException("lock must exist in children");
+			}
+			
+			lock.await();
+		}
+		
+		return lockPath;
+	}
+	
+	private static void releaseLock(ZooKeeper zk, String lock) throws InterruptedException, KeeperException{
+		zk.delete(lock, -1);
+	}
+	
+	private static final String getName(String path){
+		String[] split = path.split("/");
+		return split[split.length-1];
 	}
 	
 }
