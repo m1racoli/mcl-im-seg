@@ -144,6 +144,7 @@ public class InputJob extends Configured implements Tool {
 		job.setOutputKeyClass(LongWritable.class);
 		job.setOutputValueClass(MCLContext.getMatrixSliceClass());
 		job.setGroupingComparatorClass(LongWritable.Comparator.class);
+		job.setNumReduceTasks(2);
 		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
