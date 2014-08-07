@@ -48,12 +48,13 @@ public abstract class MCLSingleColumnMatrixSlice<V extends MCLSingleColumnMatrix
 		@Override
 		public Float next() {
 			
+			final Feature f1 = iter.next();
+			
 			if(idx.isDiagonal()){
-				iter.next();
 				return 1.0f;
 			}
 			
-			return iter.next().dist(iter.next()); //TODO other comparator
+			return f1.dist(iter.next()); //TODO other comparator
 		}
 		
 	}
