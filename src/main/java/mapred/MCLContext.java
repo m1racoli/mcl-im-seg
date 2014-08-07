@@ -8,7 +8,6 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MCLSingleColumnMatrixSlice;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -72,6 +71,7 @@ public class MCLContext {
 	 * 	
 	 * @param conf
 	 */
+	@SuppressWarnings("unchecked")
 	public static final void get(Configuration conf){
 		I = conf.getDouble(MCL_INFLATION, I);
 		logger.info("get {}: {}",MCL_INFLATION,I);
@@ -81,7 +81,7 @@ public class MCLContext {
 		logger.info("get {}: {}",MCL_CUTOFF,p);
 		n = conf.getLong(MCL_DIM, n);
 		logger.info("get {}: {}",MCL_DIM,n);
-		matrixSliceClass = conf.getClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass, null);
+		matrixSliceClass = (Class<? extends MCLMatrixSlice<?, ?>>) conf.getClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass);
 		logger.info("get {}: {}",MCL_MATRIX_SLICE_CLASS, matrixSliceClass);		
 	}
 	
@@ -94,7 +94,7 @@ public class MCLContext {
 		logger.info("set {}: {}",MCL_CUTOFF,p);
 		conf.setLong(MCL_DIM, n);
 		logger.info("set {}: {}",MCL_DIM,n);
-		conf.setClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass, null);
+		conf.setClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass, MCLMatrixSlice.class);
 		logger.info("set {}: {}",MCL_MATRIX_SLICE_CLASS, matrixSliceClass);
 	}
 	
