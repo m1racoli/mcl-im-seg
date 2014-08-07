@@ -25,7 +25,7 @@ public abstract class DistributedLong implements DistributedMetric<DistributedLo
 	}
 	
 	public final void set(long val){
-		val = merge(this.val,val);
+		this.val = merge(this.val,val);
 	}
 	
 	@Override
@@ -43,6 +43,11 @@ public abstract class DistributedLong implements DistributedMetric<DistributedLo
 	@Override
 	public void readFields(DataInput in) throws IOException {
 		val = in.readLong();
+	}
+	
+	@Override
+	public String toString() {
+		return String.valueOf(val);
 	}
 
 }
