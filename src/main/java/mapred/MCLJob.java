@@ -1,7 +1,6 @@
 package mapred;
 
 import java.io.IOException;
-
 import io.writables.Column;
 import io.writables.MCLMatrixSlice;
 
@@ -19,11 +18,17 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import zookeeper.DistributedLong;
+import zookeeper.DistributedLongMaximum;
+import zookeeper.ZkMetric;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 @SuppressWarnings("rawtypes")
 public class MCLJob extends Configured implements Tool {
+	
+	private static final String K_MAX = "k_max";
 	
 	@Parameter(names = "-i")
 	private String input = null;
@@ -83,6 +88,7 @@ public class MCLJob extends Configured implements Tool {
 	public static final class MCLReducer extends Reducer<LongWritable, MCLMatrixSlice, LongWritable, MCLMatrixSlice> {		
 		
 		private MCLMatrixSlice vec = null;
+		private DistributedLongMaximum kmax = new DistributedLongMaximum();
 		
 		@Override
 		protected void setup(Context context)
@@ -98,8 +104,14 @@ public class MCLJob extends Configured implements Tool {
 		protected void reduce(LongWritable col, Iterable<MCLMatrixSlice> values, Context context)
 				throws IOException, InterruptedException {
 			vec.combineAndProcess(values,context);
-			//TODO
+			kmax.set(vec.size());
 			context.write(col, vec);
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			ZkMetric.set(context.getConfiguration(), K_MAX, kmax);
 		}
 	}
 	
@@ -138,7 +150,14 @@ public class MCLJob extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
-		return job.waitForCompletion(true) ? 0 : 1;
+		ZkMetric.init(getConf(), K_MAX, true);
+		
+		int rc = job.waitForCompletion(true) ? 0 : 1;
+		
+		DistributedLong kmax = ZkMetric.get(getConf(), K_MAX);
+		System.out.println("kmax: "+kmax.get());
+		ZkMetric.close(getConf());
+		return rc;
 	}
 
 	public static void main(String[] args) throws Exception {
