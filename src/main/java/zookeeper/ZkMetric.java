@@ -23,9 +23,13 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkMetric {
 
+	private static final Logger logger = LoggerFactory.getLogger(ZkMetric.class);
+	
 	public static final String ZK_METRIC_HOSTS_CONF = "zk.metric.hosts";
 	public static final String ZK_METRIC_PATH_CONF = "zk.metric.path";
 	public static final String ZK_METRIC_SESSION_TIMEOUT_CONF = "zk.metric.session.timeout";
@@ -58,9 +62,11 @@ public class ZkMetric {
 		return zk;
 	}
 	
-	public static final void init(Configuration conf, String path) throws InterruptedException, ZkMetricOperationException, IOException {
+	public static final void init(Configuration conf, String path, boolean override) throws InterruptedException, ZkMetricOperationException, IOException {
 		ZooKeeper zk = getZookeeperInstance(conf);
 		try {
+			path = "/"+path;//TODO
+			if(override && zk.exists(path, false) != null) zk.delete(path, -1);
 			zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			paths.add(path);
 		} catch (KeeperException e) {
@@ -71,6 +77,7 @@ public class ZkMetric {
 	public static final <V extends DistributedMetric<?>> V get(Configuration conf, String path) throws ZkMetricOperationException, IOException, InterruptedException{
 
 		try {
+			path = "/"+path;//TODO
 			ZooKeeper zk = getZookeeperInstance(conf);
 			byte[] data = zk.getData(path, false, null);
 			
@@ -83,42 +90,49 @@ public class ZkMetric {
 			Class<V> cls = (Class<V>) Class.forName(in.readUTF());
 			final V v = ReflectionUtils.newInstance(cls, conf);
 			v.readFields(in);
+			logger.debug("loaded metric: {} = {} @ {}",cls.getName(),v.toString(),path);
 			return v;
 		} catch (KeeperException | ClassNotFoundException e) {
 			throw new ZkMetricOperationException(e);
 		}
 	}
 
-	public static void set(Configuration conf, String path, DistributedMetric<?> m) throws ZkMetricOperationException, InterruptedException, IOException{
+	public static void set(Configuration conf, String path, DistributedMetric<?> m) throws InterruptedException, IOException{
 		try{
-			
+			path = "/"+path;//TODO
 			ZooKeeper zk = getZookeeperInstance(conf);
 
 			final String lock = initLock(zk, path);
 			
-			Stat stat = new Stat();
-			byte[] data = zk.getData(path, false, stat);
+			final Stat stat = new Stat();
+			final byte[] data = zk.getData(path, false, stat);
+			final ByteArrayOutputStream byte_out = new ByteArrayOutputStream();
+			final DataOutputStream out = new DataOutputStream(byte_out);
 			
-			DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
-			String classNamme = in.readUTF();
-			@SuppressWarnings("unchecked")
-			Class<DistributedMetric<DistributedMetric<?>>> cls = (Class<DistributedMetric<DistributedMetric<?>>>) Class.forName(classNamme);
-			final DistributedMetric<DistributedMetric<?>> v = ReflectionUtils.newInstance(cls, conf);
-			v.readFields(in);
-			v.merge(m);
-			
-			ByteArrayOutputStream byte_out = new ByteArrayOutputStream();
-			DataOutputStream out = new DataOutputStream(byte_out);
-			
-			out.writeUTF(classNamme);
-			v.write(out);
+			if(data != null){
+				DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
+				String classNamme = in.readUTF();
+				@SuppressWarnings("unchecked")
+				Class<DistributedMetric<DistributedMetric<?>>> cls = (Class<DistributedMetric<DistributedMetric<?>>>) Class.forName(classNamme);
+				final DistributedMetric<DistributedMetric<?>> v = ReflectionUtils.newInstance(cls, conf);
+				v.readFields(in);
+				System.out.printf("merge: %s = %s <- %s = %s\n",v.getClass().getName(),v,m.getClass().getName(),m);
+				v.merge(m);		
+				out.writeUTF(classNamme);
+				v.write(out);
+				System.out.printf("write value: %s = %s @ %s\n",v.getClass().getName(),v,path);
+			} else {
+				out.writeUTF(m.getClass().getName());
+				m.write(out);
+				logger.debug("write new value: {} = {} @ {}",m.getClass(),m,path);
+			}
 			
 			zk.setData(path, byte_out.toByteArray(), stat.getVersion());
 			m.clear();
 			releaseLock(zk, lock);
 			
 		} catch (KeeperException | ClassNotFoundException e) {
-			throw new ZkMetricOperationException(e);
+			throw new IOException(e);
 		}
 	}
 	
