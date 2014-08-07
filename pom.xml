@@ -54,26 +54,11 @@
   		<version>1.30</version>
   	</dependency>
   	<dependency>
-  		<groupId>org.slf4j</groupId>
-  		<artifactId>slf4j-api</artifactId>
-  		<version>1.7.7</version>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.slf4j</groupId>
-  		<artifactId>slf4j-log4j12</artifactId>
-  		<version>1.7.7</version>
-  	</dependency>
-  	<dependency>
   		<groupId>jdk.tools</groupId>
   		<artifactId>jdk.tools</artifactId>
   		<scope>system</scope>
   		<systemPath>${JAVA_HOME}/lib/tools.jar</systemPath>
   		<version>1.7</version>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.apache.commons</groupId>
-  		<artifactId>commons-math3</artifactId>
-  		<version>3.3</version>
   	</dependency>
   </dependencies>
 </project>
