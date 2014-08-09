@@ -6,8 +6,12 @@ package mapred;
 import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
+
+import io.writables.Feature;
+import io.writables.FeatureWritable;
 import io.writables.Index;
-import io.writables.MCLSingleColumnMatrixSlice;
+import io.writables.MCLMatrixSlice;
 import io.writables.Pixel;
 import model.nb.RadialPixelNeighborhood;
 
@@ -24,6 +28,8 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import util.ReadOnlyIterator;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -87,27 +93,62 @@ public class InputJob extends Configured implements Tool {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static final class InputReducer extends Reducer<Index, Pixel, LongWritable, MCLSingleColumnMatrixSlice>{
+	private static final class InputReducer extends Reducer<Index, Feature, LongWritable, MCLMatrixSlice>{
 		
-		private MCLSingleColumnMatrixSlice col = null;
+		private MCLMatrixSlice col = null;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			MCLContext.get(context);
 			if(col == null){
-				col = (MCLSingleColumnMatrixSlice) MCLContext.getMatrixSliceInstance();
+				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
 			
 		}
 		
 		@SuppressWarnings("unchecked")
 		@Override
-		protected void reduce(Index idx, Iterable<Pixel> pixels, Context context)
+		protected void reduce(final Index idx, final Iterable<Feature> pixels, Context context)
 				throws IOException, InterruptedException {
+			col.construct(idx.row, new Iterable<Float>() {
+				
+				@Override
+				public Iterator<Float> iterator() {
+					return new ValueIterator(idx, pixels.iterator());
+				}
+			});
 			col.init(idx, pixels);
 			context.getCounter(Counters.NON_NULL_VALUES).increment(col.size());
 			context.write(idx.col, col);
+		}
+		
+		private static final class ValueIterator<V extends Feature<V>> extends ReadOnlyIterator<Float> {
+
+			private final Index idx;
+			private final Iterator<V> iter;
+			
+			private ValueIterator(Index idx, Iterator<V> iter){
+				this.idx = idx;
+				this.iter = iter;
+			}
+			
+			@Override
+			public boolean hasNext() {
+				return iter.hasNext();
+			}
+			
+			@Override
+			public Float next() {
+				final V f1 = iter.next();
+				
+				if(idx.isDiagonal()){
+					return 1.0f;
+				}
+				
+				return f1.dist(iter.next()); //TODO dist
+			}
+
 		}
 		
 	}
@@ -131,15 +172,12 @@ public class InputJob extends Configured implements Tool {
 		job.setJarByClass(getClass());
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
-		SequenceFileInputFormat.setInputPaths(job, input);
-		
-		if(MCLContext.isSingleColumnSlice()){
-			job.setMapperClass(InputMapper.class);
-			job.setMapOutputKeyClass(Index.class);
-			job.setReducerClass(InputReducer.class);
-		} else {
-			//TODO
-		}
+		SequenceFileInputFormat.setInputPaths(job, input);		
+
+		job.setMapperClass(InputMapper.class);
+		job.setMapOutputKeyClass(Index.class);
+		job.setReducerClass(InputReducer.class);
+
 		job.setMapOutputValueClass(Pixel.class);
 		job.setOutputKeyClass(LongWritable.class);
 		job.setOutputValueClass(MCLContext.getMatrixSliceClass());
