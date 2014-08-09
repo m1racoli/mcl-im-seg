@@ -17,8 +17,17 @@ import util.ReadOnlyIterator;
  * @author Cedrik
  *
  */
-@SuppressWarnings("rawtypes")
-public abstract class MCLMatrixSlice<V extends MCLMatrixSlice,E extends Writable> extends MCLContext implements Writable {
+public abstract class MCLMatrixSlice extends MCLContext implements Writable {
+	
+	protected final int init_nnz;
+	
+	MCLMatrixSlice(){
+		this(getInitNnz());
+	}
+	
+	MCLMatrixSlice(int init_nnz){
+		this.init_nnz = init_nnz;
+	}
 	
 	/**
 	 *  clear contents
@@ -28,15 +37,17 @@ public abstract class MCLMatrixSlice<V extends MCLMatrixSlice,E extends Writable
 	/** 
 	 * @param m to add to this
 	 */
-	protected abstract void add(final V m);
+	protected abstract void add(final MCLMatrixSlice m);
 
-	protected abstract void add(final LongWritable row, E subBlock);
+	protected abstract void add(final LongWritable row, MCLMatrixSlice subBlock);
+	
+	public abstract void insert(long row, long col, float val);
 	
 	//TODO column -> slice matcher
 	
-	public final void combine(final LongWritable row, Iterable<E> vals){
+	public final void combine(final LongWritable row, Iterable<MCLMatrixSlice> vals){
 		clear();
-		for(E val : vals){
+		for(MCLMatrixSlice val : vals){
 			add(row, val);
 		}
 	}
@@ -45,25 +56,25 @@ public abstract class MCLMatrixSlice<V extends MCLMatrixSlice,E extends Writable
 	 * @param subBlock to multiply with
 	 * @return product with subBlock
 	 */
-	protected abstract MCLMatrixSlice product(final E subBlock);
+	protected abstract MCLMatrixSlice product(final MCLMatrixSlice subBlock);
 	
 	/**
 	 * @param id to write index of current sub block to
 	 * @return iterator over the sub blocks
 	 */
-	protected abstract ReadOnlyIterator<E> getSubBlockIterator(final LongWritable id);
+	protected abstract ReadOnlyIterator<MCLMatrixSlice> getSubBlockIterator(final SliceId id);
 
 	/**
 	 * clear and add the values
 	 * @param values
 	 */
-	public final void combine(final Iterable<V> values, TaskInputOutputContext<?, ?, ?, ?> context){
+	public final void combine(final Iterable<MCLMatrixSlice> values, TaskInputOutputContext<?, ?, ?, ?> context){
 		clear();
-		for(V value : values)
+		for(MCLMatrixSlice value : values)
 			add(value);
 	}
 	
-	public void combineAndProcess(final Iterable<V> values, TaskInputOutputContext<?, ?, ?, ?> context){
+	public void combineAndProcess(final Iterable<MCLMatrixSlice> values, TaskInputOutputContext<?, ?, ?, ?> context){
 		combine(values, context);
 		process(context);
 	}
@@ -84,40 +95,19 @@ public abstract class MCLMatrixSlice<V extends MCLMatrixSlice,E extends Writable
 	 * @param id to write current index to
 	 * @return
 	 */
-	public final Iterable<E> subBlocks(final LongWritable id){
-		return new Iterable<E>() {
+	public final Iterable<MCLMatrixSlice> subBlocks(final SliceId id){
+		return new Iterable<MCLMatrixSlice>() {
 			@Override
-			public Iterator<E> iterator() {
+			public Iterator<MCLMatrixSlice> iterator() {
 				return getSubBlockIterator(id);
 			}
 		};
 	}
 
-	public final Iterable<MCLMatrixSlice> getProductsWith(final LongWritable id, final MCLMatrixSlice<V,E> m){
-		return new Iterable<MCLMatrixSlice>() {
-			@Override
-			public Iterator<MCLMatrixSlice> iterator() {
-				return new ProductIterator(id, m);
-			}
-		};
+	public void init(final Index idx, final Iterable<? extends Feature> pixels) {
+		clear();
+		construct(idx.row, null); //TODO
 	}
 	
-	private final class ProductIterator extends ReadOnlyIterator<MCLMatrixSlice> {
-
-		private final Iterator<E> iter;
-		
-		private ProductIterator(final LongWritable id, final MCLMatrixSlice<V,E> m){
-			iter = m.getSubBlockIterator(id);
-		}
-		
-		@Override
-		public boolean hasNext() {
-			return iter.hasNext();
-		}
-
-		@Override
-		public MCLMatrixSlice next() {
-			return product(iter.next());
-		}
-	}
+	public abstract void construct(LongWritable row, Iterable<Float> values);
 }

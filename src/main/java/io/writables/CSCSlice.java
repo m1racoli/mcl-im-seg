@@ -22,22 +22,22 @@ import util.ReadOnlyIterator;
  * @author Cedrik
  *
  */
-public final class Column extends MCLSingleColumnMatrixSlice<Column> {
+public final class CSCSlice extends MCLMatrixSlice {
 
-	@Deprecated
-	private final int k_max_2;
 	private long[] rows;
 	private float[] vals;
 	private Float a = null;
 	private int l = 0;
 	private Queue<Item> buffer = null;
 	
-	public Column(){
-		k_max_2 = getKMaxSquared();
-		rows = new long[k_max_2];
-		vals = new float[k_max_2];
+	public CSCSlice() {super();}
+
+	public CSCSlice(int init_nnz){
+		super(init_nnz);
+		rows = new long[init_nnz];
+		vals = new float[init_nnz];
 	}
-	
+
 	@Override
 	public void clear(){
 		l = 0;
@@ -45,10 +45,12 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 	}
 
 	@Override
-	protected void add(Column vec) {
+	protected void add(MCLMatrixSlice m) {
 		
-		long[] new_rows = new long[k_max_2];
-		float[] new_vals = new float[k_max_2];
+		CSCSlice vec = (CSCSlice) m;
+		
+		long[] new_rows = new long[init_nnz];
+		float[] new_vals = new float[init_nnz]; //TODO
 		
 		int new_l = 0;
 		for(int i = 0, j = 0; i < l || j < vec.l;){
@@ -158,8 +160,9 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 	}
 	
 	@Override
-	protected MCLSingleColumnMatrixSlice<Column> product(FloatWritable subBlock) {
-		a = subBlock.get();
+	protected MCLMatrixSlice product(MCLMatrixSlice subBlock) {
+		CSCSlice c = (CSCSlice) subBlock;
+		a = c.vals[0];
 		return this;
 	}
 
@@ -167,7 +170,7 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 	public void process(TaskInputOutputContext<?, ?, ?, ?> context) {
 		
 		if(buffer == null){
-			buffer = new PriorityQueue<Column.Item>(getKMaxSquared());
+			buffer = new PriorityQueue<CSCSlice.Item>(getKMax());
 		}
 		
 		final float p = getP();
@@ -216,7 +219,7 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 	}
 
 	@Override
-	protected ReadOnlyIterator<FloatWritable> getSubBlockIterator(LongWritable id) {
+	protected ReadOnlyIterator<MCLMatrixSlice> getSubBlockIterator(LongWritable id) {
 		return new SubBlockIterator(id);
 	}
 
@@ -225,7 +228,7 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 		return l;
 	}
 
-	private final class SubBlockIterator extends ReadOnlyIterator<FloatWritable>{
+	private final class SubBlockIterator extends ReadOnlyIterator<MCLMatrixSlice>{
 	
 		private final FloatWritable val = new FloatWritable();
 		private final LongWritable id;
@@ -241,7 +244,7 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 		}
 	
 		@Override
-		public FloatWritable next() {
+		public MCLMatrixSlice next() {
 			id.set(rows[i]);
 			val.set(vals[i++]);
 			return val;
@@ -268,7 +271,7 @@ public final class Column extends MCLSingleColumnMatrixSlice<Column> {
 	}
 
 	@Override
-	protected void add(LongWritable row, FloatWritable subBlock) {
+	protected void add(LongWritable row, MCLMatrixSlice subBlock) {
 		rows[l] = row.get();
 		vals[l++] = subBlock.get();
 	}
