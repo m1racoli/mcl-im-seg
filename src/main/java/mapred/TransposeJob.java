@@ -34,18 +34,18 @@ public class TransposeJob extends Configured implements Tool {
 	@Parameter(names = "-o")
 	private String output = null;
 
-	private static final class TransposeMapper extends
-			Mapper<SliceId, MCLMatrixSlice, SliceId, SubBlock> {
+	private static final class TransposeMapper<M extends MCLMatrixSlice<M>> extends
+			Mapper<SliceId, M, SliceId, SubBlock<M>> {
 
 		private final SliceId id = new SliceId();
-		private final SubBlock subBlock = new SubBlock();
+		private final SubBlock<M> subBlock = new SubBlock<M>();
 
 		@Override
-		protected void map(SliceId key, MCLMatrixSlice value, Context context)
+		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 
 			subBlock.id = key.get();
-			for (MCLMatrixSlice subBlock : value.subBlocks(id)) {
+			for (M subBlock : value.getSubBlocks(id)) {
 				this.subBlock.subBlock = subBlock;
 				context.write(id, this.subBlock);
 			}

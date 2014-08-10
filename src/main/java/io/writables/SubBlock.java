@@ -9,10 +9,10 @@ import mapred.MCLContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 
-public class SubBlock extends MCLContext implements Writable {
+public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLContext implements Writable {
 
 	public int id = 0;
-	public MCLMatrixSlice subBlock = null;
+	public M subBlock = null;
 	
 	@Override
 	public void setConf(Configuration conf) {

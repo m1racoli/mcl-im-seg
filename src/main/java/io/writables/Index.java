@@ -7,6 +7,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -15,33 +16,38 @@ import org.apache.hadoop.io.WritableComparator;
  * @author Cedrik
  *
  */
-public class Index implements WritableComparable<Index> {
+public class Index implements WritableComparable<Index>, SliceIndex {
 
-	public LongWritable col = new LongWritable();
-	public LongWritable row = new LongWritable();
+	public final SliceId id = new SliceId();
+	public final IntWritable col = new IntWritable();
+	public final LongWritable row = new LongWritable();
 	
 	@Override
 	public void readFields(DataInput in) throws IOException {
+		id.readFields(in);
 		col.readFields(in);
 		row.readFields(in);
 	}
 
 	@Override
 	public void write(DataOutput out) throws IOException {
+		id.write(out);
 		col.write(out);
 		row.write(out);
 	}
 
 	@Override
 	public int compareTo(Index o) {
-		int cmp = col.compareTo(o.col);
+		int cmp = id.compareTo(o.id);
+		if(cmp != 0) return cmp;
+		cmp = col.compareTo(o.col);
 		if(cmp != 0) return cmp;
 		return row.compareTo(o.row);
 	}
 
 	@Override
 	public int hashCode() {
-		return col.hashCode();
+		return id.hashCode();
 	}
 	
 	public boolean isDiagonal(){
@@ -50,7 +56,7 @@ public class Index implements WritableComparable<Index> {
 
 	@Override
 	public String toString() {
-		return String.format("c: %d, r: %d", col,row);
+		return String.format("(%d,%d,%d)", id, col, row);
 	}
 	
 	public static final class Comparator extends WritableComparator{
@@ -59,8 +65,11 @@ public class Index implements WritableComparable<Index> {
 		
 		@Override
 		public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-			long thisValue = readLong(b1, s1);
-			long thatValue = readLong(b2, s2);
+			long thisValue = readInt(b1, s1);
+			long thatValue = readInt(b2, s2);
+			if(thisValue != thatValue) return thisValue < thatValue ? -1 : 1;
+			thisValue = readInt(b1, s1+4);
+			thatValue = readInt(b2, s2+4);
 			if(thisValue != thatValue) return thisValue < thatValue ? -1 : 1;
 			thisValue = readLong(b1, s1+8);
 			thatValue = readLong(b2, s2+8);
@@ -70,5 +79,10 @@ public class Index implements WritableComparable<Index> {
 	
 	static {
 	    WritableComparator.define(Index.class, new Comparator());
+	}
+
+	@Override
+	public int getSliceId() {
+		return id.get();
 	}
 }

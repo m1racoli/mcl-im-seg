@@ -15,7 +15,6 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,28 +30,20 @@ public class MCLContext implements Configurable {
 	public static final MCLContext instance = new MCLContext();
 	
 	@Parameter(names = "-I")
-	private static double I = 2.0;
+	private static float I = 2.0f;
 	private static final String MCL_INFLATION = "mcl.inflation";
 	
 	@Parameter(names = "-P")
-	private static int P = 100;
+	private static int P = 10000;
 	private static final String MCL_CUTOFF_INV = "mcl.cutoff.inv";
 	
 	@Parameter(names = "-p")
-	private static float p = 1.0f/1000.0f;
+	private static float p = 1.0f/10000.0f;
 	private static final String MCL_CUTOFF = "mcl.cutoff";
 	
 	@Parameter(names = "-S")
-	private static int S = 0; //TODO
+	private static int S = 50;
 	private static final String MCL_SELECTION = "mcl.selection";
-	
-	@Parameter(names = "-R")
-	private static int R = 0; //TODO
-	private static final String MCL_RECOVER = "mcl.recover";
-	
-	@Parameter(names = "-pct")
-	private static int pct = 0; //TODO
-	private static final String MCL_RECOVER_PCT = "mcl.recover.pct";
 	
 	@Parameter(names = "-n")
 	private static long n = 0; //TODO auto
@@ -63,8 +54,12 @@ public class MCLContext implements Configurable {
 	private static final String MCL_SUB_DIM = "mcl.sub.dim";
 	
 	@Parameter(names = "--slice-class")
-	private static Class<? extends MCLMatrixSlice> matrixSliceClass = CSCSlice.class;
+	private static Class<? extends MCLMatrixSlice<?>> matrixSliceClass = CSCSlice.class;
 	private static final String MCL_MATRIX_SLICE_CLASS = "mcl.matrix.slice.class";
+	
+	@Parameter(names = "--selector-class")
+	private static Class<? extends Selector> selectorClass = null;
+	private static final String MCL_SELECTOR_CLASS = "mcl.selector.class";
 	
 	@Parameter(names = "-te")
 	private static int te = 1;
@@ -77,7 +72,7 @@ public class MCLContext implements Configurable {
 	private static final String MCL_K_RIGHT = "mcl.k.right";
 	
 	@Parameter(names = "-vint")
-	private static boolean vint = false;
+	private static boolean vint = false; //TODO private final
 	private static final String MCL_USE_VINT = "mcl.use.vint";
 	
 	private static boolean init_extended = false;
@@ -99,15 +94,19 @@ public class MCLContext implements Configurable {
 	 */
 	@SuppressWarnings("unchecked")
 	public static final void get(Configuration conf){
-		I = conf.getDouble(MCL_INFLATION, I);
+		I = conf.getFloat(MCL_INFLATION, I);
 		logger.info("get {}: {}",MCL_INFLATION,I);
 		P = conf.getInt(MCL_CUTOFF_INV, P);
 		logger.info("get {}: {}",MCL_CUTOFF_INV,P);
 		p = conf.getFloat(MCL_CUTOFF, p);
 		logger.info("get {}: {}",MCL_CUTOFF,p);
+		S = conf.getInt(MCL_SELECTION, S);
+		logger.info("get {}: {}",MCL_SELECTION, S);
 		n = conf.getLong(MCL_DIM, n);
 		logger.info("get {}: {}",MCL_DIM,n);
-		matrixSliceClass = (Class<? extends MCLMatrixSlice>) conf.getClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass);
+		n_sub = conf.getInt(MCL_SUB_DIM, n_sub);
+		logger.info("get {}: {}",MCL_SUB_DIM, n_sub);
+		matrixSliceClass = (Class<? extends MCLMatrixSlice<?>>) conf.getClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass, MCLMatrixSlice.class);
 		logger.info("get {}: {}",MCL_MATRIX_SLICE_CLASS, matrixSliceClass);
 		te = conf.getInt(MCL_NUM_THREADS, te);
 		logger.info("get {}: {}",MCL_NUM_THREADS, te);
@@ -120,14 +119,18 @@ public class MCLContext implements Configurable {
 	}
 	
 	public static final void set(Configuration conf){
-		conf.setDouble(MCL_INFLATION, I);
+		conf.setFloat(MCL_INFLATION, I);
 		logger.info("set {}: {}",MCL_INFLATION,I);
 		conf.setInt(MCL_CUTOFF_INV, P);
 		logger.info("set {}: {}",MCL_CUTOFF_INV,P);
 		conf.setFloat(MCL_CUTOFF, p);
 		logger.info("set {}: {}",MCL_CUTOFF,p);
+		conf.setInt(MCL_SELECTION, S);
+		logger.info("set {}: {}",MCL_SELECTION, S);
 		conf.setLong(MCL_DIM, n);
 		logger.info("set {}: {}",MCL_DIM,n);
+		conf.setInt(MCL_SUB_DIM, n_sub);
+		logger.info("set {}: {}",MCL_SUB_DIM, n_sub);
 		conf.setClass(MCL_MATRIX_SLICE_CLASS, matrixSliceClass, MCLMatrixSlice.class);
 		logger.info("set {}: {}",MCL_MATRIX_SLICE_CLASS, matrixSliceClass);
 		conf.setInt(MCL_NUM_THREADS, te);
@@ -143,7 +146,7 @@ public class MCLContext implements Configurable {
 	/**
 	 * @return inflation parameter I
 	 */
-	public static final double getI(){
+	public static final float getI(){
 		return I;
 	}
 	
@@ -154,7 +157,7 @@ public class MCLContext implements Configurable {
 		return n;
 	}
 	
-	public static final long getNSub(){
+	public static final int getNSub(){
 		return n_sub;
 	}
 	
@@ -163,6 +166,10 @@ public class MCLContext implements Configurable {
 	 */
 	public static final int getKMax(){
 		return k_left*k_right;
+	}
+	
+	public static final int getS(){
+		return S;
 	}
 	
 	public static final int getInitNnz(){
@@ -198,26 +205,27 @@ public class MCLContext implements Configurable {
 		return p;
 	}
 	
-	public static final Class<? extends MCLMatrixSlice> getMatrixSliceClass(){
-		return matrixSliceClass;
+	@SuppressWarnings("unchecked")
+	public static final <M extends MCLMatrixSlice<?>> Class<M> getMatrixSliceClass(){
+		return (Class<M>) matrixSliceClass;
 	}
 	
-	public static final MCLMatrixSlice getMatrixSubBlockInstance(Configuration conf) {
+	public static final <M extends MCLMatrixSlice<?>> M getMatrixSubBlockInstance(Configuration conf) {
 		return getMatrixSliceInstance(n_sub * k_right, conf);
 	}
 	
-	public static final MCLMatrixSlice getExtendedMatrixSliceInstance(Configuration conf) {
+	public static final <M extends MCLMatrixSlice<?>> M getExtendedMatrixSliceInstance(Configuration conf) {
 		return getMatrixSliceInstance(n_sub * k_left * k_right, conf);
 	}
 	
-	public static final MCLMatrixSlice getMatrixSliceInstance(Configuration conf){
+	public static final <M extends MCLMatrixSlice<?>> M getMatrixSliceInstance(Configuration conf){
 		return getMatrixSliceInstance(n_sub * (k_left > k_right ? k_left : k_right), conf);
 	}
 	
-	private static final MCLMatrixSlice getMatrixSliceInstance(int nnz, Configuration conf) {
-		MCLMatrixSlice result;
+	private static final <M extends MCLMatrixSlice<?>> M getMatrixSliceInstance(int nnz, Configuration conf) {
+		M result;
 		try {
-			Constructor<? extends MCLMatrixSlice> meth = matrixSliceClass.getDeclaredConstructor(Integer.class);
+			Constructor<M> meth = MCLContext.<M>getMatrixSliceClass().getDeclaredConstructor(Integer.class);
 			meth.setAccessible(true);
 			result = meth.newInstance(nnz);
 		} catch (Exception e) {
@@ -262,5 +270,15 @@ public class MCLContext implements Configurable {
 		if(vint) return WritableUtils.readVInt(in);
 		else return in.readInt();
 	}
+	
+	public static final int getIdFromIndex(long idx){
+		return (int) (idx/n_sub);
+	}
+	
+	public static final int getSubIndexFromIndex(long idx){
+		return (int) (idx % n_sub);
+	}
+	
+	protected final int k_max = getKMax();
 	
 }

@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import io.writables.Feature;
 import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
 import io.writables.Pixel;
+import io.writables.SliceId;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
@@ -63,6 +63,7 @@ public class InputJob extends Configured implements Tool {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
+			MCLContext.get(context.getConfiguration());
 			if(nb == null){
 				synchronized (InputMapper.class) {
 					if(nb == null){
@@ -70,17 +71,21 @@ public class InputJob extends Configured implements Tool {
 					}
 				}
 			}
-			idx2.col = idx1.row;
 		}
 		
 		@Override
 		protected void map(LongWritable key, Pixel value, Context context)
 				throws IOException, InterruptedException {
-			idx1.col = key;
-			idx2.row = key;
+			final long k1 = key.get();
+			idx1.id.set(MCLContext.getIdFromIndex(k1));
+			idx1.col.set(MCLContext.getSubIndexFromIndex(k1));
+			idx2.row.set(k1);
 			
 			for(Point p : nb.local(value.x, value.y, w, h, list)){
-				idx1.row.set((long) p.x + (long) w * (long) p.y);
+				final long k2 = (long) p.x + (long) w * (long) p.y;
+				idx1.row.set(k2);
+				idx2.id.set(MCLContext.getIdFromIndex(k2));
+				idx2.col.set(MCLContext.getSubIndexFromIndex(k2));
 
 				context.write(idx1, value);
 				
@@ -92,10 +97,9 @@ public class InputJob extends Configured implements Tool {
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static final class InputReducer extends Reducer<Index, Feature, LongWritable, MCLMatrixSlice>{
+	private static final class InputReducer<M extends MCLMatrixSlice<M>,V extends FeatureWritable<V>> extends Reducer<Index, V, SliceId, M>{
 		
-		private MCLMatrixSlice col = null;
+		private M col = null;
 		
 		@Override
 		protected void setup(Context context)
@@ -107,23 +111,23 @@ public class InputJob extends Configured implements Tool {
 			
 		}
 		
-		@SuppressWarnings("unchecked")
 		@Override
-		protected void reduce(final Index idx, final Iterable<Feature> pixels, Context context)
+		protected void reduce(final Index idx, final Iterable<V> pixels, Context context)
 				throws IOException, InterruptedException {
-			col.construct(idx.row, new Iterable<Float>() {
+			col.clear();
+			col.add(idx.col, idx.row, new Iterable<Float>() {
 				
 				@Override
 				public Iterator<Float> iterator() {
 					return new ValueIterator(idx, pixels.iterator());
 				}
 			});
-			col.init(idx, pixels);
-			context.getCounter(Counters.NON_NULL_VALUES).increment(col.size());
-			context.write(idx.col, col);
+
+			context.getCounter(Counters.NNZ).increment(col.size());
+			context.write(idx.id, col);
 		}
 		
-		private static final class ValueIterator<V extends Feature<V>> extends ReadOnlyIterator<Float> {
+		private final class ValueIterator extends ReadOnlyIterator<Float> {
 
 			private final Index idx;
 			private final Iterator<V> iter;
@@ -179,10 +183,10 @@ public class InputJob extends Configured implements Tool {
 		job.setReducerClass(InputReducer.class);
 
 		job.setMapOutputValueClass(Pixel.class);
-		job.setOutputKeyClass(LongWritable.class);
+		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLContext.getMatrixSliceClass());
 		job.setGroupingComparatorClass(LongWritable.Comparator.class);
-		job.setNumReduceTasks(2);
+		job.setNumReduceTasks(MCLContext.getNumThreads());
 		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
@@ -196,7 +200,10 @@ public class InputJob extends Configured implements Tool {
 	 */
 	public static void main(String[] args) throws Exception {
 		InputJob job = new InputJob();
-		new JCommander(job,args);
+		JCommander cmd = new JCommander(job);
+		cmd.addObject(MCLContext.instance);
+		cmd.parse(args);
+		
 		int rc = ToolRunner.run(job, args);
 		System.exit(rc);
 	}
