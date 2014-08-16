@@ -63,9 +63,13 @@ public class ZkMetric {
 	}
 	
 	public static final void init(Configuration conf, String path, boolean override) throws InterruptedException, ZkMetricOperationException, IOException {
+		
+		if(path == null || path.isEmpty()) {
+			logger.warn("metric path not set. value = {}");
+		}
+		
 		ZooKeeper zk = getZookeeperInstance(conf);
 		try {
-			path = "/"+path;//TODO
 			if(override && zk.exists(path, false) != null) zk.delete(path, -1);
 			zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			paths.add(path);
@@ -76,8 +80,11 @@ public class ZkMetric {
 	
 	public static final <V extends DistributedMetric<?>> V get(Configuration conf, String path) throws ZkMetricOperationException, IOException, InterruptedException{
 
+		if(path == null || path.isEmpty()) {
+			logger.warn("metric path not set. value = {}");
+		}
+		
 		try {
-			path = "/"+path;//TODO
 			ZooKeeper zk = getZookeeperInstance(conf);
 			byte[] data = zk.getData(path, false, null);
 			
@@ -98,8 +105,13 @@ public class ZkMetric {
 	}
 
 	public static void set(Configuration conf, String path, DistributedMetric<?> m) throws InterruptedException, IOException{
+		
+		if(path == null || path.isEmpty()) {
+			logger.warn("metric path not set. value = {}",m);
+			return;
+		}
+		
 		try{
-			path = "/"+path;//TODO
 			ZooKeeper zk = getZookeeperInstance(conf);
 
 			final String lock = initLock(zk, path);
@@ -137,9 +149,19 @@ public class ZkMetric {
 	}
 	
 	public static final void close(Configuration conf) throws IOException, InterruptedException{
+		
+		if(paths.isEmpty()){
+			if(zk != null) {
+				zk.close();
+				zk = null;
+			}
+			return;
+		}
+		
 		ZooKeeper zk = getZookeeperInstance(conf);
 		for(String path : paths)
 			zk.delete(path, -1, null, null);
+		paths.clear();
 		zk.close();
 		zk = null;
 	}

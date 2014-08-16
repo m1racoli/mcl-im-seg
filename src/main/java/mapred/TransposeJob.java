@@ -6,6 +6,7 @@ package mapred;
 import java.io.IOException;
 
 import io.writables.MCLMatrixSlice;
+import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
 
@@ -18,6 +19,8 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -38,16 +41,27 @@ public class TransposeJob extends Configured implements Tool {
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
 
 		private final SliceId id = new SliceId();
-		private final SubBlock<M> subBlock = new SubBlock<M>();
+		private SubBlock<M> subBlock = null;
+		
+		@Override
+		protected void setup(
+				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
+				throws IOException, InterruptedException {
+			MCLContext.get(context.getConfiguration());
+			
+			if(subBlock == null) {
+				subBlock = new SubBlock<M>();
+			}
+		}
 
 		@Override
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 
 			subBlock.id = key.get();
-			for (M subBlock : value.getSubBlocks(id)) {
-				this.subBlock.subBlock = subBlock;
-				context.write(id, this.subBlock);
+			for (M m : value.getSubBlocks(id)) {
+				subBlock.subBlock = m;
+				context.write(id, subBlock);
 			}
 		}
 	}
@@ -68,6 +82,17 @@ public class TransposeJob extends Configured implements Tool {
 
 	public static boolean run(Configuration conf, Path input, Path output)
 			throws Exception {
+		
+		Logger.getRootLogger().setLevel(Level.WARN);
+		Logger.getLogger(Job.class).setLevel(Level.INFO); //TODO progress
+		
+		Logger.getLogger("mapred").setLevel(Level.DEBUG);
+		Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+		
+		MatrixMeta meta = MatrixMeta.load(conf, input);
+		MCLContext.setKMax(meta.k_max);
+		MCLContext.set(conf);
+		
 		if (output.getFileSystem(conf).exists(output)) {
 			output.getFileSystem(conf).delete(output, true);
 		}
@@ -89,7 +114,7 @@ public class TransposeJob extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 
-		return job.waitForCompletion(false);
+		return job.waitForCompletion(true);
 	}
 
 	/**

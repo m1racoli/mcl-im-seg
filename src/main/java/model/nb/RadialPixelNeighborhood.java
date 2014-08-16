@@ -87,4 +87,21 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 				dim.height - Math.abs(off.y));
 	}
 	
+	public static int size(double r) {
+		
+		double RS = r*r; 	
+		int cnt = 0;
+		
+		for(int R = (int) Math.floor(r), x = -R; x <= R; x++){
+			double XS = x*x;
+			for(int y = -R; y <= R; y++){
+				if(y*y + XS <= RS){
+					cnt++;
+				}
+			}
+		}
+		
+		return cnt;
+	}
+	
 }

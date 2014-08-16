@@ -3,6 +3,8 @@
  */
 package mapred;
 
+import io.writables.MatrixMeta;
+
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -14,14 +16,16 @@ public class MCLJob extends AbstractMCLJob {
 	@Override
 	public int algorithm(Path input, Path output) throws Exception {
 
-		//TODO n
 		
-		int converged_colums = 0;
+		MatrixMeta meta = MatrixMeta.load(getConf(), input);
+		
+		long n = meta.n;
+		long converged_colums = 0;
 		int i = 1;
 		final Path transposed = suffix(input, "t");
 		Path m_i_1 = input;
 		
-		while(MCLContext.getDim() > converged_colums){
+		while(n > converged_colums){
 			Path m_i = suffix(input,i++);
 			
 			if(!TransposeJob.run(getConf(), m_i_1, transposed))

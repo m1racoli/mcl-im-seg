@@ -12,7 +12,7 @@ import java.util.PriorityQueue;
  */
 public class Selector extends MCLContext {
 	
-	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(k_max); //TODO only S needed
+	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(getKMax()); //TODO only S needed
 	
 	/**
 	 * @param val
@@ -33,10 +33,6 @@ public class Selector extends MCLContext {
 	}
 	
 	protected float implementSelect(float[] val, int[] selection, int n, int k) {
-		
-		if(k <= n){
-			throw new IllegalArgumentException(String.format("k (%d) <= n (%d) is not allowed",k,n));
-		}
 		
 		for(int i = 0; i < k; i++) {
 			if(queue.size() == n){

@@ -17,12 +17,12 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLContext implements
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
-		subBlock = getMatrixSubBlockInstance(conf);
+		subBlock = getMatrixSliceInstance(conf);
 	}
 	
 	@Override
 	public void write(DataOutput out) throws IOException {
-		writeLong(out, id);
+		writeInt(out, id);
 		subBlock.write(out);
 	}
 
@@ -30,6 +30,11 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLContext implements
 	public void readFields(DataInput in) throws IOException {
 		id = readInt(in);
 		subBlock.readFields(in);
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("%d: %s", id, subBlock);
 	}
 
 }

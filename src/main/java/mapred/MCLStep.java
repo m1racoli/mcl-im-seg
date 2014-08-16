@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import io.writables.CSCSlice;
 import io.writables.MCLMatrixSlice;
+import io.writables.MatrixMeta;
+import io.writables.SliceId;
+import io.writables.SubBlock;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -18,6 +21,8 @@ import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import zookeeper.DistributedLong;
 import zookeeper.DistributedLongMaximum;
@@ -26,10 +31,7 @@ import zookeeper.ZkMetric;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
-@SuppressWarnings("rawtypes")
 public class MCLStep extends Configured implements Tool {
-	
-	private static final String K_MAX = "k_max";
 	
 	@Parameter(names = "-i")
 	private String input = null;
@@ -43,9 +45,9 @@ public class MCLStep extends Configured implements Tool {
 	@Parameter(names = "-cm")
 	private boolean compress_map_output = false;
 	
-	private static final class MCLMapper extends Mapper<LongWritable, TupleWritable, LongWritable, MCLMatrixSlice> {
+	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
-		private final LongWritable id = new LongWritable();
+		private final SliceId id = new SliceId();
 		
 		@Override
 		protected void setup(Context context)
@@ -55,64 +57,70 @@ public class MCLStep extends Configured implements Tool {
 		
 		@SuppressWarnings("unchecked")
 		@Override
-		protected void map(LongWritable key, TupleWritable tuple, Context context)
+		protected void map(SliceId key, TupleWritable tuple, Context context)
 				throws IOException, InterruptedException {
 			
-			for(MCLMatrixSlice val : ((MCLMatrixSlice<?,?>) tuple.get(0)).getProductsWith(id,(MCLMatrixSlice) tuple.get(1))){
-				context.write(id, val);
-			}
+			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
+			id.set(subBlock.id);
+			M m = (M) tuple.get(0);
+			context.write(id,subBlock.subBlock.multipliedBy(m, context));
 		}
 	}
 	
-	private static final class MCLCombiner extends Reducer<LongWritable, MCLMatrixSlice, LongWritable, MCLMatrixSlice> {
+	private static final class MCLCombiner<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {
 		
-		private MCLMatrixSlice vec = null;
+		private M vec = null;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			MCLContext.get(context);
 			if(vec == null){
-				vec = MCLContext.getMatrixSliceInstance();
+				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
 		}
 		
-		@SuppressWarnings("unchecked")
 		@Override
-		protected void reduce(LongWritable col, Iterable<MCLMatrixSlice> values, Context context)
+		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
-			vec.combine(values,context);
+			vec.clear();
+			for(M m : values){
+				vec.add(m);
+			}
 			context.write(col, vec);
 		}
 	}
 	
-	public static final class MCLReducer extends Reducer<LongWritable, MCLMatrixSlice, LongWritable, MCLMatrixSlice> {		
+	public static final class MCLReducer<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {		
 		
-		private MCLMatrixSlice vec = null;
-		private DistributedLongMaximum kmax = new DistributedLongMaximum();
+		private M vec = null;
+		private int k_max = 0;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			MCLContext.get(context);
 			if(vec == null){
-				vec = MCLContext.getMatrixSliceInstance();
+				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
 		}
 		
-		@SuppressWarnings("unchecked")
 		@Override
-		protected void reduce(LongWritable col, Iterable<MCLMatrixSlice> values, Context context)
+		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
-			vec.combineAndProcess(values,context);
-			kmax.set(vec.size());
+			vec.clear();
+			for(M m : values){
+				vec.add(m);
+			}
+			
+			k_max = Math.max(k_max, vec.inflateAndPrune(context));
 			context.write(col, vec);
 		}
 		
 		@Override
 		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
-			ZkMetric.set(context.getConfiguration(), K_MAX, kmax);
+			MatrixMeta.writeKmax(context, k_max);			
 		}
 	}
 	
@@ -150,18 +158,13 @@ public class MCLStep extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
-		ZkMetric.init(getConf(), K_MAX, true);
-		
 		int rc = job.waitForCompletion(false) ? 0 : 1;
 		
-		DistributedLong kmax = ZkMetric.get(getConf(), K_MAX);
-
-		ZkMetric.close(getConf());
 		return rc;
 	}
 
 	public static boolean run(Configuration conf, Path input, Path transposed, Path output){
-		
+		//TODO
 		return false;
 	}
 	

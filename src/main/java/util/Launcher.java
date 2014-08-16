@@ -3,7 +3,11 @@
  */
 package util;
 
+import java.util.Arrays;
+
+import mapred.InputJob;
 import mapred.MCLJob;
+import mapred.TransposeJob;
 
 import org.apache.hadoop.util.ToolRunner;
 
@@ -22,11 +26,19 @@ public class Launcher {
 			errorReturn();
 		}
 		
-		switch(args[0]){
+		String command = args[0];
+		
+		args = Arrays.copyOfRange(args, 1, args.length);
+		
+		switch(command){
+		case "input":
+			InputJob.main(args);
+		case "transpose":
+			TransposeJob.main(args);
 		case "mcl":
 			System.exit(ToolRunner.run(new MCLJob(), args));
 		default:
-			System.err.println("unknown command: "+args[0]);
+			System.err.println("unknown command: "+command);
 			errorReturn();
 		}
 	}
