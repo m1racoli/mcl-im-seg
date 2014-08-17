@@ -3,6 +3,8 @@ package mapred;
 import java.util.Arrays;
 import java.util.PriorityQueue;
 
+import com.beust.jcommander.IStringConverter;
+
 /**
  * 
  * basic selector implementation
@@ -12,7 +14,7 @@ import java.util.PriorityQueue;
  */
 public class Selector extends MCLContext {
 	
-	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(getKMax()); //TODO only S needed
+	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(getSelection());
 	
 	/**
 	 * @param val
@@ -65,6 +67,19 @@ public class Selector extends MCLContext {
 		@Override
 		public int compareTo(QueueItem o) {
 			return val > o.val ? -1 : val < o.val ? 1 : 0; // unsafe. we assume non NaN floats
+		}
+	}
+	
+	public static final class ClassConverter implements IStringConverter<Class<? extends Selector>> {
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public Class<? extends Selector> convert(String str) {
+			try {
+				return (Class<? extends Selector>) Class.forName(str);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 	

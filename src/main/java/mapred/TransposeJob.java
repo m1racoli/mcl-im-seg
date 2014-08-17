@@ -4,6 +4,7 @@
 package mapred;
 
 import java.io.IOException;
+import java.util.List;
 
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
@@ -11,31 +12,18 @@ import io.writables.SliceId;
 import io.writables.SubBlock;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
 
 /**
  * @author Cedrik
  *
  */
-public class TransposeJob extends Configured implements Tool {
-
-	@Parameter(names = "-i")
-	private String input = null;
-
-	@Parameter(names = "-o")
-	private String output = null;
+public class TransposeJob extends AbstractMCLJob {
 
 	private static final class TransposeMapper<M extends MCLMatrixSlice<M>> extends
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
@@ -47,7 +35,7 @@ public class TransposeJob extends Configured implements Tool {
 		protected void setup(
 				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context.getConfiguration());
+			MCLContext.init(context.getConfiguration());
 			
 			if(subBlock == null) {
 				subBlock = new SubBlock<M>();
@@ -66,36 +54,14 @@ public class TransposeJob extends Configured implements Tool {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
-	 */
 	@Override
-	public int run(String[] args) throws Exception {
-
-		final Path inPath = new Path(input);
-		final Path outPath = new Path(output);
-
-		return run(getConf(), inPath, outPath) ? 0 : 1;
-	}
-
-	public static boolean run(Configuration conf, Path input, Path output)
+	protected MCLResult run(List<Path> inputs, Path output)
 			throws Exception {
 		
-		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger(Job.class).setLevel(Level.INFO); //TODO progress
-		
-		Logger.getLogger("mapred").setLevel(Level.DEBUG);
-		Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+		Configuration conf = getConf();
+		Path input = inputs.get(0);
 		
 		MatrixMeta meta = MatrixMeta.load(conf, input);
-		MCLContext.setKMax(meta.k_max);
-		MCLContext.set(conf);
-		
-		if (output.getFileSystem(conf).exists(output)) {
-			output.getFileSystem(conf).delete(output, true);
-		}
 
 		Job job = Job.getInstance(conf, "TransposeJob " + input.getName() + " "
 				+ output.getName());
@@ -114,7 +80,11 @@ public class TransposeJob extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 
-		return job.waitForCompletion(true);
+		MCLResult result = new MCLResult();
+		result.success = job.waitForCompletion(true);
+		
+		MatrixMeta.save(conf, output, meta);
+		return result;
 	}
 
 	/**
@@ -122,9 +92,7 @@ public class TransposeJob extends Configured implements Tool {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		TransposeJob job = new TransposeJob();
-		new JCommander(job, args);
-		System.exit(ToolRunner.run(job, args));
+		System.exit(ToolRunner.run(new TransposeJob(), args));
 	}
 
 }

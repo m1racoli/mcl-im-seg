@@ -1,6 +1,7 @@
 package mapred;
 
 import java.io.IOException;
+import java.util.List;
 
 import io.writables.CSCSlice;
 import io.writables.MCLMatrixSlice;
@@ -9,7 +10,6 @@ import io.writables.SliceId;
 import io.writables.SubBlock;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -19,31 +19,9 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.join.CompositeInputFormat;
 import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import zookeeper.DistributedLong;
-import zookeeper.DistributedLongMaximum;
-import zookeeper.ZkMetric;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-
-public class MCLStep extends Configured implements Tool {
-	
-	@Parameter(names = "-i")
-	private String input = null;
-	
-	@Parameter(names = "-t")
-	private String transposed = null;
-	
-	@Parameter(names = "-o")
-	private String output = null;
-	
-	@Parameter(names = "-cm")
-	private boolean compress_map_output = false;
+public class MCLStep extends AbstractMCLJob {
 	
 	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
@@ -52,7 +30,7 @@ public class MCLStep extends Configured implements Tool {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context);
+			MCLContext.init(context.getConfiguration());
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -74,7 +52,7 @@ public class MCLStep extends Configured implements Tool {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context);
+			MCLContext.init(context.getConfiguration());
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -99,7 +77,7 @@ public class MCLStep extends Configured implements Tool {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context);
+			MCLContext.init(context.getConfiguration());
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -125,16 +103,11 @@ public class MCLStep extends Configured implements Tool {
 	}
 	
 	@Override
-	public int run(String[] args) throws Exception {
+	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
 		final Configuration conf = getConf();
-		MCLContext.set(conf);
 		
-		final Path output = new Path(this.output);
-		
-		if(output.getFileSystem(conf).exists(output)){
-			output.getFileSystem(conf).delete(output, true);
-		}
+		MatrixMeta meta = MatrixMeta.load(conf, inputs);
 		
 		Job job = Job.getInstance(conf, "MCL Step");
 		job.setJarByClass(getClass());
@@ -142,8 +115,7 @@ public class MCLStep extends Configured implements Tool {
 		job.setInputFormatClass(CompositeInputFormat.class);
 		job.getConfiguration().set(
 				CompositeInputFormat.JOIN_EXPR,
-				CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, input, transposed));
-		SequenceFileInputFormat.setInputPaths(job, input);
+				CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
 		
 		job.setMapperClass(MCLMapper.class);
 		job.setMapOutputKeyClass(LongWritable.class);
@@ -158,24 +130,23 @@ public class MCLStep extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
-		int rc = job.waitForCompletion(false) ? 0 : 1;
+		MCLResult result = new MCLResult();
+		result.success = job.waitForCompletion(true);
 		
-		return rc;
-	}
-
-	public static boolean run(Configuration conf, Path input, Path transposed, Path output){
-		//TODO
-		return false;
+		meta.mergeKmax(conf, output);
+		MatrixMeta.save(conf, output, meta);
+		
+		result.kmax = meta.getKmax();
+		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
+		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
+		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
+		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
+		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();		
+		
+		return result;
 	}
 	
 	public static void main(String[] args) throws Exception {
-		MCLStep job = new MCLStep();
-		JCommander cmd = new JCommander();
-		cmd.setAcceptUnknownOptions(true);
-		cmd.addObject(job);
-		cmd.addObject(MCLContext.instance);
-		cmd.parse(args);
-		int rc = ToolRunner.run(job, args);
-		System.exit(rc);
+		System.exit(ToolRunner.run(new MCLStep(), args));
 	}
 }

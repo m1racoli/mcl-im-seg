@@ -6,7 +6,9 @@ package mapred;
 import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import io.writables.FeatureWritable;
 import io.writables.Index;
@@ -18,7 +20,6 @@ import io.writables.MCLMatrixSlice.MatrixEntry;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -27,32 +28,24 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import util.ReadOnlyIterator;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 /**
  * @author Cedrik
  *
  */
-public class InputJob extends Configured implements Tool {
+public class InputJob extends AbstractMCLJob {
 
 	private static final Logger logger = Logger.getLogger(InputJob.class);
+	
 	private static final String NB_RADIUS_CONF = "nb.radius";
 	private static final String DIM_WIDTH_CONF = "dim.width";
 	private static final String DIM_HEIGHT_CONF = "dim.height";
-	
-	@Parameter(names = "-i")
-	private String input = null;
-	
-	@Parameter(names = "-o")
-	private String output = null;
 	
 	@Parameter(names = "-r")
 	private Float radius = 3.0f;
@@ -63,16 +56,13 @@ public class InputJob extends Configured implements Tool {
 	@Parameter(names = "-h")
 	private int h = 300;
 	
-	@Parameter(names = "-debug")
-	private boolean debug = false;
-	
-	@Parameter(names = "-profile")
-	private boolean profile = false;
+	private IParams initParams = null;
 	
 	private static final class InputMapper extends Mapper<LongWritable, Pixel, Index, Pixel> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
 		private int w = 480;
 		private int h = 300;
+		private int nsub;
 		private final Index idx1 = new Index();
 		private final Index idx2 = new Index();
 		private static RadialPixelNeighborhood nb = null;
@@ -80,7 +70,7 @@ public class InputJob extends Configured implements Tool {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context.getConfiguration());
+			MCLContext.init(context.getConfiguration());
 			if(nb == null){
 				synchronized (InputMapper.class) {
 					if(nb == null){
@@ -90,21 +80,22 @@ public class InputJob extends Configured implements Tool {
 			}
 			w = context.getConfiguration().getInt(DIM_WIDTH_CONF, w);
 			h = context.getConfiguration().getInt(DIM_HEIGHT_CONF, h);
+			nsub = MCLContext.getNSub();
 		}
 		
 		@Override
 		protected void map(LongWritable key, Pixel value, Context context)
 				throws IOException, InterruptedException {
 			final long k1 = key.get();
-			idx1.id.set(MCLContext.getIdFromIndex(k1));
-			idx1.col.set(MCLContext.getSubIndexFromIndex(k1));
+			idx1.id.set(MCLContext.getIdFromIndex(k1,nsub));
+			idx1.col.set(MCLContext.getSubIndexFromIndex(k1,nsub));
 			idx2.row.set(k1);
 			
 			for(Point p : nb.local(value.x, value.y, w, h, list)){
 				final long k2 = (long) p.x + (long) w * (long) p.y;
 				idx1.row.set(k2);
-				idx2.id.set(MCLContext.getIdFromIndex(k2));
-				idx2.col.set(MCLContext.getSubIndexFromIndex(k2));
+				idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
+				idx2.col.set(MCLContext.getSubIndexFromIndex(k2,nsub));
 
 				context.write(idx1, value);
 				
@@ -119,11 +110,12 @@ public class InputJob extends Configured implements Tool {
 	private static final class InputReducer<M extends MCLMatrixSlice<M>,V extends FeatureWritable<V>> extends Reducer<Index, V, SliceId, M>{
 		
 		private M col = null;
+		private int kmax = 0;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.get(context);
+			MCLContext.init(context.getConfiguration());
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -133,7 +125,7 @@ public class InputJob extends Configured implements Tool {
 		@Override
 		protected void reduce(final Index idx, final Iterable<V> pixels, Context context)
 				throws IOException, InterruptedException {
-			col.fill(new Iterable<MatrixEntry>() {
+			int kmax_tmp = col.fill(new Iterable<MatrixEntry>() {
 				
 				@Override
 				public Iterator<MatrixEntry> iterator() {
@@ -142,9 +134,16 @@ public class InputJob extends Configured implements Tool {
 				
 			});
 			
+			if(kmax < kmax_tmp) kmax = kmax_tmp;
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
 			context.getCounter(Counters.NNZ).increment(col.size());
 			context.write(idx.id, col);
+		}
+		
+		@Override
+		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
+				throws IOException, InterruptedException {
+			MatrixMeta.writeKmax(context, kmax);
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<MatrixEntry> {
@@ -178,23 +177,17 @@ public class InputJob extends Configured implements Tool {
 				entry.val = f1.dist(iter.next()); //TODO dist
 				return entry;
 			}
-
-		}
-		
+		}		
 	}
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
 	 */
 	@Override
-	public int run(String[] args) throws Exception {
-
-		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger(Job.class).setLevel(Level.INFO); //TODO progress
+	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
-		if (debug) {
-			Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+		if(inputs == null || inputs.size() == 0 || output == null) {
+			throw new RuntimeException(String.format("invalid input/output: int=%s, out=%s", inputs,output));
 		}
 		
 		final Configuration conf = getConf();
@@ -202,33 +195,16 @@ public class InputJob extends Configured implements Tool {
 		conf.setInt(DIM_HEIGHT_CONF, h);
 		conf.setInt(DIM_WIDTH_CONF, w);
 		
-//		if(profile) {
-//			conf.setBoolean("mapreduce.task.profile", profile);
-//			conf.set("mapreduce.task.profile.params", "-agentlib:hprof=cpu=samples,heap=sites,force=n,thread=n,verbose=n,file=%s");
-//			conf.setInt("mapreduce.map.memory.mb",1024);
-//			conf.setInt("mapreduce.reduce.memory.mb",1024);
-//		}
+		int kmax = RadialPixelNeighborhood.size(radius);
+		long n = (long) w * (long) h;		
 		
-		int k_max = RadialPixelNeighborhood.size(radius);
-		long n = (long) w * (long) h;
-		
-		MatrixMeta meta = MatrixMeta.create(n, MCLContext.getNSub(), k_max);		
-		MCLContext.setKMax(k_max);
-		MCLContext.setN(n);
-		MCLContext.set(conf);
-		
-		final Path input = new Path(this.input);
-		final Path output = new Path(this.output);
-		
-		if(output.getFileSystem(conf).exists(output)){
-			output.getFileSystem(conf).delete(output, true);
-		}
+		MatrixMeta meta = MatrixMeta.create(conf, n, kmax);
 		
 		Job job = Job.getInstance(conf, "Input to "+output.getName());
 		job.setJarByClass(getClass());
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
-		SequenceFileInputFormat.setInputPaths(job, input);		
+		SequenceFileInputFormat.setInputPaths(job, inputs.get(0));		
 
 		job.setMapperClass(InputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
@@ -243,28 +219,35 @@ public class InputJob extends Configured implements Tool {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
-		int rc = job.waitForCompletion(debug) ? 0 : 1;
+		MCLResult result = new MCLResult();
 		
-		if(rc != 0) return rc;
+		result.success = job.waitForCompletion(true);
 		
-		MatrixMeta.save(conf, output, meta);
+		if(!result.success) return result;
+		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
 		
-		return rc;
+		meta.mergeKmax(conf, output);
+		result.kmax = meta.getKmax();
+		
+		MatrixMeta.save(conf, output, meta);		
+		return result;
 	}
 
+	@Override
+	protected Iterable<IParams> getParams() {
+		if (initParams == null) {
+			initParams = new MCLInitParams();
+		}
+		
+		return Arrays.asList(initParams);
+	}
+	
 	/**
 	 * @param args
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		InputJob job = new InputJob();
-		JCommander cmd = new JCommander(job);
-		cmd.setAcceptUnknownOptions(true);
-		cmd.addObject(MCLContext.instance);
-		cmd.parse(args);
-		
-		int rc = ToolRunner.run(job, args);
-		System.exit(rc);
+		System.exit(ToolRunner.run(new InputJob(), args));
 	}
 
 }

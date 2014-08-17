@@ -25,12 +25,12 @@ import com.beust.jcommander.Parameter;
  * @author Cedrik
  *
  */
-public abstract class AbstractMCLJob extends Configured implements Tool {
+public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
-	private static final Logger logger = LoggerFactory.getLogger(AbstractMCLJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(AbstractMCLAlgorithm.class);
 	
 	@Parameter(names = "-i", required = true)
-	private List<Path> inputs = null;
+	private Path input = null;
 	
 	@Parameter(names = "-o", required = true)
 	private Path output = null;
@@ -44,7 +44,11 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	@Parameter(names = "-verbose")
 	private boolean verbose = false;
 	
+	@Parameter(names = "-iter")
+	private int max_iterations = MCLDefaults.max_iterations;
+	
 	private final MCLParams params = new MCLParams();
+	private final MCLInitParams initParams = new MCLInitParams();
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
@@ -54,6 +58,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 		JCommander cmd = new JCommander(this);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.addObject(params);
+		cmd.addObject(initParams);
 		for(IParams params : getParams()){
 			cmd.addObject(params);
 		}
@@ -78,30 +83,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 			params.apply(getConf());
 		}
 		
-		FileSystem outFs = output.getFileSystem(getConf());
-		if(outFs.exists(output)){
-			outFs.delete(output, true);
-		}
-		
-		MCLResult result = run(inputs, output);
-		
-		if (result == null) {
-			logger.error("result == null");
-			return -1;
-		}
-		
-		System.out.println(result);
-		
-		return result.success ? 0 : 1;
-	}
-	
-	public final MCLResult run(Configuration conf, Path input, Path output) throws Exception {
-		return run(conf, Collections.singletonList(input), output);
-	}
-	
-	public final MCLResult run(Configuration conf, List<Path> inputs, Path output) throws Exception {
-		setConf(conf);
-		return run(inputs, output);
+		return run(input, output);
 	}
 	
 	/**
@@ -112,6 +94,14 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 		return Collections.emptyList();
 	}
 	
-	protected abstract MCLResult run(List<Path> inputs, Path output) throws Exception;
+	protected abstract int run(Path input, Path output) throws Exception;
 	
+	public static final Path suffix(Path path, Object suffix){
+		return new Path(path.getParent(),String.format("%s_%s", path.getName(),suffix));
+	}
+	
+	public final int getMaxIterations() {
+		return max_iterations;
+	}
+
 }

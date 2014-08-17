@@ -9,10 +9,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import mapred.MCLContext;
-
+import mapred.MCLInstance;
+import mapred.PrintMatrix;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.TaskInputOutputContext;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
+import com.beust.jcommander.IStringConverter;
 
 import util.ReadOnlyIterator;
 
@@ -20,12 +22,13 @@ import util.ReadOnlyIterator;
  * @author Cedrik
  *
  */
-public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLContext implements Writable {
+public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLInstance implements Writable {
 	
-	protected final long n = getN();
-	protected final int k_max = getKMax();
-	protected final int n_sub = getNSub();
-	protected final int max_nnz = k_max * n_sub;
+	protected final double inflation = getInflation();
+	protected final float cutoff = getCutoff();
+	protected final int selection = getSelection();
+	protected final PrintMatrix print_matrix = getPrintMatrix();
+	protected final int max_nnz = kmax * nsub;
 	
 	/**
 	 *  clear contents
@@ -37,10 +40,9 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLCon
 	 * @param col column of current value
 	 * @param row row of current value
 	 * @param values
+	 * @return kmax
 	 */
-	public abstract void fill(Iterable<MatrixEntry> entries);
-	
-	
+	public abstract int fill(Iterable<MatrixEntry> entries);	
 	
 	public void fill(int[] col, long[] row, float[] val) {
 		
@@ -72,7 +74,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLCon
 	 * @param M to multiply with
 	 * @return this multiplied by m
 	 */
-	public abstract M multipliedBy(final M m, final TaskInputOutputContext<?, ?, ?, ?> context);
+	public abstract M multipliedBy(final M m, final TaskAttemptContext context);
 	
 	/**
 	 * @param id to write index of current sub block to
@@ -89,7 +91,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLCon
 	 * inflate, prune and normalize
 	 * @return max column size
 	 */
-	public abstract int inflateAndPrune(TaskInputOutputContext<?, ?, ?, ?> context);
+	public abstract int inflateAndPrune(TaskAttemptContext context);
 	
 	public final boolean isEmpty(){
 		return 0 == size();
@@ -141,18 +143,18 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLCon
 		switch (getPrintMatrix()) {
 		case ALL:
 			
-			float[] matrix = new float[(int) (n*n_sub)];
+			float[] matrix = new float[(int) (n*nsub)];
 			Arrays.fill(matrix, 0.0f);
 			
 			for(MatrixEntry e : dump()) {
-				matrix[(int) (e.col + (n_sub * e.row))] = e.val;
+				matrix[(int) (e.col + (nsub * e.row))] = e.val;
 			}
 			
 			StringBuilder builder = new StringBuilder();
 			for(int i = 0; i < n; i++) {
-				int off = i*n_sub;
+				int off = i*nsub;
 				builder.append('|');
-				for(int j = 0; j < n_sub; j++) {
+				for(int j = 0; j < nsub; j++) {
 					float v = matrix[j + off];
 					builder.append(v == 0.0f ? "     " : String.format(" %3.2f", v));
 				}
@@ -166,5 +168,19 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLCon
 			
 			return String.format("[nnz: %d]", size);
 		}
+	}
+	
+	public static class ClassConverter implements IStringConverter<Class<? extends MCLMatrixSlice<?>>> {
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public Class<? extends MCLMatrixSlice<?>> convert(String str) {
+			try {
+				return (Class<? extends MCLMatrixSlice<?>>) Class.forName(str);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
 	}
 }

@@ -9,20 +9,25 @@ import java.io.IOException;
 import io.writables.CSCSlice;
 import io.writables.SliceId;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import mapred.MCLConfigHelper;
 import mapred.MCLContext;
+import mapred.PrintMatrix;
 
 public class CSCSliceTest extends MCLContext {
 
 	public static void main(String[] args) throws IOException {
 		
-		setN(9);
-		setNSub(3);
-		setKMax(9);
-		setPrintMatrix(PrintMatrix.ALL);
-		Logger.getLogger(CSCSlice.class).setLevel(Level.DEBUG);
+		Configuration conf = new Configuration();
+		MCLConfigHelper.setN(conf, 6);
+		MCLConfigHelper.setNSub(conf, 3);
+		MCLConfigHelper.setKMax(conf, 9);
+		MCLConfigHelper.setPrintMatrix(conf, PrintMatrix.ALL);
+		MCLConfigHelper.setDebug(conf, true);
+		MCLContext.init(conf);
 		
 		int[] col = new int[] {1,0,1,0,1,2,2,2};
 		long[] row = new long[] {0,1,2,4,5,0,1,4};
