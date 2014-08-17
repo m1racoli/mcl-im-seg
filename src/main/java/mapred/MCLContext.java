@@ -3,6 +3,8 @@
  */
 package mapred;
 
+import java.util.Map.Entry;
+
 import io.writables.MCLMatrixSlice;
 
 import org.apache.hadoop.conf.Configuration;
@@ -118,6 +120,9 @@ public class MCLContext {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
 			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
 			//TODO package
+			for(Entry<String, String> e : conf.getValByRegex("mcl.*").entrySet()){
+				logger.debug("{}: {}",e.getKey(),e.getValue());
+			}
 		}
 	}
 	

@@ -135,8 +135,9 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				for(int i = cs; i < l; i++) {
 					val[i] /= col_sum;
 				}
+				
 				kmax = Math.max(kmax, l-cs);
-
+				
 				col_sum = 0.0f;
 				last_row = -1;				
 				current_col = entry.col;

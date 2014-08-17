@@ -3,12 +3,7 @@
  */
 package mapred;
 
-import java.util.Map.Entry;
-
 import org.apache.hadoop.conf.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.beust.jcommander.Parameter;
 
 /**
@@ -16,8 +11,6 @@ import com.beust.jcommander.Parameter;
  *
  */
 public class MCLParams {
-	
-	private static final Logger logger = LoggerFactory.getLogger(MCLParams.class);
 	
 	@Parameter(names = "-I")
 	private double inflation = MCLDefaults.inflation;
@@ -37,9 +30,6 @@ public class MCLParams {
 	@Parameter(names = "-print-matrix")
 	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
 	
-	@Parameter(names = "-debug")
-	private boolean debug = false;
-	
 	public void apply(Configuration conf) {
 		MCLConfigHelper.setInflation(conf, inflation);
 		MCLConfigHelper.setCutoff(conf, cutoff);
@@ -47,12 +37,5 @@ public class MCLParams {
 		MCLConfigHelper.setSelection(conf, selection);
 		MCLConfigHelper.setSelectorClass(conf, selectorClass);
 		MCLConfigHelper.setPrintMatrix(conf, printMatrix);
-		MCLConfigHelper.setDebug(conf, debug);
-		
-		if (logger.isDebugEnabled()) {
-			for(Entry<String, String> e : conf.getValByRegex("mcl.*").entrySet()){
-				logger.debug("{}: {}",e.getKey(),e.getValue());
-			}
-		}
 	}
 }

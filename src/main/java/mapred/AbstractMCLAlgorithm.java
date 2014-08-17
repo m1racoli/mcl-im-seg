@@ -5,6 +5,7 @@ package mapred;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -64,6 +65,14 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 		cmd.parse(args);
 		
+		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
+		params.apply(getConf());
+		initParams.apply(getConf());
+		
+		for(IParams params : getParams()) {
+			params.apply(getConf());
+		}
+		
 		org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
 		
 		if (verbose) {
@@ -74,13 +83,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
 			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
 			//TODO package
-		}
-		
-		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
-		params.apply(getConf());
-		
-		for(IParams params : getParams()) {
-			params.apply(getConf());
+			MCLConfigHelper.setDebug(getConf(), true);
+			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
+				logger.debug("{}: {}",e.getKey(),e.getValue());
+			}
 		}
 		
 		return run(input, output);

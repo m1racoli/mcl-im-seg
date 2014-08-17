@@ -107,7 +107,8 @@ public class MCLStep extends AbstractMCLJob {
 		
 		final Configuration conf = getConf();
 		
-		MatrixMeta meta = MatrixMeta.load(conf, inputs);
+		MatrixMeta meta0 = MatrixMeta.load(conf, inputs.get(0));
+		MatrixMeta meta1 = MatrixMeta.load(conf, inputs.get(1));
 		
 		Job job = Job.getInstance(conf, "MCL Step");
 		job.setJarByClass(getClass());

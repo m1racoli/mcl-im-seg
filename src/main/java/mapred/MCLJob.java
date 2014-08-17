@@ -7,6 +7,8 @@ import java.util.Arrays;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Cedrik
@@ -14,35 +16,39 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class MCLJob extends AbstractMCLAlgorithm {
 
+	private static final Logger logger = LoggerFactory.getLogger(MCLJob.class);
+	
 	@Override
 	public int run(Path input, Path output) throws Exception {
 
-		//TODO input job
+		int i = 0;
+		Path m_i_1 = suffix(input,i++);
 		
-		long n = 0; //TODO
+		MCLResult result = new InputJob().run(getConf(), input, m_i_1);
+		logger.info("{}",result);
+		long n = result.n;
 		long converged_colums = 0;
-		int i = 1;
+		
 		final Path transposed = suffix(input, "t");
-		Path m_i_1 = input;
 		TransposeJob transpose = new TransposeJob();
 		MCLStep mclStep = new MCLStep();
 		
 		while(n > converged_colums && i < getMaxIterations()){
 			Path m_i = suffix(input,i++);
 			
-			MCLResult transposeResult = transpose.run(getConf(), m_i_1, transposed);
-			if (transposeResult == null || !transposeResult.success) {
+			result = transpose.run(getConf(), m_i_1, transposed);
+			if (result == null || !result.success) {
 				return 1;
 			}
 				
 			
-			MCLResult stepResult = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
+			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
 			
-			if (stepResult == null || !stepResult.success) {
+			if (result == null || !result.success) {
 				return 1;
 			}
-			
-			converged_colums = stepResult.homogenous_columns;			
+			logger.info("{}",result);
+			converged_colums = result.homogenous_columns;
 			m_i_1 = m_i;
 		}
 		

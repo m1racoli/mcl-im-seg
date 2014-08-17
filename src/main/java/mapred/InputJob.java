@@ -29,7 +29,8 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.ReadOnlyIterator;
 
@@ -41,7 +42,7 @@ import com.beust.jcommander.Parameter;
  */
 public class InputJob extends AbstractMCLJob {
 
-	private static final Logger logger = Logger.getLogger(InputJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(InputJob.class);
 	
 	private static final String NB_RADIUS_CONF = "nb.radius";
 	private static final String DIM_WIDTH_CONF = "dim.width";
@@ -144,6 +145,7 @@ public class InputJob extends AbstractMCLJob {
 		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
 			MatrixMeta.writeKmax(context, kmax);
+			//TODO multiple otput or correct path
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<MatrixEntry> {
@@ -226,8 +228,14 @@ public class InputJob extends AbstractMCLJob {
 		if(!result.success) return result;
 		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
 		
+//		while(job.cleanupProgress() < 1) {
+//			logger.debug("wait for cleanup");
+//			Thread.sleep(200);
+//		}
+		
 		meta.mergeKmax(conf, output);
 		result.kmax = meta.getKmax();
+		result.n = n;
 		
 		MatrixMeta.save(conf, output, meta);		
 		return result;

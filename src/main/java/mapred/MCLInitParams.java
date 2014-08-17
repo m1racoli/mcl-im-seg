@@ -3,14 +3,9 @@ package mapred;
 import io.writables.MCLMatrixSlice;
 
 import org.apache.hadoop.conf.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.beust.jcommander.Parameter;
 
 public class MCLInitParams implements IParams {
-
-	private static final Logger logger = LoggerFactory.getLogger(MCLInitParams.class);
 	
 	@Parameter(names = "-nsub")
 	private int nsub = MCLDefaults.nsub;
@@ -29,15 +24,5 @@ public class MCLInitParams implements IParams {
 		MCLConfigHelper.setMatrixSliceClass(conf, matrixSlice);
 		MCLConfigHelper.setNumThreads(conf, te);
 		MCLConfigHelper.setUseVarints(conf, varints);
-		
-		if(logger.isDebugEnabled()) {
-			logger.debug("nsub: {}",nsub);
-			logger.debug("matrixSlice: {}",matrixSlice);
-			logger.debug("te: {}",te);
-			logger.debug("varints: {}",varints);
-		}
 	}
-	
-	
-	
 }

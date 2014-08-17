@@ -18,6 +18,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,11 +73,13 @@ public class MatrixMeta implements Writable {
 	
 	public static <M extends MCLMatrixSlice<M>> void writeKmax(Reducer<?, ?, SliceId, M>.Context context, int kmax) throws IOException {
 		int partition = context.getTaskAttemptID().getId();
-		Path path = context.getWorkingDirectory();
+		Path path = FileOutputFormat.getOutputPath(context);
 		FileSystem fs = path.getFileSystem(context.getConfiguration());
-		FSDataOutputStream outputStream = fs.create(new Path(path,String.format("%s%5d", KMAX_PREFIX, partition)), (short) 1);
+		Path output = new Path(path,String.format("%s%05d", KMAX_PREFIX, partition, (short) 1));
+		FSDataOutputStream outputStream = fs.create(output);
 		outputStream.writeInt(kmax);
 		outputStream.close();
+		logger.info("kmax {} writen to {}",kmax,output);
 	}
 	
 	public void mergeKmax(Configuration conf, Path path) throws IOException {
@@ -89,6 +92,7 @@ public class MatrixMeta implements Writable {
 			int k = inputStream.readInt();
 			inputStream.close();
 			fs.delete(file, false);
+			logger.debug("from {}: kmax = {}",file,k);
 			if(k_max < k) k_max = k;
 		}
 		
@@ -114,11 +118,8 @@ public class MatrixMeta implements Writable {
 		meta.varints = MCLConfigHelper.getUseVarints(conf);
 		MCLConfigHelper.setN(conf, n);
 		MCLConfigHelper.setKMax(conf, kmax);
+		logger.debug("created {} ",meta);
 		return meta;
-	}
-	
-	public static MatrixMeta load(Configuration conf, List<Path> paths) throws IOException {
-		return load(conf, (Path[]) paths.toArray());
 	}
 	
 	/**
@@ -190,6 +191,6 @@ public class MatrixMeta implements Writable {
 	
 	@Override
 	public String toString() {
-		return String.format("[n: %d, n_sub: %d, k_max: %d]", n,nsub,kmax);
+		return String.format("[n: %d, n_sub: %d, k_max: %d, varints: %s]", n,nsub,kmax,varints);
 	}
 }
