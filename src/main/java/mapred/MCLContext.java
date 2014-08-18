@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 
 import io.writables.MCLMatrixSlice;
 
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.Level;
@@ -17,113 +18,71 @@ import org.slf4j.LoggerFactory;
  * @author Cedrik Neumann
  *
  */
-public class MCLContext {
+public class MCLContext implements Configurable {
 
 	private static final Logger logger = LoggerFactory.getLogger(MCLContext.class);
 
-	private static boolean init = false;
-	private static int kmax = MCLDefaults.kmax;
-	private static long n = MCLDefaults.n;
-	private static int nsub = MCLDefaults.nsub;
-	private static Class<? extends MCLMatrixSlice<?>> matrixSliceClass = MCLDefaults.matrixSliceClass;
-	private static int te = MCLDefaults.te;
-	private static boolean varints = MCLDefaults.varints;	
-	private static double inflation = MCLDefaults.inflation;
-	private static float cutoff = MCLDefaults.cutoff;
-	private static int cutoff_inv = MCLDefaults.cutoff_inv;
-	private static int selection = MCLDefaults.selection;
-	private static Class<? extends Selector> selectorClass = MCLDefaults.selectorClass;
-	private static PrintMatrix print_matrix = MCLDefaults.printMatrix;
-	private static boolean debug = false;
+	private static Configuration conf = null;
 	
-	public static final int getKMax(){
-		return kmax;
+	protected static final int getKMax(){
+		return MCLConfigHelper.getKMax(conf);
 	}
 
-	public static final long getN() {
-		return n;
+	protected static final long getN() {
+		return MCLConfigHelper.getN(conf);
 	}
 
-	public static final int getNSub(){
-		return nsub;
+	protected static final int getNSub(){
+		return MCLConfigHelper.getNSub(conf);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static final <M extends MCLMatrixSlice<M>> Class<M> getMatrixSliceClass(){
-		return (Class<M>) matrixSliceClass;
+	//TODO MCL ConfigHelper
+	public static final <M extends MCLMatrixSlice<M>> Class<M> getMatrixSliceClass(Configuration conf){
+		return MCLConfigHelper.getMatrixSliceClass(conf);
 	}
 	
+	//TODO MCL ConfigHelper
 	public static final <M extends MCLMatrixSlice<M>> M getMatrixSliceInstance(Configuration conf) {
-		return ReflectionUtils.newInstance(MCLContext.<M>getMatrixSliceClass(), conf);
+		return ReflectionUtils.newInstance(MCLContext.<M>getMatrixSliceClass(conf), conf);
 	}
 
-	public static final int getNumThreads(){
-		return te;
+	protected static final int getNumThreads(){
+		return MCLConfigHelper.getNumThreads(conf);
 	}
 
-	public static final boolean getUseVarints() {
-		return varints;
+	protected static final boolean getUseVarints() {
+		return MCLConfigHelper.getUseVarints(conf);
 	}
 	
-	public static final double getInflation(){
-		return inflation;
+	protected static final double getInflation(){
+		return MCLConfigHelper.getInflation(conf);
 	}
 
 	/**
 	 * @return max(p,1/P)
 	 */
-	public static final float getCutoff() {
-		return Math.max(cutoff, 1.0f/cutoff_inv);
+	protected static final float getCutoff() {
+		return Math.max(MCLConfigHelper.getCutoff(conf), 1.0f/MCLConfigHelper.getCutoffInv(conf));
 	}
 
-	public static final int getSelection(){
-		return selection;
+	protected static final int getSelection(){
+		return MCLConfigHelper.getSelection(conf);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static final <S extends Selector> Class<S> getSelectorClass() {
-		return (Class<S>) selectorClass;
+	protected static final <S extends Selector> Class<S> getSelectorClass() {
+		return MCLConfigHelper.getSelectorClass(conf);
 	}
 	
-	public static final <S extends Selector> S getSelectorInstance(Configuration conf) {
+	protected static final <S extends Selector> S getSelectorInstance() {
 		return ReflectionUtils.newInstance(MCLContext.<S>getSelectorClass(), conf);
 	}
 	
-	public static final PrintMatrix getPrintMatrix() {
-		return print_matrix;
+	protected static final PrintMatrix getPrintMatrix() {
+		return MCLConfigHelper.getPrintMatrix(conf);
 	}
 	
-	public static final boolean getDebug() {
-		return debug;
-	}
-	
-	public static final void init(Configuration conf) {
-		if(init)
-			return;
-		
-		init = true;
-		kmax = MCLConfigHelper.getKMax(conf);
-		n = MCLConfigHelper.getN(conf);
-		nsub = MCLConfigHelper.getNSub(conf);
-		matrixSliceClass = MCLConfigHelper.getMatrixSliceClass(conf);
-		te = MCLConfigHelper.getNumThreads(conf);
-		varints = MCLConfigHelper.getUseVarints(conf);
-		inflation = MCLConfigHelper.getInflation(conf);
-		cutoff = MCLConfigHelper.getCutoff(conf);
-		cutoff_inv = MCLConfigHelper.getCutoffInv(conf);
-		selection = MCLConfigHelper.getSelection(conf);
-		selectorClass = MCLConfigHelper.getSelectorClass(conf);
-		print_matrix = MCLConfigHelper.getPrintMatrix(conf);
-		debug = MCLConfigHelper.getDebug(conf);
-		
-		if (debug) {
-			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
-			//TODO package
-			for(Entry<String, String> e : conf.getValByRegex("mcl.*").entrySet()){
-				logger.debug("{}: {}",e.getKey(),e.getValue());
-			}
-		}
+	protected static final boolean getDebug() {
+		return MCLConfigHelper.getDebug(conf);
 	}
 	
 	public static final int getIdFromIndex(long idx, int nsub){
@@ -132,5 +91,27 @@ public class MCLContext {
 	
 	public static final int getSubIndexFromIndex(long idx, int nsub){
 		return (int) (idx % nsub); //TODO tune
+	}
+
+	@Override
+	public void setConf(Configuration conf) {
+		if(MCLContext.conf == null) {
+			MCLContext.conf = conf;
+			
+			if (getDebug()) {
+				org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
+				org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+				//TODO package
+				for(Entry<String, String> e : conf.getValByRegex("mcl.*").entrySet()){
+					logger.debug("{}: {}",e.getKey(),e.getValue());
+				}
+			}
+		}		
+	}
+
+	@Override
+	public Configuration getConf() {
+		// TODO Auto-generated method stub
+		return null;
 	}	
 }

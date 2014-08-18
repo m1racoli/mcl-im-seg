@@ -6,17 +6,17 @@ import java.io.IOException;
 
 import mapred.MCLInstance;
 
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 
-public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implements Writable, Configurable {
+public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implements Writable {
 
 	public int id = 0;
 	public M subBlock = null;
 	
 	@Override
 	public void setConf(Configuration conf) {
+		super.setConf(conf);
 		subBlock = getMatrixSliceInstance(conf);
 	}
 	
@@ -35,11 +35,6 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implement
 	@Override
 	public String toString() {
 		return String.format("%d: %s", id, subBlock);
-	}
-
-	@Override
-	public Configuration getConf() {
-		throw new UnsupportedOperationException("SubBlock.class has no Configuration");
 	}
 
 }

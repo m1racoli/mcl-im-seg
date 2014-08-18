@@ -16,6 +16,7 @@ import java.util.Queue;
 import mapred.Counters;
 import mapred.Selector;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +31,23 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 
 	private static final Logger logger = LoggerFactory.getLogger(CSCSlice.class);
 	
-	private final float[] val;
-	private final long[] rowInd;
-	private final int[] colPtr;
+	private float[] val = null;
+	private long[] rowInd = null;
+	private int[] colPtr = null;
 	
 	private boolean top_aligned = true;
 	private transient Selector selector = null;
 	private transient SubBlockView view = null;
 
-	public CSCSlice(){
+	public CSCSlice(){}
+	
+	public CSCSlice(Configuration conf){
+		setConf(conf);
+	}
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
 		val = new float[max_nnz];
 		rowInd = new long[max_nnz];
 		colPtr = new int[nsub+1];
@@ -362,7 +371,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		top_aligned = !top_aligned;
 		
 		if(selector == null){
-			selector = new Selector(); //TODO custom class
+			selector = getSelectorInstance();
 		}
 		
 		final int[] selection = new int[kmax];

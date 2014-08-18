@@ -31,19 +31,8 @@ public class TransposeJob extends AbstractMCLJob {
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
 
 		private final SliceId id = new SliceId();
-		private SubBlock<M> subBlock = null;
+		private SubBlock<M> subBlock = new SubBlock<M>();
 		
-		@Override
-		protected void setup(
-				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
-				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
-			
-			if(subBlock == null) {
-				subBlock = new SubBlock<M>();
-			}
-		}
-
 		@Override
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
@@ -53,16 +42,6 @@ public class TransposeJob extends AbstractMCLJob {
 				subBlock.subBlock = m;
 				context.write(id, subBlock);
 			}
-		}
-	}
-	
-	private static final class NReducer extends Reducer<Writable, Writable, Writable, Writable> {
-		
-		@Override
-		protected void setup(
-				Reducer<Writable, Writable, Writable, Writable>.Context context)
-				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 		}
 	}
 
@@ -87,14 +66,13 @@ public class TransposeJob extends AbstractMCLJob {
 		job.setMapOutputValueClass(SubBlock.class);
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(SubBlock.class);
-		job.setReducerClass(NReducer.class); //TODO no need
-		job.setNumReduceTasks(MCLContext.getNumThreads());
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 
 		MCLResult result = new MCLResult();
-		result.success = job.waitForCompletion(true);
+		result.run(job);
 		
 		MatrixMeta.save(conf, output, meta);
 		return result;

@@ -20,8 +20,12 @@ import org.apache.hadoop.mapreduce.lib.join.CompositeInputFormat;
 import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MCLStep extends AbstractMCLJob {
+	
+	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
 	
 	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
@@ -30,7 +34,6 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -52,7 +55,6 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -77,7 +79,6 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -105,10 +106,27 @@ public class MCLStep extends AbstractMCLJob {
 	@Override
 	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
+		if(inputs == null || inputs.size() < 2 || output == null){
+			throw new RuntimeException(String.format("invalid input/output: in=%s, out=%s",inputs,output));
+		}
+		
 		final Configuration conf = getConf();
 		
-		MatrixMeta meta0 = MatrixMeta.load(conf, inputs.get(0));
+		MatrixMeta meta = MatrixMeta.load(conf, inputs.get(0));
 		MatrixMeta meta1 = MatrixMeta.load(conf, inputs.get(1));
+		
+		if(inputs.size() == 2){
+			logger.debug("num inputs = 2. mcl step without comparison of iterants");
+			MatrixMeta.check(meta,meta1);
+			meta.setKmax(meta.getKmax() * meta1.getKmax());
+		} else {
+			logger.debug("num inputs > 2. mcl step with comparison of iterants");
+			MatrixMeta meta2 = MatrixMeta.load(conf, inputs.get(2));
+			MatrixMeta.check(meta,meta1,meta2);
+			meta.setKmax(Math.max(meta.getKmax() * meta1.getKmax(),meta2.getKmax()));
+		}
+		
+		meta.apply(conf);
 		
 		Job job = Job.getInstance(conf, "MCL Step");
 		job.setJarByClass(getClass());
@@ -119,20 +137,20 @@ public class MCLStep extends AbstractMCLJob {
 				CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
 		
 		job.setMapperClass(MCLMapper.class);
-		job.setMapOutputKeyClass(LongWritable.class);
+		job.setMapOutputKeyClass(SliceId.class);
 		job.setMapOutputValueClass(CSCSlice.class);
-		job.setOutputKeyClass(LongWritable.class);
+		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(CSCSlice.class);
 		job.setCombinerClass(MCLCombiner.class);
 		job.setReducerClass(MCLReducer.class);
 		job.setGroupingComparatorClass(LongWritable.Comparator.class);
-		job.setNumReduceTasks(MCLContext.getNumThreads());
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
 		MCLResult result = new MCLResult();
-		result.success = job.waitForCompletion(true);
+		result.run(job);
 		
 		meta.mergeKmax(conf, output);
 		MatrixMeta.save(conf, output, meta);

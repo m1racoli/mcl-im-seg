@@ -60,7 +60,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.addObject(params);
 		cmd.addObject(initParams);
-		for(IParams params : getParams()){
+		for(Applyable params : getParams()){
 			cmd.addObject(params);
 		}
 		cmd.parse(args);
@@ -69,7 +69,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		params.apply(getConf());
 		initParams.apply(getConf());
 		
-		for(IParams params : getParams()) {
+		for(Applyable params : getParams()) {
 			params.apply(getConf());
 		}
 		
@@ -96,7 +96,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 * override for more params which get applied to config
 	 * @return additional params
 	 */
-	protected Iterable<IParams> getParams() {
+	protected Iterable<Applyable> getParams() {
 		return Collections.emptyList();
 	}
 	

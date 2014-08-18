@@ -57,7 +57,7 @@ public class InputJob extends AbstractMCLJob {
 	@Parameter(names = "-h")
 	private int h = 300;
 	
-	private IParams initParams = null;
+	private Applyable initParams = null;
 	
 	private static final class InputMapper extends Mapper<LongWritable, Pixel, Index, Pixel> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
@@ -71,7 +71,6 @@ public class InputJob extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 			if(nb == null){
 				synchronized (InputMapper.class) {
 					if(nb == null){
@@ -81,7 +80,7 @@ public class InputJob extends AbstractMCLJob {
 			}
 			w = context.getConfiguration().getInt(DIM_WIDTH_CONF, w);
 			h = context.getConfiguration().getInt(DIM_HEIGHT_CONF, h);
-			nsub = MCLContext.getNSub();
+			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
 		}
 		
 		@Override
@@ -116,7 +115,6 @@ public class InputJob extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			MCLContext.init(context.getConfiguration());
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
@@ -214,16 +212,15 @@ public class InputJob extends AbstractMCLJob {
 
 		job.setMapOutputValueClass(Pixel.class);
 		job.setOutputKeyClass(SliceId.class);
-		job.setOutputValueClass(MCLContext.getMatrixSliceClass());
+		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
-		job.setNumReduceTasks(MCLContext.getNumThreads());
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
 		MCLResult result = new MCLResult();
-		
-		result.success = job.waitForCompletion(true);
+		result.run(job);
 		
 		if(!result.success) return result;
 		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
@@ -242,7 +239,7 @@ public class InputJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Iterable<IParams> getParams() {
+	protected Iterable<Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}

@@ -9,8 +9,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import mapred.MCLDefaults;
 import mapred.MCLInstance;
 import mapred.PrintMatrix;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
@@ -24,11 +27,21 @@ import util.ReadOnlyIterator;
  */
 public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLInstance implements Writable {
 	
-	protected final double inflation = getInflation();
-	protected final float cutoff = getCutoff();
-	protected final int selection = getSelection();
-	protected final PrintMatrix print_matrix = getPrintMatrix();
-	protected final int max_nnz = kmax * nsub;
+	protected double inflation = MCLDefaults.inflation;
+	protected float cutoff = MCLDefaults.cutoff;
+	protected int selection = MCLDefaults.cutoff_inv;
+	protected PrintMatrix print_matrix = MCLDefaults.printMatrix;
+	protected int max_nnz = kmax * nsub;
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
+		getInflation();
+		getCutoff();
+		getSelection();
+		getPrintMatrix();
+		max_nnz = kmax * nsub;
+	}
 	
 	/**
 	 *  clear contents

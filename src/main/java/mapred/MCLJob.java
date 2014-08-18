@@ -24,7 +24,12 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		int i = 0;
 		Path m_i_1 = suffix(input,i++);
 		
+		logger.debug("run InputJob on {} => {}",input,m_i_1);
 		MCLResult result = new InputJob().run(getConf(), input, m_i_1);
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			return 1;
+		}
 		logger.info("{}",result);
 		long n = result.n;
 		long converged_colums = 0;
@@ -34,17 +39,20 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		MCLStep mclStep = new MCLStep();
 		
 		while(n > converged_colums && i < getMaxIterations()){
+			logger.debug("iteration i = {}",i);
 			Path m_i = suffix(input,i++);
-			
+			logger.debug("run TransposeJob on {} => {}",m_i_1,transposed);
 			result = transpose.run(getConf(), m_i_1, transposed);
 			if (result == null || !result.success) {
+				logger.error("failure! result = {}",result);
 				return 1;
 			}
-				
-			
+			logger.info("{}",result);	
+			logger.debug("run MCLStep on {} * {} => {}",m_i_1,transposed,m_i);
 			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
 			
 			if (result == null || !result.success) {
+				logger.error("failure! result = {}",result);
 				return 1;
 			}
 			logger.info("{}",result);

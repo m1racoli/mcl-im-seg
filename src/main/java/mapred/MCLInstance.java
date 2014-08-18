@@ -7,6 +7,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -15,11 +16,21 @@ import org.apache.hadoop.io.WritableUtils;
  */
 public class MCLInstance extends MCLContext {
 
-	protected final boolean vint = getUseVarints();	
-	protected final int kmax = getKMax();
-	protected final long n = getN();
-	protected final int nsub = getNSub();
-	protected final int te = getNumThreads();
+	protected boolean vint = MCLDefaults.varints;	
+	protected int kmax = MCLDefaults.kmax;
+	protected long n = MCLDefaults.n;
+	protected int nsub = MCLDefaults.nsub;
+	protected int te = MCLDefaults.te;
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
+		vint = getUseVarints();
+		kmax = getKMax();
+		n = getN();
+		nsub = getNSub();
+		te = getNumThreads();
+	}
 	
 	protected final void writeLong(DataOutput out, long val) throws IOException {
 		if(vint) WritableUtils.writeVLong(out, val);

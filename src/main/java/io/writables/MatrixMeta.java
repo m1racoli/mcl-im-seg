@@ -4,8 +4,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
-
+import mapred.Applyable;
 import mapred.MCLConfigHelper;
 
 import org.apache.hadoop.conf.Configuration;
@@ -22,7 +21,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MatrixMeta implements Writable {
+public class MatrixMeta implements Writable, Applyable {
 
 	private static final Logger logger = LoggerFactory.getLogger(MatrixMeta.class);
 	
@@ -44,6 +43,11 @@ public class MatrixMeta implements Writable {
 	
 	public int getKmax(){
 		return kmax;
+	}
+	
+	public void setKmax(int kmax) {
+		this.kmax = kmax < n ? kmax : (int) n;
+		logger.debug("kmax set to {}",this.kmax);
 	}
 	
 	@Override
@@ -123,36 +127,25 @@ public class MatrixMeta implements Writable {
 	}
 	
 	/**
-	 * loads MatrixMeta from paths inclusive compatibility check and write settings to the Configuration
+	 * loads MatrixMeta from paths inclusive compatibility check
 	 * @param conf
 	 * @param paths
 	 * @return
 	 * @throws IOException
 	 */
-	public static MatrixMeta load(Configuration conf, Path ... paths) throws IOException {
-		
-		if(paths == null || paths.length == 0) {
-			throw new RuntimeException("need at least on path");
-		}
-		int size = paths.length;
-		MatrixMeta[] m = new MatrixMeta[size];
-		for(int i = 0; i < size; i++){
-			FileSystem fs = paths[i].getFileSystem(conf);
-			MatrixMeta meta = new MatrixMeta();
-			Path src = new Path(paths[i],FILENAME);
-			FSDataInputStream in = fs.open(src);
-			meta.readFields(in);			
-			in.close();
-			logger.debug("loaded {} from {}",meta,src);
-			m[i] = meta;
-		}
-		check(m);		
-		MCLConfigHelper.setN(conf, m[0].n);
-		MCLConfigHelper.setKMax(conf, m[0].kmax);
-		MCLConfigHelper.setNSub(conf, m[0].nsub);
-		MCLConfigHelper.setUseVarints(conf, m[0].varints);
-		return m[0];
+	public static MatrixMeta load(Configuration conf, Path path) throws IOException {
+
+		FileSystem fs = path.getFileSystem(conf);
+		MatrixMeta meta = new MatrixMeta();
+		Path src = new Path(path,FILENAME);
+		FSDataInputStream in = fs.open(src);
+		meta.readFields(in);			
+		in.close();
+		logger.debug("loaded {} from {}",meta,src);
+		return meta;
 	}
+	
+	
 	
 	public static void save(Configuration conf, Path path, MatrixMeta meta) throws IOException {
 		Path dest = new Path(path,FILENAME);
@@ -175,8 +168,8 @@ public class MatrixMeta implements Writable {
 		checkParamaters(first);
 		
 		for(int i = 1; i < m.length; i++) {
-			check(m[i]);
-			if(first.n != m[i].n || first.nsub != m[i].nsub) {
+			checkParamaters(m[i]);
+			if(first.n != m[i].n || first.nsub != m[i].nsub || first.varints != m[i].varints) {
 				throw new RuntimeException("incompatible matrices");
 			}
 		}
@@ -192,5 +185,14 @@ public class MatrixMeta implements Writable {
 	@Override
 	public String toString() {
 		return String.format("[n: %d, n_sub: %d, k_max: %d, varints: %s]", n,nsub,kmax,varints);
+	}
+
+	@Override
+	public void apply(Configuration conf) {
+		MCLConfigHelper.setN(conf, n);
+		MCLConfigHelper.setKMax(conf, kmax);
+		MCLConfigHelper.setNSub(conf, nsub);
+		MCLConfigHelper.setUseVarints(conf, varints);
+		logger.debug("apply {}",this);
 	}
 }

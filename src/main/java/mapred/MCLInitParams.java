@@ -5,7 +5,7 @@ import io.writables.MCLMatrixSlice;
 import org.apache.hadoop.conf.Configuration;
 import com.beust.jcommander.Parameter;
 
-public class MCLInitParams implements IParams {
+public class MCLInitParams implements Applyable {
 	
 	@Parameter(names = "-nsub")
 	private int nsub = MCLDefaults.nsub;

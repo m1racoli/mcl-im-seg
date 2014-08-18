@@ -15,7 +15,7 @@ import com.beust.jcommander.IStringConverter;
 public class Selector extends MCLContext {
 	
 	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(getSelection());
-	
+	 
 	/**
 	 * @param val
 	 * @param selection

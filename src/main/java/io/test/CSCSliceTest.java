@@ -10,9 +10,6 @@ import io.writables.CSCSlice;
 import io.writables.SliceId;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.PrintMatrix;
@@ -27,13 +24,13 @@ public class CSCSliceTest extends MCLContext {
 		MCLConfigHelper.setKMax(conf, 9);
 		MCLConfigHelper.setPrintMatrix(conf, PrintMatrix.ALL);
 		MCLConfigHelper.setDebug(conf, true);
-		MCLContext.init(conf);
+		
 		
 		int[] col = new int[] {1,0,1,0,1,2,2,2};
 		long[] row = new long[] {0,1,2,4,5,0,1,4};
 		float[] val = new float[] {1.0f,0.5f,1.0f,3.0f,2.0f,1,2,3};
 		
-		CSCSlice slice = new CSCSlice();
+		CSCSlice slice = new CSCSlice(conf);
 		slice.fill(col,row,val);
 		System.out.println(slice);
 		SliceId id = new SliceId();

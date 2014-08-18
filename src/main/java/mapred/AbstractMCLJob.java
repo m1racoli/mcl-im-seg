@@ -55,7 +55,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 		JCommander cmd = new JCommander(this);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.addObject(params);
-		for(IParams params : getParams()){
+		for(Applyable params : getParams()){
 			cmd.addObject(params);
 		}
 		cmd.parse(args);
@@ -63,7 +63,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
 		params.apply(getConf());
 		
-		for(IParams params : getParams()) {
+		for(Applyable params : getParams()) {
 			params.apply(getConf());
 		}
 		
@@ -117,7 +117,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	 * override for more params which get applied to config
 	 * @return additional params
 	 */
-	protected Iterable<IParams> getParams() {
+	protected Iterable<Applyable> getParams() {
 		return Collections.emptyList();
 	}
 	
