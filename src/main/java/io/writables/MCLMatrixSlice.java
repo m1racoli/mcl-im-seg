@@ -29,17 +29,17 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	
 	protected double inflation = MCLDefaults.inflation;
 	protected float cutoff = MCLDefaults.cutoff;
-	protected int selection = MCLDefaults.cutoff_inv;
+	protected int selection = MCLDefaults.selection;
 	protected PrintMatrix print_matrix = MCLDefaults.printMatrix;
 	protected int max_nnz = kmax * nsub;
 	
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
-		getInflation();
-		getCutoff();
-		getSelection();
-		getPrintMatrix();
+		inflation = getInflation();
+		cutoff = getCutoff();
+		selection = getSelection();
+		print_matrix = getPrintMatrix();
 		max_nnz = kmax * nsub;
 	}
 	
@@ -153,7 +153,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	@Override
 	public String toString() {
 		
-		switch (getPrintMatrix()) {
+		switch (print_matrix) {
 		case ALL:
 			
 			float[] matrix = new float[(int) (n*nsub)];

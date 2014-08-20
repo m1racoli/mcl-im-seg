@@ -11,6 +11,7 @@ import io.writables.SubBlock;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -143,7 +144,7 @@ public class MCLStep extends AbstractMCLJob {
 		job.setOutputValueClass(CSCSlice.class);
 		job.setCombinerClass(MCLCombiner.class);
 		job.setReducerClass(MCLReducer.class);
-		job.setGroupingComparatorClass(LongWritable.Comparator.class);
+		job.setGroupingComparatorClass(IntWritable.Comparator.class);
 		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);

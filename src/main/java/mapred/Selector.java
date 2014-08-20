@@ -19,29 +19,32 @@ public class Selector extends MCLContext {
 	/**
 	 * @param val
 	 * @param selection
-	 * @param n
-	 * @param k
+	 * @param n length of selection
+	 * @param s target length of selection
 	 * @return sum of new selection
 	 * 
-	 * @throws IllegalArgumentException if k <= n
+	 * @throws IllegalArgumentException if n <= s
 	 */
-	public final float select(float[] val, int[] selection, int n, int k) {
+	public final float select(float[] val, int[] selection, int n, int s) {
 		
-		if(k <= n){
-			throw new IllegalArgumentException(String.format("k (%d) <= n (%d) is not allowed",k,n));
+		if(n <= s){
+			throw new IllegalArgumentException(String.format("n (%d) <= s (%d) is not allowed",n,s));
 		}
 		
-		return implementSelect(val, selection, n, k);
+		return implementSelect(val, selection, n, s);
 	}
 	
-	protected float implementSelect(float[] val, int[] selection, int n, int k) {
+	protected float implementSelect(float[] val, int[] selection, int n, int s) {
 		
-		for(int i = 0; i < k; i++) {
-			if(queue.size() == n){
-				queue.remove();
-			}
-			
-			queue.add( new QueueItem(selection[i], val[i]));
+		for(int i = 0; i < s; i++) {
+			int sel = selection[i];
+			queue.add( new QueueItem(sel, val[sel]));
+		}
+		
+		for(int i = s; i < n; i++) {
+			queue.remove();
+			int sel = selection[i];
+			queue.add( new QueueItem(sel, val[sel]));
 		}
 		
 		int selected = 0;
@@ -50,8 +53,8 @@ public class Selector extends MCLContext {
 			selection[selected++] = item.idx;
 			sum += item.val;
 		}
-		
-		Arrays.sort(selection, 0, n);
+		queue.clear();
+		Arrays.sort(selection, 0, s);
 		
 		return sum;
 	}
@@ -66,7 +69,7 @@ public class Selector extends MCLContext {
 		
 		@Override
 		public int compareTo(QueueItem o) {
-			return val > o.val ? -1 : val < o.val ? 1 : 0; // unsafe. we assume non NaN floats
+			return val > o.val ? 1 : val < o.val ? -1 : 0; // unsafe. we assume non NaN floats
 		}
 	}
 	

@@ -3,7 +3,9 @@
  */
 package mapred;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -56,21 +58,22 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 */
 	@Override
 	public final int run(String[] args) throws Exception {
-		JCommander cmd = new JCommander(this);
+		
+		List<Object> params = new LinkedList<Object>();
+		params.add(this);
+		params.add(this.params);
+		params.add(initParams);
+		params.add(getParams());
+		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
-		cmd.addObject(params);
-		cmd.addObject(initParams);
-		for(Applyable params : getParams()){
-			cmd.addObject(params);
-		}
 		cmd.parse(args);
 		
 		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
-		params.apply(getConf());
+		this.params.apply(getConf());
 		initParams.apply(getConf());
 		
-		for(Applyable params : getParams()) {
-			params.apply(getConf());
+		for(Applyable p : getParams()) {
+			p.apply(getConf());
 		}
 		
 		org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
@@ -96,7 +99,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 * override for more params which get applied to config
 	 * @return additional params
 	 */
-	protected Iterable<Applyable> getParams() {
+	protected Collection<Applyable> getParams() {
 		return Collections.emptyList();
 	}
 	

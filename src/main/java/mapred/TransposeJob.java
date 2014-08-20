@@ -53,6 +53,7 @@ public class TransposeJob extends AbstractMCLJob {
 		Path input = inputs.get(0);
 		
 		MatrixMeta meta = MatrixMeta.load(conf, input);
+		meta.apply(getConf());
 
 		Job job = Job.getInstance(conf, "TransposeJob " + input.getName() + " "
 				+ output.getName());

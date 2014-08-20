@@ -34,18 +34,19 @@ public class CSCSliceTest extends MCLContext {
 		slice.fill(col,row,val);
 		System.out.println(slice);
 		SliceId id = new SliceId();
-		for(CSCSlice m : rewrite(slice).getSubBlocks(id)){
-			CSCSlice o = rewrite(m);
-			
+		for(CSCSlice m : rewrite(slice,conf).getSubBlocks(id)){
+			CSCSlice o = rewrite(m,conf);
 			System.out.println(o);
 			System.out.println(o.multipliedBy(slice, null));
+			o.add(slice);
+			System.out.println(o);
 		}
 	}
 	
-	public static CSCSlice rewrite(CSCSlice m) throws IOException {
+	public static CSCSlice rewrite(CSCSlice m, Configuration conf) throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		m.write(new DataOutputStream(outputStream));
-		CSCSlice o = new CSCSlice();
+		CSCSlice o = new CSCSlice(conf);
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
 		o.readFields(new DataInputStream(inputStream));
 		return o;

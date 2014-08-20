@@ -171,11 +171,11 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		
 		kmax = Math.max(kmax, l-cs);
 		
-		if(logger.isDebugEnabled()){
-			logger.debug("colPtr: {}",Arrays.toString(colPtr));
-			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
-			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
-		}
+//		if(logger.isDebugEnabled()){
+//			logger.debug("colPtr: {}",Arrays.toString(colPtr));
+//			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
+//			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
+//		}
 		
 		return kmax;
 	}
@@ -190,25 +190,27 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		
 		if(top_aligned) {
 			
-			int tmp_end = val.length;
+			int end = val.length;
 			
-			for(int current_col = nsub - 1, next_col = nsub; current_col >= 0; next_col = current_col--) {
-				colPtr[next_col] = tmp_end;
-				tmp_end -= addBack(colPtr[current_col], colPtr[next_col], m, m.colPtr[current_col], m.colPtr[next_col], tmp_end);
+			for(int col_start = nsub - 1, col_end = nsub; col_start >= 0; col_end = col_start--) {
+				int filled = addBack(colPtr[col_start], colPtr[col_end], m, m.colPtr[col_start], m.colPtr[col_end], end);
+				colPtr[col_end] = end;
+				end -= filled;
 			}
 			
-			colPtr[0] = tmp_end;
+			colPtr[0] = end;
 			
 		} else {
 			
-			int tmp_start = 0;
+			int start = 0;
 			
-			for(int current_col = 0, next_col = 1; current_col < nsub; current_col = next_col++) {
-				colPtr[current_col] = tmp_start;
-				tmp_start += addForw(colPtr[current_col], colPtr[next_col], m, m.colPtr[current_col], m.colPtr[next_col], tmp_start);
+			for(int col_start = 0, col_end = 1; col_start < nsub; col_start = col_end++) {
+				int filled = addForw(colPtr[col_start], colPtr[col_end], m, m.colPtr[col_start], m.colPtr[col_end], start);
+				colPtr[col_start] = start;
+				start += filled;
 			}
 			
-			colPtr[nsub] = tmp_start;
+			colPtr[nsub] = start;
 		}
 		
 		top_aligned = !top_aligned;
@@ -217,6 +219,8 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	@Override
 	public CSCSlice multipliedBy(CSCSlice m, TaskAttemptContext context) {
 
+		assert top_aligned && m.top_aligned;
+		
 		//we assume this is a sub block, for which there are maximal n_sub rows
 		final float[] tmp_val = new float[nsub];
 		final long[] tmp_rowInd = new long[nsub];
@@ -272,10 +276,14 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	}
 
 	private final int addForw(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos) {
-		return addMultForw(s, src_t, src, src_s, src_t, new_pos, 1.0f);
+		return addMultForw(s, t, src, src_s, src_t, new_pos, 1.0f);
 	}
 	
 	private final int addMultForw(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos, float factor) {
+		
+//		if(logger.isDebugEnabled())
+//			logger.debug("addMultForw(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s,t,src_s,src_t,new_pos,factor);
+		
 		int p = new_pos;
 		int i = s, j = src_s;
 		
@@ -319,77 +327,78 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	}
 	
 	private final int addBack(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos) {
-		return addMultBack(s, src_t, src, src_s, src_t, new_pos, 1.0f);
+		return addMultBack(s, t, src, src_s, src_t, new_pos, 1.0f);
 	}
 	
-	private final int addMultBack(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos, float factor) {
-		int p = new_pos;
-		int i = t, j = src_t ;
+	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
 		
-		while (i > s && j > src_s) {			
+//		if(logger.isDebugEnabled())
+//			logger.debug("addMultBack(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s1,t1,s2,t2,pos,factor);
+		
+		int p = pos;
+		int i = t1, j = t2 ;
+		
+		while (i > s1 && j > s2) {			
 			long row = rowInd[--i];
-			long src_Row = src.rowInd[--j];
+			long src_Row = m.rowInd[--j];
 			
 			if (row == src_Row) {				
 				rowInd[--p] = row;
-				val[p] = factor * src.val[j] + val[i];				
+				val[p] = factor * m.val[j] + val[i];				
 			} else {				
 				if (row > src_Row) {					
 					rowInd[--p] = row;
 					val[p] = val[i];					
 				} else {					
 					rowInd[--p] = src_Row;
-					val[p] = factor * src.val[j];
+					val[p] = factor * m.val[j];
 				}
 			}
 		}
 		
-		if (i > s) {			
+		if (i > s1) {			
 			rowInd[--p] = rowInd[--i];
 			val[p] = val[i];
 			
-			while (i > s) {
+			while (i > s1) {
 				rowInd[--p] = rowInd[--i];
 				val[p] = val[i];
 			}			
-		} else if (j > src_s) {			
-			rowInd[--p] = src.rowInd[--j];
-			val[p] = factor * src.val[j];
+		} else if (j > s2) {			
+			rowInd[--p] = m.rowInd[--j];
+			val[p] = factor * m.val[j];
 			
-			while (j > src_s) {				
-				rowInd[--p] = src.rowInd[--j];
-				val[p] = factor * src.val[j];				
+			while (j > s2) {				
+				rowInd[--p] = m.rowInd[--j];
+				val[p] = factor * m.val[j];				
 			}
 		}
 		
-		return new_pos - p;
+		return pos - p;
 	}
 	
 	@Override
 	public int inflateAndPrune(TaskAttemptContext context) {
-		
-		top_aligned = !top_aligned;
-		
+				
 		if(selector == null){
 			selector = getSelectorInstance();
 		}
 		
+		final double I = inflation;
+		//logger.debug("inflation: {}",I);
+		final int S = selection;
+		//logger.debug("selection: {}",S);
 		final int[] selection = new int[kmax];
-		final int incr = top_aligned ? 1 : -1;
-		final int colPtr_s = top_aligned ? 0 : colPtr.length - 2;
-		final int colPtr_t = top_aligned ? colPtr.length - 2 : 0;
-		int valPtr = top_aligned ? 0 : val.length - 1;
-		final int prev_col_direction = top_aligned ? 0 : 1;
+		int valPtr = 0;
 		int max_s = 0;
 		
-		//TODO two cases
-		for(int currenct_col = colPtr_s; currenct_col != colPtr_t; currenct_col += incr) {
+		for(int col_start = 0, col_end = 1; col_end <= nsub; col_start = col_end++) {
 
-			final int cs = colPtr[currenct_col];
-			final int ct = colPtr[currenct_col+1];
+			final int cs = colPtr[col_start];
+			final int ct = colPtr[col_end];
 			final int k = ct-cs;
 			
-			colPtr[currenct_col+prev_col_direction] = valPtr+prev_col_direction;
+			colPtr[col_start] = valPtr;
 			
 			switch(k){
 			case 0:
@@ -406,7 +415,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				}
 				
 				rowInd[valPtr] = rowInd[cs];
-				val[valPtr += incr] = val[cs];
+				val[valPtr++] = val[cs];
 				if(max_s < 1) max_s = 1;
 				continue;
 			default:
@@ -418,7 +427,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			float min = 1.0f;
 			
 			for(int i = cs; i < ct; i++){
-				float pow = (float) Math.pow(val[i], inflation);
+				float pow = (float) Math.pow(val[i], I);
 				val[i] = pow;
 				sum += pow;
 				if(max < pow)
@@ -426,7 +435,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			}
 			
 			final float tresh = computeTreshold(sum/k, max);
-			
+			//logger.debug("treshhold: {}, avg: {}, max {}",tresh,sum/k,max);
 			int selected = 0;
 			sum = 0.0f;			
 			
@@ -435,30 +444,29 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 					selection[selected++] = i;
 					sum += val[i];
 				} else {
+					//logger.debug("cutoff: {}",val[i]);
 					if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
 				}
 			}
 			
-			if(selected > this.selection){
-				if(context != null) context.getCounter(Counters.PRUNE).increment(selected - this.selection);
-				sum = selector.select(val, selection, selected, this.selection);
-				selected = this.selection;
+			if(selected > S){
+				if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
+				//logger.debug("exact prune {} -> {}",selected,S);
+				sum = selector.select(val, selection, selected, S);
+				selected = S;
 			}
 			
 			max /= sum;
 			
-			final int sel_s = top_aligned ? 0 : selected - 1;
-			final int sel_t = top_aligned ? selected : - 1;
-			
-			for(int i  = sel_s; i != sel_t; i += incr){
-				int idx = selection[selected];
+			for(int i  = 0; i < selected; i++){
+				int idx = selection[i];
 				float result = val[idx] / sum;
 				if(result > 0.5f)
 					if(context != null) context.getCounter(Counters.ATTRACTORS).increment(1);
 				if(min > result)
 					min = result;
 				rowInd[valPtr] = rowInd[idx];
-				val[valPtr += incr] = val[idx];
+				val[valPtr++] = result;
 			}
 			
 			if(min == max){
@@ -469,7 +477,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			
 		}
 		
-		colPtr[colPtr_t+prev_col_direction] = valPtr+prev_col_direction;
+		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
 		return max_s;
 	}
@@ -483,12 +491,15 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	
 	@Override
 	protected ReadOnlyIterator<CSCSlice> getSubBlockIterator(SliceId id) {
+		
+		assert top_aligned;
+		
 		return new SubBlockIterator(id);
 	}
 
 	@Override
 	public int size() {
-		return colPtr[nsub];
+		return colPtr[nsub] - colPtr[0];
 	}
 
 	private final class SubBlockIterator extends ReadOnlyIterator<CSCSlice>{

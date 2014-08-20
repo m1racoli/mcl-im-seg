@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.tu-berlin.math</groupId>
   <artifactId>mcl-im-seg</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.1</version>
   <name>MCL Image Segmentation</name>
   <build>
   <finalName>mcl-im-seg</finalName>
@@ -72,6 +72,12 @@
   		<scope>system</scope>
   		<systemPath>${JAVA_HOME}/lib/tools.jar</systemPath>
   		<version>1.7</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.commons</groupId>
+  		<artifactId>commons-math3</artifactId>
+  		<version>3.3</version>
+  		<scope>test</scope>
   	</dependency>
   </dependencies>
 </project>
