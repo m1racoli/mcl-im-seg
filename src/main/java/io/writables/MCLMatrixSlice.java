@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
 import mapred.MCLInstance;
 import mapred.PrintMatrix;
@@ -36,10 +37,10 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
-		inflation = getInflation();
-		cutoff = getCutoff();
-		selection = getSelection();
-		print_matrix = getPrintMatrix();
+		inflation = MCLConfigHelper.getInflation(conf);
+		cutoff = Math.max(MCLConfigHelper.getCutoff(conf),1.0f/MCLConfigHelper.getCutoffInv(conf));
+		selection = MCLConfigHelper.getSelection(conf);
+		print_matrix = MCLConfigHelper.getPrintMatrix(conf);
 		max_nnz = kmax * nsub;
 	}
 	
@@ -194,6 +195,5 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 				throw new RuntimeException(e);
 			}
 		}
-		
 	}
 }

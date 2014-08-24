@@ -6,16 +6,20 @@ package mapred;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.log4j.Level;
 
 /**
  * @author Cedrik
  *
  */
-public class MCLInstance extends MCLContext {
-
+public class MCLInstance extends MCLContext implements Configurable {
+	
+	private Configuration conf = null;
 	protected boolean vint = MCLDefaults.varints;	
 	protected int kmax = MCLDefaults.kmax;
 	protected long n = MCLDefaults.n;
@@ -24,12 +28,14 @@ public class MCLInstance extends MCLContext {
 	
 	@Override
 	public void setConf(Configuration conf) {
-		super.setConf(conf);
-		vint = getUseVarints();
-		kmax = getKMax();
-		n = getN();
-		nsub = getNSub();
-		te = getNumThreads();
+		this.conf = conf;
+		vint = MCLConfigHelper.getUseVarints(conf);
+		kmax = MCLConfigHelper.getKMax(conf);
+		n = MCLConfigHelper.getN(conf);
+		nsub = MCLConfigHelper.getNSub(conf);
+		te = MCLConfigHelper.getNumThreads(conf);
+		
+		MCLContext.setLogging(conf);
 	}
 	
 	protected final void writeLong(DataOutput out, long val) throws IOException {
@@ -38,7 +44,7 @@ public class MCLInstance extends MCLContext {
 	}
 	
 	protected final void writeInt(DataOutput out, int val) throws IOException {
-		if(vint) WritableUtils.writeVLong(out, val);
+		if(vint) WritableUtils.writeVInt(out, val);
 		else out.writeInt(val);
 	}
 	
@@ -58,5 +64,10 @@ public class MCLInstance extends MCLContext {
 	
 	protected final int getSubIndexFromIndex(long idx){
 		return getSubIndexFromIndex(idx, nsub);
+	}
+
+	@Override
+	public Configuration getConf() {
+		return conf;
 	}
 }

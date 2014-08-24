@@ -214,8 +214,8 @@ public class InputJob extends AbstractMCLJob {
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
-		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
-		
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));//TODO
+		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		

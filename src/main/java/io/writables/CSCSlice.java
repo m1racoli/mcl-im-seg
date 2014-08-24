@@ -14,6 +14,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
+import mapred.MCLConfigHelper;
 import mapred.Selector;
 
 import org.apache.hadoop.conf.Configuration;
@@ -126,6 +127,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		float col_sum = 0.0f;
 		int kmax = 0;
 		int cs = 0;
+		int max_nnz = this.max_nnz;
 		
 		for(MatrixEntry entry : entries){
 			
@@ -204,7 +206,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			
 			int start = 0;
 			
-			for(int col_start = 0, col_end = 1; col_start < nsub; col_start = col_end++) {
+			for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 				int filled = addForw(colPtr[col_start], colPtr[col_end], m, m.colPtr[col_start], m.colPtr[col_end], start);
 				colPtr[col_start] = start;
 				start += filled;
@@ -381,7 +383,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	public int inflateAndPrune(TaskAttemptContext context) {
 				
 		if(selector == null){
-			selector = getSelectorInstance();
+			selector = MCLConfigHelper.getSelectorInstance(getConf());
 		}
 		
 		final double I = inflation;
@@ -392,7 +394,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		int valPtr = 0;
 		int max_s = 0;
 		
-		for(int col_start = 0, col_end = 1; col_end <= nsub; col_start = col_end++) {
+		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
 			final int cs = colPtr[col_start];
 			final int ct = colPtr[col_end];
@@ -415,7 +417,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				}
 				
 				rowInd[valPtr] = rowInd[cs];
-				val[valPtr++] = val[cs];
+				val[valPtr++] = 1.0f;
 				if(max_s < 1) max_s = 1;
 				continue;
 			default:
@@ -503,7 +505,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	}
 
 	private final class SubBlockIterator extends ReadOnlyIterator<CSCSlice>{
-		
+		private final int nsub = CSCSlice.this.nsub;
 		private final SliceId id;
 		private final Queue<SubBlockSlice> queue = new PriorityQueue<CSCSlice.SubBlockSlice>(nsub);
 		private final List<SubBlockSlice> list = new ArrayList<CSCSlice.SubBlockSlice>(nsub);
@@ -518,7 +520,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			
 			System.arraycopy(colPtr, 0, offset, 0, nsub);			
 			
-			for(int column = 0; column < nsub; column++) {
+			for(int column = 0, end = nsub; column < end; column++) {
 				fetch(column);
 			}
 		}

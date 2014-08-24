@@ -47,6 +47,7 @@ public class MCLSliceTest {
 		MCLConfigHelper.setPrintMatrix(conf, PrintMatrix.ALL);
 		MCLConfigHelper.setDebug(conf, true);
 		MCLConfigHelper.setSelection(conf, 2);
+		MCLConfigHelper.setUseVarints(conf, true);
 		return conf;
 	}
 	

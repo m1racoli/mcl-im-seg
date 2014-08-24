@@ -3,6 +3,7 @@
  */
 package util;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import mapred.InputJob;
@@ -38,9 +39,12 @@ public class Launcher {
 		case "mcl":
 			System.exit(ToolRunner.run(new MCLJob(), args));
 		default:
-			System.err.println("unknown command: "+command);
-			errorReturn();
+			break;
 		}
+		
+		Class<?> cls = Class.forName(command);
+		Method meth = cls.getMethod("main", String[].class);
+		meth.invoke(null, (Object) args);
 	}
 	
 	private static void errorReturn(){

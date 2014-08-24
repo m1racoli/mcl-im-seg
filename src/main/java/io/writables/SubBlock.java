@@ -20,6 +20,11 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implement
 		subBlock = getMatrixSliceInstance(conf);
 	}
 	
+	public void setConf(Configuration conf, boolean init_slice) {
+		super.setConf(conf);
+		if (init_slice) subBlock = getMatrixSliceInstance(conf);
+	}
+	
 	@Override
 	public void write(DataOutput out) throws IOException {
 		writeInt(out, id);

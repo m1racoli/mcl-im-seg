@@ -45,6 +45,14 @@ public class MatrixMeta implements Writable, Applyable {
 		return kmax;
 	}
 	
+	public long getN(){
+		return n;
+	}
+	
+	public int getNSub() {
+		return nsub;
+	}
+	
 	public void setKmax(int kmax) {
 		this.kmax = kmax < n ? kmax : (int) n;
 		logger.debug("kmax set to {}",this.kmax);
@@ -129,15 +137,19 @@ public class MatrixMeta implements Writable, Applyable {
 	/**
 	 * loads MatrixMeta from paths inclusive compatibility check
 	 * @param conf
-	 * @param paths
-	 * @return
+	 * @param path
+	 * @return null if path does not contain '.meta' file
 	 * @throws IOException
 	 */
 	public static MatrixMeta load(Configuration conf, Path path) throws IOException {
 
 		FileSystem fs = path.getFileSystem(conf);
-		MatrixMeta meta = new MatrixMeta();
 		Path src = new Path(path,FILENAME);
+		if (!fs.exists(src)) {
+			logger.error("{} does not exist",src);
+			return null;
+		}		
+		MatrixMeta meta = new MatrixMeta();				
 		FSDataInputStream in = fs.open(src);
 		meta.readFields(in);			
 		in.close();

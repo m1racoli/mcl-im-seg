@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
+import util.PathConverter.Factory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

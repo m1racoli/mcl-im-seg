@@ -34,6 +34,13 @@ public class TransposeJob extends AbstractMCLJob {
 		private SubBlock<M> subBlock = new SubBlock<M>();
 		
 		@Override
+		protected void setup(
+				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
+				throws IOException, InterruptedException {
+			subBlock.setConf(context.getConfiguration(), false);
+		}
+		
+		@Override
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 
@@ -67,8 +74,8 @@ public class TransposeJob extends AbstractMCLJob {
 		job.setMapOutputValueClass(SubBlock.class);
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(SubBlock.class);
-		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
-
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));//TODO
+		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 

@@ -50,6 +50,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-iter")
 	private int max_iterations = MCLDefaults.max_iterations;
 	
+	@Parameter(names = "-dump-counters")
+	private boolean dump_counters = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	
@@ -111,6 +114,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final int getMaxIterations() {
 		return max_iterations;
+	}
+	
+	public final boolean dumpCounters(){
+		return dump_counters;
 	}
 
 }

@@ -6,6 +6,7 @@ package mapred;
 import io.writables.MCLMatrixSlice;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * @author Cedrik
@@ -131,5 +132,9 @@ public class MCLConfigHelper {
 	
 	public static final boolean getDebug(Configuration conf) {
 		return conf.getBoolean(DEBUG_CONF, false);
+	}
+	
+	public static final <S extends Selector> S getSelectorInstance(Configuration conf) {
+		return ReflectionUtils.newInstance(MCLConfigHelper.<S>getSelectorClass(conf), conf);
 	}
 }

@@ -3,6 +3,8 @@ package mapred;
 import java.util.Arrays;
 import java.util.PriorityQueue;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.beust.jcommander.IStringConverter;
 
 /**
@@ -12,10 +14,18 @@ import com.beust.jcommander.IStringConverter;
  * @author Cedrik Neumann
  *
  */
-public class Selector extends MCLContext {
+public class Selector extends MCLInstance {
 	
-	private final PriorityQueue<QueueItem> queue = new PriorityQueue<Selector.QueueItem>(getSelection());
-	 
+	private PriorityQueue<QueueItem> queue = null;
+	
+	public Selector(){};
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
+		queue = new PriorityQueue<Selector.QueueItem>(MCLConfigHelper.getSelection(getConf()));
+	}
+	
 	/**
 	 * @param val
 	 * @param selection

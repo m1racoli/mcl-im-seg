@@ -145,8 +145,8 @@ public class MCLStep extends AbstractMCLJob {
 		job.setCombinerClass(MCLCombiner.class);
 		job.setReducerClass(MCLReducer.class);
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
-		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
-		
+		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));//TODO
+		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
@@ -161,7 +161,7 @@ public class MCLStep extends AbstractMCLJob {
 		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
-		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();		
+		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
 		
 		return result;
 	}
