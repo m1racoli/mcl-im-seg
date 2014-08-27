@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader.Option;
-import org.apache.hadoop.util.Options.PathOption;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,11 +130,33 @@ public class MatrixSpy<M extends MCLMatrixSlice<M>> extends AbstractUtil {
 		return 0;
 	}
 	
+	public static BufferedImage getGrayScale(double[][] vals) {
+		int width = vals[0].length;
+		
+		double[] new_vals = new double[vals.length * width];
+		
+		for(int i = 0, pos = 0; i < vals.length; i++){
+			System.arraycopy(vals[i], 0, new_vals, pos, width);
+			pos += width;
+		}
+		
+		return getGrayScale(width, new_vals);		
+	}
+	
 	public static BufferedImage getGrayScale(int width, double[] vals) {
 		int height = vals.length / width;
 		byte[] buffer = new byte[vals.length];
+		
+//		double max = 0, min = Double.MAX_VALUE;
+//		for(int i = buffer.length - 1; i <= 0; --i){
+//			max = Math.max(max, vals[i]);
+//			min = Math.min(min, vals[i]);
+//		}		
+		
+		
+		
 	    for (int i = buffer.length - 1; i >= 0; --i) {
-	    	buffer[i] = vals[i] == 0.0 ? (byte) 255 : (byte) (255 * (0.9 - 0.9 *vals[i]));
+	    	buffer[i] = vals[i] == 0.0 ? (byte) 255 : (byte) (255 * (0.9 - 0.9 *Math.abs(vals[i])));
 	    }
 		ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
 	    int[] nBits = { 8 };

@@ -2,6 +2,7 @@ package io.writables;
 
 import io.writables.MCLMatrixSlice.MatrixEntry;
 
+import java.awt.Image;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +12,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,8 @@ import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
+import javax.imageio.ImageIO;
 
 import mapred.MCLConfigHelper;
 import mapred.MCLContext;
@@ -32,26 +37,50 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import util.MatrixSpy;
+
 public class SubDimTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(SubDimTest.class);
-	private static final long n = 100;
+	private static final int n = 100;
 	private static final int k = 100;
 	private static final File abcFile = new File("examples\\10x10.abc");
 	
 	
 	public static void main(String[] args) throws Exception {
 		
-		Configuration conf1 = getConf();
-		MCLConfigHelper.setNSub(conf1, 5);
-		Configuration conf2 = getConf();
-		MCLConfigHelper.setNSub(conf2, 10);
-		Map<SliceId, CSCSlice> m1 = fromAbc(conf1, abcFile);
-		Map<SliceId, CSCSlice> m2 = fromAbc(conf2, abcFile);
+		int[] nsubs = new int[]{1,5,10,25,50,100};
 		
-		m1 = iterate(conf1, m1);
-		m2 = iterate(conf2, m2);
+		Map<Integer,Map<SliceId,CSCSlice>> matrices = new HashMap<Integer,Map<SliceId,CSCSlice>>();
 		
+		OpenMapRealMatrix oo = matrixFromAbc(n, abcFile);
+		OpenMapRealMatrix o2 = oo.multiply(oo);
+		ImageIO.write(MatrixSpy.getGrayScale(oo.getData()), "png", new File("subdimspy_oo.png"));
+		ImageIO.write(MatrixSpy.getGrayScale(o2.getData()), "png", new File("subdimspy_o2.png"));
+		
+		for(int nsub : nsubs) {
+			Configuration conf = getConf();
+			MCLConfigHelper.setNSub(conf, nsub);
+			Map<SliceId, CSCSlice> m = fromAbc(conf, abcFile);
+			System.out.printf("%d\t%e\n",nsub,oo.subtract(toMatrix(m, nsub, n)).getFrobeniusNorm());
+			
+			
+			ImageIO.write(MatrixSpy.getGrayScale(toMatrix(m, nsub, n).getData()), "png", new File("matrix_pre_"+nsub+".png"));
+			ImageIO.write(MatrixSpy.getGrayScale(oo.subtract(toMatrix(m, nsub, n)).getData()), "png", new File("diff_pre_"+nsub+".png"));
+			m = iterate(conf, m,false);
+			matrices.put(nsub, m);
+			OpenMapRealMatrix o = toMatrix(m, nsub, n);
+			OpenMapRealMatrix diff = o2.subtract(o);
+			System.out.printf("%d\t%e\n",nsub,diff.getFrobeniusNorm());
+			ImageIO.write(MatrixSpy.getGrayScale(o.getData()), "png", new File("matrix_"+nsub+".png"));
+			ImageIO.write(MatrixSpy.getGrayScale(diff.getData()), "png", new File("diff_"+nsub+".png"));
+		}
+		
+		for(int nsub1 : nsubs){
+			for(int nsub2 : nsubs){
+				ImageIO.write(MatrixSpy.getGrayScale(toMatrix(matrices.get(nsub1), nsub1, n).subtract(toMatrix(matrices.get(nsub2), nsub2, n)).getData()), "png", new File("crossdiff_"+nsub1+"_"+nsub2+".png"));
+			}
+		}
 		
 	}
 	
@@ -60,6 +89,7 @@ public class SubDimTest {
 		MCLConfigHelper.setN(conf, n);
 		MCLConfigHelper.setKMax(conf, k);
 		MCLConfigHelper.setPrintMatrix(conf, PrintMatrix.ALL);
+		MCLConfigHelper.setCutoffInv(conf, 100000);
 		MCLConfigHelper.setDebug(conf, true);
 		MCLConfigHelper.setSelection(conf, 2);
 		MCLConfigHelper.setUseVarints(conf, true);
@@ -67,13 +97,15 @@ public class SubDimTest {
 		return conf;
 	}
 	
-	public static final Map<SliceId, CSCSlice> iterate(Configuration conf, Map<SliceId, CSCSlice> slices) throws IOException {
+	public static final Map<SliceId, CSCSlice> iterate(Configuration conf, Map<SliceId, CSCSlice> slices, boolean inf_prune) throws IOException {
 		
 		Map<SliceId,List<SubBlock<CSCSlice>>> subBlocks = new LinkedHashMap<SliceId, List<SubBlock<CSCSlice>>>();
 		
+		int cnt = 0;
 		for (Entry<SliceId,CSCSlice> e : slices.entrySet()) {
 			SliceId outId = new SliceId();
 			for (CSCSlice s : e.getValue().getSubBlocks(outId)) {
+				cnt++;
 				SliceId id = new SliceId();
 				id.set(outId.get());
 				if(!subBlocks.containsKey(id)) {
@@ -86,6 +118,8 @@ public class SubDimTest {
 				subBlocks.get(id).add(subBlock);
 			}
 		}
+		
+		logger.debug("nsub: {}, num subblocks: {}",MCLConfigHelper.getNSub(conf),cnt);
 		
 		Map<SliceId,CSCSlice> newSlices = new LinkedHashMap<SliceId, CSCSlice>();
 		
@@ -100,11 +134,54 @@ public class SubDimTest {
 			}
 		}
 		
-		for(CSCSlice slice : newSlices.values()){
-			slice.inflateAndPrune(null);
+		if(inf_prune){
+			for(CSCSlice slice : newSlices.values()){
+				slice.inflateAndPrune(null);
+			}
 		}
 		
 		return newSlices;
+	}
+	
+	public static final OpenMapRealMatrix matrixFromAbc(int n, File file) throws IOException {
+		Pattern pattern = Pattern.compile("\t");
+		OpenMapRealMatrix o = new OpenMapRealMatrix(n, n);
+		BufferedReader reader = null;
+		
+		try {
+			reader = new BufferedReader(new FileReader(file));
+			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+				String[] split = pattern.split(line);
+				if(split.length != 3){
+					throw new RuntimeException("bad split length: "+split.length);
+				}
+				
+				int col = Integer.parseInt(split[0]);
+				int row = Integer.parseInt(split[1]);
+				float val = Float.parseFloat(split[2]);
+				
+				o.setEntry(row, col, val);
+			}
+		} finally {
+			if(reader != null) reader.close();
+		}
+		
+		for(int col = 0; col < n; col++){
+			float sum = 0.0f;
+			
+			double[] column = o.getColumn(col);
+			for(int row = 0; row < n; row++){
+				sum += column[row];
+			}
+			
+			for(int row = 0; row < n; row++){
+				column[row] /= sum;
+			}
+			
+			o.setColumn(col, column);
+		}
+		
+		return o;
 	}
 	
 	public static final Map<SliceId, CSCSlice> fromAbc(Configuration conf, File file) throws IOException {
@@ -206,18 +283,17 @@ public class SubDimTest {
 		return m;
 	}
 	
-	public static final <M extends MCLMatrixSlice<M>> double dist(M m1, M m2) {
-		OpenMapRealMatrix o = new OpenMapRealMatrix((int)n, (int)n);
+	public static OpenMapRealMatrix toMatrix(Map<SliceId, CSCSlice> m, int nsub, int n){
+		OpenMapRealMatrix o = new OpenMapRealMatrix(n, n);
 		
-		for(MatrixEntry e : m1.dump()) {
-			o.setEntry((int) e.row, e.col, e.val);
+		for(SliceId id : m.keySet()){
+			CSCSlice slice = m.get(id);			
+			for(MatrixEntry e : slice.dump()) {
+				o.setEntry((int) e.row, e.col+ (id.get()*nsub), e.val);
+			}
 		}
 		
-		for(MatrixEntry e : m2.dump()) {
-			
-		}
-		//TODO
-		return o.subtract(o2).getNorm();
+		return o;
 	}
 	
 	public static CSCSlice rewrite(CSCSlice m, Configuration conf) throws IOException {

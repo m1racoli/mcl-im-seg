@@ -229,13 +229,13 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		
 		int tmp_end = val.length;
 		
-		for(int current_col = nsub - 1; current_col >= 0; current_col--) {
+		for(int col_end = nsub, col_start = col_end - 1; col_start >= 0; col_end = col_start--) {
 			
-			final int cs = colPtr[current_col];
-			final int ct = colPtr[current_col+1];
+			final int cs = colPtr[col_start];
+			final int ct = colPtr[col_end];
 			final int k = ct-cs;
 			
-			colPtr[current_col+1] = tmp_end;
+			colPtr[col_end] = tmp_end;
 			
 			if(k == 0){
 				continue;
@@ -277,59 +277,137 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		return this;
 	}
 
-	private final int addForw(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos) {
-		return addMultForw(s, t, src, src_s, src_t, new_pos, 1.0f);
-	}
-	
-	private final int addMultForw(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos, float factor) {
+	private final int addForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
+		int p = pos;
+		int i = s1, j = s2;
 		
-//		if(logger.isDebugEnabled())
-//			logger.debug("addMultForw(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s,t,src_s,src_t,new_pos,factor);
-		
-		int p = new_pos;
-		int i = s, j = src_s;
-		
-		while (i < t && j < src_t) {			
+		while (i < t1 && j < t2) {			
 			long row = rowInd[i];
-			long src_Row = src.rowInd[j];
+			long src_Row = m.rowInd[j];
 			
 			if (row == src_Row) {
 				rowInd[p] = row;
-				val[p++] = factor * src.val[j++] + val[i++];
+				val[p++] = m.val[j++] + val[i++];
 			} else {
 				if (row < src_Row) {
 					rowInd[p] = row;
 					val[p++] = val[i++];	
 				} else {
 					rowInd[p] = src_Row;
-					val[p++] = factor * src.val[j++];
+					val[p++] = m.val[j++];
 				}
 			}
 		}
 		
-		if(i < t) {			
+		if(i < t1) {			
 			rowInd[p] = rowInd[i];
 			val[p++] = val[i++];
 			
-			while (i < t) {
+			while (i < t1) {
 				rowInd[p] = rowInd[i];
 				val[p++] = val[i++];
 			}
-		} else if (j < src_t){
-			rowInd[p] = src.rowInd[j];
-			val[p++] = factor * src.val[j++];
+		} else if (j < t2){
+			rowInd[p] = m.rowInd[j];
+			val[p++] = m.val[j++];
 			
-			while(j < src_t) {
-				rowInd[p] = src.rowInd[j];
-				val[p++] = factor * src.val[j++];
+			while(j < t2) {
+				rowInd[p] = m.rowInd[j];
+				val[p++] = m.val[j++];
 			}
 		}
 		
-		return p - new_pos;
+		return p - pos;
 	}
 	
-	private final int addBack(int s, int t, CSCSlice src, int src_s, int src_t, int new_pos) {
-		return addMultBack(s, t, src, src_s, src_t, new_pos, 1.0f);
+	private final int addMultForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
+		
+//		if(logger.isDebugEnabled())
+//			logger.debug("addMultForw(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s,t,src_s,src_t,new_pos,factor);
+		
+		int p = pos;
+		int i = s1, j = s2;
+		
+		while (i < t1 && j < t2) {			
+			long row = rowInd[i];
+			long src_Row = m.rowInd[j];
+			
+			if (row == src_Row) {
+				rowInd[p] = row;
+				val[p++] = factor * m.val[j++] + val[i++];
+			} else {
+				if (row < src_Row) {
+					rowInd[p] = row;
+					val[p++] = val[i++];	
+				} else {
+					rowInd[p] = src_Row;
+					val[p++] = factor * m.val[j++];
+				}
+			}
+		}
+		
+		if(i < t1) {			
+			rowInd[p] = rowInd[i];
+			val[p++] = val[i++];
+			
+			while (i < t1) {
+				rowInd[p] = rowInd[i];
+				val[p++] = val[i++];
+			}
+		} else if (j < t2){
+			rowInd[p] = m.rowInd[j];
+			val[p++] = factor * m.val[j++];
+			
+			while(j < t2) {
+				rowInd[p] = m.rowInd[j];
+				val[p++] = factor * m.val[j++];
+			}
+		}
+		
+		return p - pos;
+	}
+	
+	private final int addBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
+		int p = pos;
+		int i = t1, j = t2 ;
+		
+		while (i > s1 && j > s2) {			
+			long row = rowInd[--i];
+			long src_Row = m.rowInd[--j];
+			
+			if (row == src_Row) {				
+				rowInd[--p] = row;
+				val[p] = m.val[j] + val[i];				
+			} else {				
+				if (row > src_Row) {					
+					rowInd[--p] = row;
+					val[p] = val[i];					
+				} else {					
+					rowInd[--p] = src_Row;
+					val[p] = m.val[j];
+				}
+			}
+		}
+		
+		if (i > s1) {			
+			rowInd[--p] = rowInd[--i];
+			val[p] = val[i];
+			
+			while (i > s1) {
+				rowInd[--p] = rowInd[--i];
+				val[p] = val[i];
+			}			
+		} else if (j > s2) {			
+			rowInd[--p] = m.rowInd[--j];
+			val[p] = m.val[j];
+			
+			while (j > s2) {				
+				rowInd[--p] = m.rowInd[--j];
+				val[p] = m.val[j];				
+			}
+		}
+		
+		return pos - p;
 	}
 	
 	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
@@ -546,8 +624,8 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				view.size[col] = slice.size;
 				fetch(col);
 			}
-			
-			list.clear();			
+						
+			list.clear();
 			
 			id.set(first.id);
 			view.row_shift = - first.id*nsub;
@@ -589,7 +667,9 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		
 		@Override
 		public int compareTo(SubBlockSlice o) {
-			return id == o.id ? 0 : id < o.id ? -1 : 1;
+			int cmp = id == o.id ? 0 : id < o.id ? -1 : 1;
+			if(cmp != 0) return cmp;
+			return column < o.column ? -1 : 1;
 		}		
 	}
 	
