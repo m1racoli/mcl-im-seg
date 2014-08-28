@@ -47,11 +47,11 @@ public class SubDimTest {
 	private static final File abcFile = new File("examples\\10x10.abc");
 	
 	
-	public static void main(String[] args) throws Exception {
+	public static <M extends MCLMatrixSlice<M>>void main(String[] args) throws Exception {
 		
 		int[] nsubs = new int[]{1,5,10,25,50,100};
 		
-		Map<Integer,Map<SliceId,CSCSlice>> matrices = new HashMap<Integer,Map<SliceId,CSCSlice>>();
+		Map<Integer,Map<SliceId,M>> matrices = new HashMap<Integer,Map<SliceId,M>>();
 		
 		OpenMapRealMatrix oo = matrixFromAbc(n, abcFile);
 		OpenMapRealMatrix o2 = oo.multiply(oo);
@@ -61,7 +61,7 @@ public class SubDimTest {
 		for(int nsub : nsubs) {
 			Configuration conf = getConf();
 			MCLConfigHelper.setNSub(conf, nsub);
-			Map<SliceId, CSCSlice> m = fromAbc(conf, abcFile);
+			Map<SliceId, M> m = fromAbc(conf, abcFile);
 			System.out.printf("%d\t%e\n",nsub,oo.subtract(toMatrix(m, nsub, n)).getFrobeniusNorm());
 			
 			
@@ -93,25 +93,26 @@ public class SubDimTest {
 		MCLConfigHelper.setDebug(conf, true);
 		MCLConfigHelper.setSelection(conf, 2);
 		MCLConfigHelper.setUseVarints(conf, true);
+		MCLConfigHelper.setMatrixSliceClass(conf, CSCDoubleSlice.class);
 		MCLContext.setLogging(conf);
 		return conf;
 	}
 	
-	public static final Map<SliceId, CSCSlice> iterate(Configuration conf, Map<SliceId, CSCSlice> slices, boolean inf_prune) throws IOException {
+	public static final <M extends MCLMatrixSlice<M>> Map<SliceId, M> iterate(Configuration conf, Map<SliceId, M> m, boolean inf_prune) throws IOException {
 		
-		Map<SliceId,List<SubBlock<CSCSlice>>> subBlocks = new LinkedHashMap<SliceId, List<SubBlock<CSCSlice>>>();
+		Map<SliceId,List<SubBlock<M>>> subBlocks = new LinkedHashMap<SliceId, List<SubBlock<M>>>();
 		
 		int cnt = 0;
-		for (Entry<SliceId,CSCSlice> e : slices.entrySet()) {
+		for (Entry<SliceId,M> e : m.entrySet()) {
 			SliceId outId = new SliceId();
-			for (CSCSlice s : e.getValue().getSubBlocks(outId)) {
+			for (M s : e.getValue().getSubBlocks(outId)) {
 				cnt++;
 				SliceId id = new SliceId();
 				id.set(outId.get());
 				if(!subBlocks.containsKey(id)) {
-					subBlocks.put(id, new ArrayList<SubBlock<CSCSlice>>());
+					subBlocks.put(id, new ArrayList<SubBlock<M>>());
 				}
-				SubBlock<CSCSlice> subBlock = new SubBlock<CSCSlice>();
+				SubBlock<M> subBlock = new SubBlock<M>();
 				subBlock.setConf(conf, false);
 				subBlock.id = e.getKey().get();
 				subBlock.subBlock = rewrite(s, conf);
@@ -121,21 +122,21 @@ public class SubDimTest {
 		
 		logger.debug("nsub: {}, num subblocks: {}",MCLConfigHelper.getNSub(conf),cnt);
 		
-		Map<SliceId,CSCSlice> newSlices = new LinkedHashMap<SliceId, CSCSlice>();
+		Map<SliceId,M> newSlices = new LinkedHashMap<SliceId, M>();
 		
 		for (SliceId id : subBlocks.keySet()) {			
-			for(SubBlock<CSCSlice> subBlock : subBlocks.get(id)) {
+			for(SubBlock<M> subBlock : subBlocks.get(id)) {
 				SliceId blockId = new SliceId();
 				blockId.set(subBlock.id);
 				if(!newSlices.containsKey(blockId)){
-					newSlices.put(blockId, MCLContext.<CSCSlice>getMatrixSliceInstance(conf));
+					newSlices.put(blockId, MCLContext.<M>getMatrixSliceInstance(conf));
 				}
-				newSlices.get(blockId).add(rewrite(subBlock.subBlock.multipliedBy(slices.get(id), null),conf));				
+				newSlices.get(blockId).add(rewrite(subBlock.subBlock.multipliedBy(m.get(id), null),conf));				
 			}
 		}
 		
 		if(inf_prune){
-			for(CSCSlice slice : newSlices.values()){
+			for(M slice : newSlices.values()){
 				slice.inflateAndPrune(null);
 			}
 		}
@@ -184,7 +185,7 @@ public class SubDimTest {
 		return o;
 	}
 	
-	public static final Map<SliceId, CSCSlice> fromAbc(Configuration conf, File file) throws IOException {
+	public static final <M extends MCLMatrixSlice<M>> Map<SliceId, M> fromAbc(Configuration conf, File file) throws IOException {
 		
 		int nsub = MCLConfigHelper.getNSub(conf);
 		Pattern pattern = Pattern.compile("\t");
@@ -227,10 +228,10 @@ public class SubDimTest {
 			}
 		}
 		
-		Map<SliceId, CSCSlice> slices = new LinkedHashMap<SliceId, CSCSlice>();
+		Map<SliceId, M> slices = new LinkedHashMap<SliceId, M>();
 		
 		for(SliceId id : entries.keySet()) {
-			CSCSlice slice = MCLContext.<CSCSlice>getMatrixSliceInstance(conf);
+			M slice = MCLContext.<M>getMatrixSliceInstance(conf);
 			slice.fill(entries.get(id));
 			slices.put(id, slice);
 		}
@@ -283,11 +284,11 @@ public class SubDimTest {
 		return m;
 	}
 	
-	public static OpenMapRealMatrix toMatrix(Map<SliceId, CSCSlice> m, int nsub, int n){
+	public static <M extends MCLMatrixSlice<M>> OpenMapRealMatrix toMatrix(Map<SliceId, M> m, int nsub, int n){
 		OpenMapRealMatrix o = new OpenMapRealMatrix(n, n);
 		
 		for(SliceId id : m.keySet()){
-			CSCSlice slice = m.get(id);			
+			M slice = m.get(id);			
 			for(MatrixEntry e : slice.dump()) {
 				o.setEntry((int) e.row, e.col+ (id.get()*nsub), e.val);
 			}
@@ -296,10 +297,10 @@ public class SubDimTest {
 		return o;
 	}
 	
-	public static CSCSlice rewrite(CSCSlice m, Configuration conf) throws IOException {
+	public static <M extends MCLMatrixSlice<M>> M rewrite(M s, Configuration conf) throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		m.write(new DataOutputStream(outputStream));
-		CSCSlice o = new CSCSlice(conf);
+		s.write(new DataOutputStream(outputStream));
+		M o = MCLContext.<M>getMatrixSliceInstance(conf);
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
 		o.readFields(new DataInputStream(inputStream));
 		return o;
