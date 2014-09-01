@@ -14,9 +14,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
-import mapred.MCLConfigHelper;
-import mapred.Selector;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
@@ -28,7 +25,7 @@ import util.ReadOnlyIterator;
  * @author Cedrik Neumann
  *
  */
-public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
+public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 
 	private static final Logger logger = LoggerFactory.getLogger(CSCSlice.class);
 	
@@ -37,7 +34,6 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	private int[] colPtr = null;
 	
 	private boolean top_aligned = true;
-	private transient Selector selector = null;
 	private transient SubBlockView view = null;
 
 	public CSCSlice(){}
@@ -124,7 +120,6 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		long last_row = -1;
 		int l = 0;
 		colPtr[0] = 0;
-		float col_sum = 0.0f;
 		int kmax = 0;
 		int cs = 0;
 		int max_nnz = this.max_nnz;
@@ -143,13 +138,7 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				
 				arrayfill(colPtr, current_col + 1, entry.col + 1, l);
 				
-				for(int i = cs; i < l; i++) {
-					val[i] /= col_sum;
-				}
-				
 				kmax = Math.max(kmax, l-cs);
-				
-				col_sum = 0.0f;
 				last_row = -1;				
 				current_col = entry.col;
 				cs = colPtr[current_col];
@@ -159,7 +148,6 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				throw new IllegalArgumentException(String.format("wrong row order in column %d: %d >= %d",current_col,last_row,entry.row));
 			}
 			
-			col_sum += entry.val;
 			val[l] = entry.val;
 			rowInd[l++] = entry.row;
 			last_row = entry.row;
@@ -167,17 +155,13 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		
 		arrayfill(colPtr, current_col + 1, colPtr.length, l);
 		
-		for(int i = cs; i < l; i++) {
-			val[i] /= col_sum;
-		}
-		
 		kmax = Math.max(kmax, l-cs);
 		
 //		if(logger.isDebugEnabled()){
 //			logger.debug("colPtr: {}",Arrays.toString(colPtr));
 //			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
 //			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
-//		}
+//		} 
 		
 		return kmax;
 	}
@@ -381,18 +365,12 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 	
 	@Override
 	public int inflateAndPrune(TaskAttemptContext context) {
-				
-		if(selector == null){
-			selector = MCLConfigHelper.getSelectorInstance(getConf());
-		}
 		
-		final double I = inflation;
-		//logger.debug("inflation: {}",I);
-		final int S = selection;
-		//logger.debug("selection: {}",S);
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
 		int max_s = 0;
+		
+		inflate(val, colPtr[0], colPtr[nsub]);
 		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
@@ -407,10 +385,6 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				if(context != null) context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
 				continue;
 			case 1:
-				if(val[cs] != 1.0f){
-					//TODO remove for non debug
-					if(context != null) context.getCounter(Counters.SINGLE_COLUMN_NOT_ONE).increment(1);
-				}
 				if(context != null) {
 					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 					context.getCounter(Counters.ATTRACTORS).increment(1);
@@ -424,55 +398,13 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 				break;
 			}
 			
-			float sum = 0.0f;
-			float max = 0.0f;
-			float min = 1.0f;
-			
-			for(int i = cs; i < ct; i++){
-				float pow = (float) Math.pow(val[i], I);
-				val[i] = pow;
-				sum += pow;
-				if(max < pow)
-					max = pow;
-			}
-			
-			final float tresh = computeTreshold(sum/k, max);
-			//logger.debug("treshhold: {}, avg: {}, max {}",tresh,sum/k,max);
-			int selected = 0;
-			sum = 0.0f;			
-			
-			for(int i = cs; i < ct; i++){
-				if(val[i] >= tresh){
-					selection[selected++] = i;
-					sum += val[i];
-				} else {
-					//logger.debug("cutoff: {}",val[i]);
-					if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
-				}
-			}
-			
-			if(selected > S){
-				if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
-				//logger.debug("exact prune {} -> {}",selected,S);
-				sum = selector.select(val, selection, selected, S);
-				selected = S;
-			}
-			
-			max /= sum;
+			int selected = prune(val, cs, ct, selection, context);
+
 			
 			for(int i  = 0; i < selected; i++){
-				int idx = selection[i];
-				float result = val[idx] / sum;
-				if(result > 0.5f)
-					if(context != null) context.getCounter(Counters.ATTRACTORS).increment(1);
-				if(min > result)
-					min = result;
+				final int idx = selection[i];
 				rowInd[valPtr] = rowInd[idx];
-				val[valPtr++] = result;
-			}
-			
-			if(min == max){
-				if(context != null) context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+				val[valPtr++] = val[idx];
 			}
 			
 			if(max_s < selected) max_s = selected;
@@ -484,11 +416,11 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 		return max_s;
 	}
 	
-	private final float computeTreshold(float avg, float max) {
-		//TODO a,b
-		float tresh = 0.9f*avg*(1-2.0f*(max-avg));
-		tresh = tresh < cutoff ? cutoff : tresh;
-		return tresh < max ? tresh : max;
+	@Override
+	public void makeStochastic(TaskAttemptContext context) {
+		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
+			normalize(val, colPtr[col_start], colPtr[col_end], context);
+		}		
 	}
 	
 	@Override
@@ -640,6 +572,33 @@ public final class CSCSlice extends MCLMatrixSlice<CSCSlice> {
 			return entry;
 		}
 		
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof CSCSlice){
+			CSCSlice o = (CSCSlice) obj;
+
+			if (colPtr.length != o.colPtr.length) {
+				return false;
+			}
+			
+			for(int col = 0; col < colPtr.length-1; col++){
+				final int s1 = colPtr[col];
+				final int t1 = colPtr[col+1];
+				final int s2 = o.colPtr[col];
+				if(t1-s1 != o.colPtr[col+1]-s2){
+					return false;
+				}
+				for(int i1 = s1, i2 = s2; i1 < t1; i1++, i2++){
+					if(val[i1] != o.val[i2] || rowInd[i1] != o.rowInd[i2]){
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 
 }
