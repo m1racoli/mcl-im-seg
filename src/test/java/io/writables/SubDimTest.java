@@ -90,7 +90,7 @@ public class SubDimTest {
 			
 			System.out.printf("%d\t%e\t",iter,absMax(original));
 			if(iter == 1){
-				ImageIO.write(MatrixSpy.getGrayScale(original.getData()), "png", new File("matrix_ori_"+nsub+".png"));
+				ImageIO.write(MatrixSpy.getGrayScale(original.getData()), "png", new File("dump/matrix_ori_"+nsub+".png"));
 			}
 			for(int i = 0; i < size; i++){
 				Map<SliceId,M> m = ms.get(i);
@@ -99,7 +99,7 @@ public class SubDimTest {
 				RealMatrix diff = original.subtract(toMatrix(m, nsub, n));
 				System.out.printf("| %e\t%e\t%e\t",diff.getNorm(),absMax(diff),sum(diff));
 				if(iter == 1){
-					ImageIO.write(MatrixSpy.getGrayScale(toMatrix(m, nsub, n).getData()), "png", new File("matrix_"+i+"_"+nsub+".png"));
+					ImageIO.write(MatrixSpy.getGrayScale(toMatrix(m, nsub, n).getData()), "png", new File("dump/matrix_"+i+"_"+nsub+".png"));
 				}
 				
 			}
