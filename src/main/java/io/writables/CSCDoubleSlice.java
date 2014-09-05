@@ -321,47 +321,34 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	
 	private final int addMultBack(int s1, int t1, CSCDoubleSlice m, int s2, int t2, int pos, double factor) {
 		
-//		if(logger.isDebugEnabled())
-//			logger.debug("addMultBack(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s1,t1,s2,t2,pos,factor);
+		int p = pos, i1 = t1 - 1, i2 = t2 - 1;
 		
-		int p = pos;
-		int i = t1, j = t2 ;
+		long r1 = rowInd[i1];
+		long r2 = m.rowInd[i2];
 		
-		while (i > s1 && j > s2) {			
-			long row = rowInd[--i];
-			long src_Row = m.rowInd[--j];
-			
-			if (row == src_Row) {				
-				rowInd[--p] = row;
-				val[p] = factor * m.val[j] + val[i];				
-			} else {				
-				if (row > src_Row) {					
-					rowInd[--p] = row;
-					val[p] = val[i];					
-				} else {					
-					rowInd[--p] = src_Row;
-					val[p] = factor * m.val[j];
-				}
+		if (r1 == r2) {
+			rowInd[--p] = r1;
+			val[p] = val[i1--] + factor * m.val[i2--];
+		} else {
+			if (r1 > r2) {
+				rowInd[--p] = r1;
+				val[p] = val[i1--];
+			} else {
+				rowInd[--p] = r2;
+				val[p] = factor * m.val[i2--];
 			}
 		}
+	}
 		
-		if (i > s1) {			
-			rowInd[--p] = rowInd[--i];
-			val[p] = val[i];
-			
-			while (i > s1) {
-				rowInd[--p] = rowInd[--i];
-				val[p] = val[i];
-			}			
-		} else if (j > s2) {			
-			rowInd[--p] = m.rowInd[--j];
-			val[p] = factor * m.val[j];
-			
-			while (j > s2) {				
-				rowInd[--p] = m.rowInd[--j];
-				val[p] = factor * m.val[j];				
-			}
-		}
+	while (i1 >= s1) {
+		rowInd[--p] = rowInd[i1];
+		val[p] = val[i1--];
+	}			
+	
+	while (i2 >= s2) {
+		rowInd[--p] = m.rowInd[i2];
+		val[p] = factor * m.val[i2--];	
+	}
 		
 		return pos - p;
 	}

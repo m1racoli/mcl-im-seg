@@ -314,34 +314,34 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	
 	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
 		
-		int p = pos, i1 = t1, i2 = t2 ;
+		int p = pos, i1 = t1 - 1, i2 = t2 - 1 ;
 		
-		while (i1 > s1 && i2 > s2) {
-			long r1 = rowInd[--i1];
-			long r2 = m.rowInd[--i2];
+		while (i1 >= s1 && i2 >= s2) {
+			long r1 = rowInd[i1];
+			long r2 = m.rowInd[i2];
 			
 			if (r1 == r2) {
 				rowInd[--p] = r1;
-				val[p] = val[i1] + factor * m.val[i2];
+				val[p] = val[i1--] + factor * m.val[i2--];
 			} else {
 				if (r1 > r2) {
 					rowInd[--p] = r1;
-					val[p] = val[i1];
+					val[p] = val[i1--];
 				} else {
 					rowInd[--p] = r2;
-					val[p] = factor * m.val[i2];
+					val[p] = factor * m.val[i2--];
 				}
 			}
 		}
 			
-		while (i1 > s1) {
-			rowInd[--p] = rowInd[--i1];
-			val[p] = val[i1];
+		while (i1 >= s1) {
+			rowInd[--p] = rowInd[i1];
+			val[p] = val[i1--];
 		}			
 		
-		while (i2 > s2) {
-			rowInd[--p] = m.rowInd[--i2];
-			val[p] = factor * m.val[i2];	
+		while (i2 >= s2) {
+			rowInd[--p] = m.rowInd[i2];
+			val[p] = factor * m.val[i2--];	
 		}
 		
 		return pos - p;
