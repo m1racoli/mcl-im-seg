@@ -1,7 +1,6 @@
 package io.writables;
 
 import static org.junit.Assert.*;
-import io.writables.MCLMatrixSlice.MatrixEntry;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.Random;
 
 import mapred.MCLConfigHelper;
+
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -21,14 +21,14 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	private final long seed = 34531423L;
 	private final double dense = 0.8;
 	
-	public static final List<MatrixEntry> getRandom(int n, int nsub, long seed, double dense){
+	public static final List<SliceEntry> getRandom(int n, int nsub, long seed, double dense){
 		Random random = new Random(seed);
-		List<MatrixEntry> entries = new ArrayList<MatrixEntry>();
+		List<SliceEntry> entries = new ArrayList<SliceEntry>();
 
 		for(int col = 0; col < nsub; col++){
 			for(int row = 0; row < n; row++){			
 				if(random.nextDouble() < dense){
-					entries.add(MatrixEntry.get(col, row, random.nextFloat()));
+					entries.add(SliceEntry.get(col, row, random.nextFloat()));
 				}
 			}
 		}
@@ -36,22 +36,22 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 		return entries;
 	}
 	
-	public final List<MatrixEntry> getRandom(){
+	public final List<SliceEntry> getRandom(){
 		return getRandom(n, nsub, seed, dense);
 	}
 	
-	public final List<MatrixEntry> getUnity(){
+	public final List<SliceEntry> getUnity(){
 		return getUnity(n);
 	}
 	
-	public static final List<MatrixEntry> getUnity(int n){
+	public static final List<SliceEntry> getUnity(int n){
 		return getDiagonal(n, 1.0f);
 	}
 	
-	public static final List<MatrixEntry> getDiagonal(int n, float d){
-		List<MatrixEntry> list = new ArrayList<MCLMatrixSlice.MatrixEntry>();
+	public static final List<SliceEntry> getDiagonal(int n, float d){
+		List<SliceEntry> list = new ArrayList<SliceEntry>();
 		for(int i = 0; i < n; i++){
-			list.add(MatrixEntry.get(i, i, d));
+			list.add(SliceEntry.get(i, i, d));
 		}
 		return list;
 	}
@@ -74,7 +74,7 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 		return getPreparedInstance(n,nsub,getRandom());
 	}
 	
-	public M getPreparedInstance(int n, int nsub, Iterable<MatrixEntry> entries) {
+	public M getPreparedInstance(int n, int nsub, Iterable<SliceEntry> entries) {
 		M m = MCLMatrixSlice.getInstance(getConf(n,nsub));
 		m.fill(entries);
 		return m;
@@ -83,10 +83,10 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	@Test
 	public void testFillDump() {
 		M m = MCLMatrixSlice.getInstance(getConf(n,nsub));
-		List<MatrixEntry> list = getRandom();
-		Iterator<MatrixEntry> iter = list.iterator();
+		List<SliceEntry> list = getRandom();
+		Iterator<SliceEntry> iter = list.iterator();
 		m.fill(list);
-		for(MatrixEntry e : m.dump()){
+		for(SliceEntry e : m.dump()){
 			assertTrue(iter.hasNext());
 			assertEquals(e, iter.next());
 		}
@@ -95,7 +95,7 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	
 	@Test
 	public void testSize(){
-		List<MatrixEntry> list = getRandom();
+		List<SliceEntry> list = getRandom();
 		M m = getPreparedInstance(n, nsub, list);
 		assertTrue(m.size() == list.size());
 	}
@@ -152,7 +152,7 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 				assertEquals(s.deepCopy(), getPreparedInstance(nsub,nsub,getUnity(nsub)));
 				break;
 			case 1:
-				assertEquals(s.deepCopy(), getPreparedInstance(nsub,nsub,Collections.<MatrixEntry>emptyList()));
+				assertEquals(s.deepCopy(), getPreparedInstance(nsub,nsub,Collections.<SliceEntry>emptyList()));
 				break;
 			default:
 				fail();
@@ -172,7 +172,7 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	@Test
 	public void testAddZero(){
 		M m = getPrepadedInstance();
-		M z = getPreparedInstance(n, nsub, Collections.<MatrixEntry>emptyList());
+		M z = getPreparedInstance(n, nsub, Collections.<SliceEntry>emptyList());
 		M rerult = m.deepCopy();
 		rerult.add(z);
 		assertEquals(m, rerult);		
@@ -181,7 +181,7 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	@Test
 	public void testZeroAdd(){
 		M m = getPrepadedInstance();
-		M z = getPreparedInstance(n, nsub, Collections.<MatrixEntry>emptyList());
+		M z = getPreparedInstance(n, nsub, Collections.<SliceEntry>emptyList());
 		z.add(m);
 		assertEquals(m, z);		
 	}
@@ -199,10 +199,10 @@ public abstract class MCLMatrixSliceTest<M extends MCLMatrixSlice<M>> {
 	public float maxDiff(int n, int nsub, M m1, M m2) {
 		float[][] diff = new float[n][nsub];
 		
-		for(MatrixEntry e : m1.dump()){
+		for(SliceEntry e : m1.dump()){
 			diff[(int) e.row][e.col] = e.val;
 		}
-		for(MatrixEntry e : m2.dump()){
+		for(SliceEntry e : m2.dump()){
 			diff[(int) e.row][e.col] -= e.val;
 		}
 		float max = 0.0f;

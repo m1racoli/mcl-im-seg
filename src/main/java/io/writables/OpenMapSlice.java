@@ -99,11 +99,11 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#fill(java.lang.Iterable)
 	 */
 	@Override
-	public int fill(Iterable<io.writables.MCLMatrixSlice.MatrixEntry> entries) {
+	public int fill(Iterable<io.writables.SliceEntry> entries) {
 		int[] k = new int[nsub];
 		
 		matrix = matrix.createMatrix((int) n, nsub);
-		for(MatrixEntry e : entries){
+		for(SliceEntry e : entries){
 			matrix.setEntry((int) e.row, e.col, e.val);
 			k[e.col]++;
 		}
@@ -120,9 +120,9 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#dump()
 	 */
 	@Override
-	public Iterable<io.writables.MCLMatrixSlice.MatrixEntry> dump() {
+	public Iterable<io.writables.SliceEntry> dump() {
 
-		final TreeSet<MatrixEntry> entries = new TreeSet<MCLMatrixSlice.MatrixEntry>();
+		final TreeSet<SliceEntry> entries = new TreeSet<SliceEntry>();
 		
 		matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor(){
 			@Override
@@ -131,7 +131,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 					return;
 				}
 				
-				MatrixEntry e = new MatrixEntry();
+				SliceEntry e = new SliceEntry();
 				e.col = column;
 				e.row = row;
 				e.val = (float) value;

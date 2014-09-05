@@ -1,7 +1,5 @@
 package io.writables;
 
-import io.writables.MCLMatrixSlice.MatrixEntry;
-
 import java.util.Random;
 
 import mapred.MCLConfigHelper;
@@ -99,7 +97,7 @@ public class MCLSliceTest {
 	public static final <M extends MCLMatrixSlice<M>> double dist(OpenMapRealMatrix o, M m) {
 		OpenMapRealMatrix o2 = o.createMatrix(o.getRowDimension(), o.getColumnDimension());
 		
-		for(MatrixEntry e : m.dump()) {
+		for(SliceEntry e : m.dump()) {
 			o2.setEntry((int) e.row, e.col, e.val);
 		}
 		

@@ -118,7 +118,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public int fill(Iterable<MatrixEntry> entries) {
+	public int fill(Iterable<SliceEntry> entries) {
 		top_aligned = true;
 		int current_col = 0;
 		long last_row = -1;
@@ -128,7 +128,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		int cs = 0;
 		int max_nnz = this.max_nnz;
 		
-		for(MatrixEntry entry : entries){
+		for(SliceEntry entry : entries){
 			
 			if(l == max_nnz) {
 				throw new IllegalArgumentException(String.format("matrix already full with max nnz = %d. Please specify proper k_max value",max_nnz));
@@ -519,20 +519,20 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 
 	@Override
-	public Iterable<MatrixEntry> dump() {
-		return new Iterable<MatrixEntry>() {
+	public Iterable<SliceEntry> dump() {
+		return new Iterable<SliceEntry>() {
 
 			@Override
-			public Iterator<io.writables.MCLMatrixSlice.MatrixEntry> iterator() {
+			public Iterator<io.writables.SliceEntry> iterator() {
 				return new EntryIterator();
 			}
 			
 		};
 	}
 	
-	private final class EntryIterator extends ReadOnlyIterator<MatrixEntry> {
+	private final class EntryIterator extends ReadOnlyIterator<SliceEntry> {
 
-		private final MatrixEntry entry = new MatrixEntry();
+		private final SliceEntry entry = new SliceEntry();
 		private final int l = colPtr[nsub];
 		private int col_end = colPtr[1];
 		private int col = 0;
@@ -544,7 +544,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 
 		@Override
-		public MatrixEntry next() {
+		public SliceEntry next() {
 
 			while(i == col_end) {
 				col_end = colPtr[++col + 1];

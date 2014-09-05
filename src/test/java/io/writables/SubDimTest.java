@@ -1,7 +1,5 @@
 package io.writables;
 
-import io.writables.MCLMatrixSlice.MatrixEntry;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -46,8 +44,8 @@ public class SubDimTest {
 		int iterations = 10;
 		int[] nsubs = new int[]{1,5,10,25,50,100};
 		Class[] classes = new Class[]{CSCSlice.class,CSCDoubleSlice.class,OpenMapSlice.class};
-		RealMatrix original = matrixFromAbc(n,abcFile); //getRandom(n, 24235256L, 0.2);
-				
+		RealMatrix original = getRandom(n, 24235256L, 0.2);
+		//RealMatrix original = matrixFromAbc(n,abcFile);		
 		for(int nsub : nsubs) {
 			runTests(nsub, classes, original, iterations);
 		}
@@ -235,7 +233,7 @@ public class SubDimTest {
 		
 		int nsub = MCLConfigHelper.getNSub(conf);
 		Pattern pattern = Pattern.compile("\t");
-		Map<SliceId,SortedSet<MatrixEntry>> entries = new LinkedHashMap<SliceId, SortedSet<MatrixEntry>>();
+		Map<SliceId,SortedSet<SliceEntry>> entries = new LinkedHashMap<SliceId, SortedSet<SliceEntry>>();
 		BufferedReader reader = null;
 		try {
 			reader = new BufferedReader(new FileReader(file));
@@ -250,15 +248,12 @@ public class SubDimTest {
 				float val = Float.parseFloat(split[2]);
 				
 				SliceId id = new SliceId();
-				MatrixEntry e = new MatrixEntry();
-				
 				id.set(MCLContext.getIdFromIndex(col, nsub));
-				e.col = MCLContext.getSubIndexFromIndex(col, nsub);
-				e.row = row;
-				e.val = val;
+				
+				SliceEntry e = SliceEntry.get(MCLContext.getSubIndexFromIndex(col, nsub),row,val);
 				
 				if(!entries.containsKey(id)){
-					entries.put(id, new TreeSet<MatrixEntry>());
+					entries.put(id, new TreeSet<SliceEntry>());
 				}
 				entries.get(id).add(e);				
 			}
@@ -422,7 +417,7 @@ public class SubDimTest {
 		
 		for(SliceId id : m.keySet()){
 			M slice = m.get(id);			
-			for(MatrixEntry e : slice.dump()) {
+			for(SliceEntry e : slice.dump()) {
 				o.setEntry((int) e.row, e.col+ (id.get()*nsub), e.val);
 			}
 		}

@@ -51,9 +51,9 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @param values
 	 * @return kmax
 	 */
-	public abstract int fill(Iterable<MatrixEntry> entries);	
+	public abstract int fill(Iterable<SliceEntry> entries);	
 	
-	public abstract Iterable<MatrixEntry> dump();
+	public abstract Iterable<SliceEntry> dump();
 	
 	/** 
 	 * @param m to add to this
@@ -102,6 +102,12 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @return
 	 */
 	public final Iterable<M> getSubBlocks(final SliceId id){
+		
+		if (n == nsub) {
+			id.set(0);
+			return Collections.<M>singleton((M) this);
+		}
+		
 		return new Iterable<M>() {
 			@Override
 			public Iterator<M> iterator() {
@@ -121,9 +127,9 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 			throw new IllegalArgumentException("dimension missmatch of input arrays col,row,val");
 		}
 		
-		List<MatrixEntry> entries = new ArrayList<MatrixEntry>(l);
+		List<SliceEntry> entries = new ArrayList<SliceEntry>(l);
 		for(int i = 0; i < l; i++) {
-			entries.add(MatrixEntry.get(col[i], row[i], val[i]));
+			entries.add(SliceEntry.get(col[i], row[i], val[i]));
 		}
 		Collections.sort(entries);
 		
@@ -140,46 +146,6 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		max_nnz = kmax * nsub;
 	}
 
-	public static final class MatrixEntry implements Comparable<MatrixEntry> {
-		public int col = 0;
-		public long row = 0;
-		public float val = 0;
-		
-		public static MatrixEntry get(int col, long row, float val) {
-			MatrixEntry e = new MatrixEntry();
-			e.col = col;
-			e.row = row;
-			e.val = val;
-			return e;
-		}
-		
-		@Override
-		public int compareTo(MatrixEntry o) {
-			int cmp = col == o.col ? 0 : col < o.col ? -1 : 1;
-			if(cmp != 0) return cmp;
-			return row == o.row ? 0 : row < o.row ? -1 : 1;
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if(obj instanceof MatrixEntry){
-				MatrixEntry o = (MatrixEntry) obj;
-				return col == o.col && row == o.row && val == o.val;
-			}
-			return false;
-		}
-		
-		@Override
-		public int hashCode() {
-			return 31 * col + (int) row;
-		}
-		
-		@Override
-		public String toString() {
-			return String.format("[c: %d, r: %d, v: %f]", col,row,val);
-		}
-	}
-	
 	@Override
 	public String toString() {
 		
@@ -189,7 +155,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 			float[] matrix = new float[(int) (n*nsub)];
 			Arrays.fill(matrix, 0.0f);
 			
-			for(MatrixEntry e : dump()) {
+			for(SliceEntry e : dump()) {
 				matrix[(int) (e.col + (nsub * e.row))] = e.val;
 			}
 			

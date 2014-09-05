@@ -15,8 +15,8 @@ import io.writables.Index;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.Pixel;
+import io.writables.SliceEntry;
 import io.writables.SliceId;
-import io.writables.MCLMatrixSlice.MatrixEntry;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
@@ -124,10 +124,10 @@ public class InputJob extends AbstractMCLJob {
 		@Override
 		protected void reduce(final Index idx, final Iterable<V> pixels, Context context)
 				throws IOException, InterruptedException {
-			int kmax_tmp = col.fill(new Iterable<MatrixEntry>() {
+			int kmax_tmp = col.fill(new Iterable<SliceEntry>() {
 				
 				@Override
-				public Iterator<MatrixEntry> iterator() {
+				public Iterator<SliceEntry> iterator() {
 					return new ValueIterator(idx, pixels.iterator());
 				}
 				
@@ -146,9 +146,9 @@ public class InputJob extends AbstractMCLJob {
 			//TODO multiple otput or correct path
 		}
 		
-		private final class ValueIterator extends ReadOnlyIterator<MatrixEntry> {
+		private final class ValueIterator extends ReadOnlyIterator<SliceEntry> {
 
-			private final MatrixEntry entry = new MatrixEntry();
+			private final SliceEntry entry = new SliceEntry();
 			private final Index idx;
 			private final Iterator<V> iter;
 			
@@ -163,7 +163,7 @@ public class InputJob extends AbstractMCLJob {
 			}
 			
 			@Override
-			public MatrixEntry next() {
+			public SliceEntry next() {
 				final V f1 = iter.next();
 				
 				entry.col = idx.col.get();

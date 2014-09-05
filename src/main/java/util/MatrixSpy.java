@@ -19,8 +19,8 @@ import javax.imageio.ImageIO;
 
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
+import io.writables.SliceEntry;
 import io.writables.SliceId;
-import io.writables.MCLMatrixSlice.MatrixEntry;
 import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 
@@ -98,7 +98,7 @@ public class MatrixSpy<M extends MCLMatrixSlice<M>> extends AbstractUtil {
 			}
 			
 			while (reader.next(id, m)) {
-				for(MatrixEntry e : m.dump()) {
+				for(SliceEntry e : m.dump()) {
 					long j = ((long) id.getSliceId()*(long) nsub) + e.col;
 					long i = e.row;
 					int spy_i = (int) ((i * n)/m_n);
