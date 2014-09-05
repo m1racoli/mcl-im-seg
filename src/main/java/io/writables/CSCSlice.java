@@ -34,7 +34,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private int[] colPtr = null;
 	
 	private boolean top_aligned = true;
-	private transient SubBlockView view = null;
+	private SubBlockView view = null;
 
 	public CSCSlice(){}
 	
@@ -66,10 +66,14 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			colPtr[col] = readInt(in);
 		}
 		
-		for(int i = colPtr[nsub] - 1, s = colPtr[0]; i >= s; --i){
+		assert colPtr[0] == 0;
+		
+		for(int i = colPtr[nsub] - 1; i >= 0; --i){
 			val[i] = in.readFloat();
 			rowInd[i] = readLong(in);
 		}
+		
+		assertOrder();
 	}
 
 	/* (non-Javadoc)
@@ -90,7 +94,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			long row_shift = view.row_shift;
 			
 			for(int col = nsub - 1; col >= 0; --col) {
-				int size = view.size[col];
+				final int size = view.size[col];
 				if(size == 0) continue;
 				view.size[col] = 0;
 				for(int i = view.offset[col] - 1, s = i - size; i > s; --i){
@@ -162,7 +166,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 //			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
 //			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
 //		} 
-		
+		assertOrder();
 		return kmax;
 	}
 	
@@ -200,16 +204,16 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		top_aligned = !top_aligned;
+		assertOrder();
 	}
 
 	@Override
 	public CSCSlice multipliedBy(CSCSlice m, TaskAttemptContext context) {
 
-		assert top_aligned && m.top_aligned;
+		assert top_aligned;
 		
-		//we assume this is a sub block, for which there are maximal n_sub rows
-		final float[] tmp_val = new float[nsub];
-		final long[] tmp_rowInd = new long[nsub];
+		final float[] tmp_val = new float[kmax];
+		final long[] tmp_rowInd = new long[kmax];
 		
 		int tmp_end = val.length;
 		
@@ -238,6 +242,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				final int target_cs = m.colPtr[target_col];
 				final int target_ct = m.colPtr[target_col + 1];
 				
+				if(target_cs == target_ct){continue;};
+				
 				if(tmp_top_aligned){
 					filled = addMultBack(cs, cs + filled, m, target_cs, target_ct, tmp_end, factor);
 				} else {
@@ -258,6 +264,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		colPtr[0] = tmp_end;		
 		top_aligned = false;
 		
+		assertOrder();
+		
 		return this;
 	}
 
@@ -267,46 +275,34 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	
 	private final int addMultForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
 		
-//		if(logger.isDebugEnabled())
-//			logger.debug("addMultForw(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s,t,src_s,src_t,new_pos,factor);
+		int p = pos, i1 = s1, i2 = s2;
 		
-		int p = pos;
-		int i = s1, j = s2;
-		
-		while (i < t1 && j < t2) {			
-			long row = rowInd[i];
-			long src_Row = m.rowInd[j];
+		while (i1 < t1 && i2 < t2) {
+			final long r1 = rowInd[i1];
+			final long r2 = m.rowInd[i2];
 			
-			if (row == src_Row) {
-				rowInd[p] = row;
-				val[p++] = factor * m.val[j++] + val[i++];
+			if (r1 == r2) {
+				rowInd[p] = r1;
+				val[p++] = val[i1++] + factor * m.val[i2++];				
 			} else {
-				if (row < src_Row) {
-					rowInd[p] = row;
-					val[p++] = val[i++];	
+				if (r1 < r2) {
+					rowInd[p] = r1;
+					val[p++] = val[i1++];	
 				} else {
-					rowInd[p] = src_Row;
-					val[p++] = factor * m.val[j++];
+					rowInd[p] = r2;
+					val[p++] = factor * m.val[i2++];
 				}
 			}
 		}
 		
-		if(i < t1) {			
-			rowInd[p] = rowInd[i];
-			val[p++] = val[i++];
-			
-			while (i < t1) {
-				rowInd[p] = rowInd[i];
-				val[p++] = val[i++];
-			}
-		} else if (j < t2){
-			rowInd[p] = m.rowInd[j];
-			val[p++] = factor * m.val[j++];
-			
-			while(j < t2) {
-				rowInd[p] = m.rowInd[j];
-				val[p++] = factor * m.val[j++];
-			}
+		while (i1 < t1) {
+			rowInd[p] = rowInd[i1];
+			val[p++] = val[i1++];
+		}
+
+		while(i2 < t2) {
+			rowInd[p] = m.rowInd[i2];
+			val[p++] = factor * m.val[i2++];
 		}
 		
 		return p - pos;
@@ -318,46 +314,34 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	
 	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
 		
-//		if(logger.isDebugEnabled())
-//			logger.debug("addMultBack(s1: {}, t1: {}, s2: {}, t2: {}, pos: {}, factor: {})",s1,t1,s2,t2,pos,factor);
+		int p = pos, i1 = t1, i2 = t2 ;
 		
-		int p = pos;
-		int i = t1, j = t2 ;
-		
-		while (i > s1 && j > s2) {			
-			long row = rowInd[--i];
-			long src_Row = m.rowInd[--j];
+		while (i1 > s1 && i2 > s2) {
+			long r1 = rowInd[--i1];
+			long r2 = m.rowInd[--i2];
 			
-			if (row == src_Row) {				
-				rowInd[--p] = row;
-				val[p] = factor * m.val[j] + val[i];				
-			} else {				
-				if (row > src_Row) {					
-					rowInd[--p] = row;
-					val[p] = val[i];					
-				} else {					
-					rowInd[--p] = src_Row;
-					val[p] = factor * m.val[j];
+			if (r1 == r2) {
+				rowInd[--p] = r1;
+				val[p] = val[i1] + factor * m.val[i2];
+			} else {
+				if (r1 > r2) {
+					rowInd[--p] = r1;
+					val[p] = val[i1];
+				} else {
+					rowInd[--p] = r2;
+					val[p] = factor * m.val[i2];
 				}
 			}
 		}
+			
+		while (i1 > s1) {
+			rowInd[--p] = rowInd[--i1];
+			val[p] = val[i1];
+		}			
 		
-		if (i > s1) {			
-			rowInd[--p] = rowInd[--i];
-			val[p] = val[i];
-			
-			while (i > s1) {
-				rowInd[--p] = rowInd[--i];
-				val[p] = val[i];
-			}			
-		} else if (j > s2) {			
-			rowInd[--p] = m.rowInd[--j];
-			val[p] = factor * m.val[j];
-			
-			while (j > s2) {				
-				rowInd[--p] = m.rowInd[--j];
-				val[p] = factor * m.val[j];				
-			}
+		while (i2 > s2) {
+			rowInd[--p] = m.rowInd[--i2];
+			val[p] = factor * m.val[i2];	
 		}
 		
 		return pos - p;
@@ -413,6 +397,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
+		assertOrder();
 		return max_s;
 	}
 	
@@ -450,7 +435,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				view = new SubBlockView();
 			}
 			
-			System.arraycopy(colPtr, 0, offset, 0, nsub);			
+			System.arraycopy(colPtr, 0, offset, 0, nsub);
 			
 			for(int column = 0, end = nsub; column < end; column++) {
 				fetch(column);
@@ -469,7 +454,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			list.add(first);
 			
 			while(queue.peek() != null && first.id == queue.peek().id) {
-				list.add(queue.poll());
+				list.add(queue.remove());
 			}			
 			
 			for(SubBlockSlice slice : list) {
@@ -599,6 +584,16 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			return true;
 		}
 		return false;
+	}
+	
+	private void assertOrder(){
+		for(int col = 0; col < nsub; col++){
+			assert colPtr[col] <= colPtr[col+1];
+			for(int i = colPtr[col], end = colPtr[col+1]-1; i < end; i++){
+				//TODO
+				assert rowInd[i] < rowInd[i+1];
+			}
+		}
 	}
 
 }

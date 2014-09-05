@@ -14,7 +14,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
-import mapred.MCLConfigHelper;
 import mapred.Selector;
 
 import org.apache.hadoop.conf.Configuration;
@@ -209,11 +208,11 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	@Override
 	public CSCDoubleSlice multipliedBy(CSCDoubleSlice m, TaskAttemptContext context) {
 
-		assert top_aligned && m.top_aligned;
+		assert top_aligned : "right matrix is not correctly aligned";
+		assert m.top_aligned : "align left";
 		
-		//we assume this is a sub block, for which there are maximal n_sub rows
-		final double[] tmp_val = new double[nsub];
-		final long[] tmp_rowInd = new long[nsub];
+		final double[] tmp_val = new double[kmax];
+		final long[] tmp_rowInd = new long[kmax];
 		
 		int tmp_end = val.length;
 		

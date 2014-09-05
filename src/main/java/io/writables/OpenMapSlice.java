@@ -147,7 +147,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 */
 	@Override
 	public void add(OpenMapSlice m) {
-		matrix.add(m.matrix);
+		matrix = matrix.add(m.matrix);
 	}
 
 	/* (non-Javadoc)
@@ -185,7 +185,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 				int ct = cs + nsub - 1;
 				
 				block.matrix = new OpenMapRealMatrix(nsub, nsub);
-				block.matrix.add(matrix.getSubMatrix(cs, ct, 0, nsub-1));
+				block.matrix.setSubMatrix(matrix.getSubMatrix(cs, ct, 0, nsub-1).getData(),0,0);
 				return block;
 			}
 		};

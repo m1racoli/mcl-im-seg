@@ -48,7 +48,7 @@ public class SubDimTest {
 		Class[] classes = new Class[]{CSCSlice.class,CSCDoubleSlice.class,OpenMapSlice.class};
 		RealMatrix original = matrixFromAbc(n,abcFile); //getRandom(n, 24235256L, 0.2);
 				
-		for(int nsub : nsubs) {			
+		for(int nsub : nsubs) {
 			runTests(nsub, classes, original, iterations);
 		}
 		
@@ -72,14 +72,14 @@ public class SubDimTest {
 		
 		System.out.printf("nsub=%4d original\t", nsub);
 		for(int i = 0; i < size; i++){
-			System.out.printf("%s\t\t%s\t\t%s\t\t", "norm","max","sum");
+			System.out.printf("| %s\t\t%s\t\t%s\t\t", "norm","max","sum");
 		}
 		System.out.println();
 		
 		System.out.printf("%d\t%e\t",0,absMax(original));
 		for(int i = 0; i < size; i++){
 			RealMatrix diff = original.subtract(toMatrix(ms.get(i), nsub, n));
-			System.out.printf("%e\t%e\t%e\t",diff.getNorm(),absMax(diff),sum(diff));
+			System.out.printf("| %e\t%e\t%e\t",diff.getNorm(),absMax(diff),sum(diff));
 		}
 		System.out.println();
 		
@@ -97,7 +97,7 @@ public class SubDimTest {
 				m = iterate(conf[i], m);
 				ms.set(i, m);
 				RealMatrix diff = original.subtract(toMatrix(m, nsub, n));
-				System.out.printf("%e\t%e\t%e\t",diff.getNorm(),absMax(diff),sum(diff));
+				System.out.printf("| %e\t%e\t%e\t",diff.getNorm(),absMax(diff),sum(diff));
 				if(iter == 1){
 					ImageIO.write(MatrixSpy.getGrayScale(toMatrix(m, nsub, n).getData()), "png", new File("matrix_"+i+"_"+nsub+".png"));
 				}
@@ -166,7 +166,7 @@ public class SubDimTest {
 				if(!newSlices.containsKey(blockId)){
 					newSlices.put(blockId, MCLContext.<M>getMatrixSliceInstance(conf));
 				}
-				newSlices.get(blockId).add(subBlock.subBlock.multipliedBy(leftSlice, null).deepCopy());
+				newSlices.get(blockId).add(subBlock.subBlock.deepCopy().multipliedBy(leftSlice.deepCopy(), null));
 			}
 		}
 		
@@ -446,7 +446,7 @@ public class SubDimTest {
 		double [][] data = m.getData();
 		for(int i = 0;i < data.length;i++){
 			for(int j = 0; j < data[i].length; j++){
-				sum += data[i][j];
+				sum += Math.abs(data[i][j]);
 			}
 		}
 		return sum;
