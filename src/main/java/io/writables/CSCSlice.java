@@ -430,7 +430,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		public SubBlockIterator(SliceId sliceId) {
 			this.id = sliceId;
-			
+						
 			if(view == null) {
 				view = new SubBlockView();
 			}

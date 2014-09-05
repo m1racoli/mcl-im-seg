@@ -14,8 +14,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
-import mapred.Selector;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
@@ -36,7 +34,6 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	private int[] colPtr = null;
 	
 	private boolean top_aligned = true;
-	private transient Selector selector = null;
 	private transient SubBlockView view = null;
 
 	public CSCDoubleSlice(){}
@@ -322,33 +319,33 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	private final int addMultBack(int s1, int t1, CSCDoubleSlice m, int s2, int t2, int pos, double factor) {
 		
 		int p = pos, i1 = t1 - 1, i2 = t2 - 1;
-		
-		long r1 = rowInd[i1];
-		long r2 = m.rowInd[i2];
-		
-		if (r1 == r2) {
-			rowInd[--p] = r1;
-			val[p] = val[i1--] + factor * m.val[i2--];
-		} else {
-			if (r1 > r2) {
+		while (i1 >= s1 && i2 >= s2) {	
+			long r1 = rowInd[i1];
+			long r2 = m.rowInd[i2];
+			
+			if (r1 == r2) {
 				rowInd[--p] = r1;
-				val[p] = val[i1--];
+				val[p] = val[i1--] + factor * m.val[i2--];
 			} else {
-				rowInd[--p] = r2;
-				val[p] = factor * m.val[i2--];
+				if (r1 > r2) {
+					rowInd[--p] = r1;
+					val[p] = val[i1--];
+				} else {
+					rowInd[--p] = r2;
+					val[p] = factor * m.val[i2--];
+				}
 			}
 		}
-	}
+			
+		while (i1 >= s1) {
+			rowInd[--p] = rowInd[i1];
+			val[p] = val[i1--];
+		}			
 		
-	while (i1 >= s1) {
-		rowInd[--p] = rowInd[i1];
-		val[p] = val[i1--];
-	}			
-	
-	while (i2 >= s2) {
-		rowInd[--p] = m.rowInd[i2];
-		val[p] = factor * m.val[i2--];	
-	}
+		while (i2 >= s2) {
+			rowInd[--p] = m.rowInd[i2];
+			val[p] = factor * m.val[i2--];	
+		}
 		
 		return pos - p;
 	}
@@ -404,13 +401,6 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
 		return max_s;
-	}
-	
-	private final double computeTreshold(double avg, double max) {
-		//TODO a,b
-		double tresh = 0.9*avg*(1-2.0*(max-avg));
-		tresh = tresh < cutoff ? cutoff : tresh;
-		return tresh < max ? tresh : max;
 	}
 	
 	@Override
