@@ -13,7 +13,7 @@ import java.io.IOException;
  */
 public abstract class DistributedFloat implements DistributedMetric<DistributedFloat> {
 
-	private float val = 0;
+	private float val = 0.0f;
 
 	@Override
 	public void clear() {
@@ -24,13 +24,17 @@ public abstract class DistributedFloat implements DistributedMetric<DistributedF
 		return val;
 	}
 	
+	/**
+	 * applies the new value regarding the merging rule
+	 * @param val
+	 */
 	public final void set(float val){
-		val = merge(this.val,val);
+		this.val = merge(this.val,val);
 	}
 	
 	@Override
 	public void merge(DistributedFloat v) {
-		val = merge(this.val,v.val);
+		this.val = merge(this.val,v.val);
 	}
 	
 	protected abstract float merge(float v1, float v2);
@@ -44,5 +48,10 @@ public abstract class DistributedFloat implements DistributedMetric<DistributedF
 	public void readFields(DataInput in) throws IOException {
 		val = in.readFloat();
 	}
-
+	
+	@Override
+	public String toString() {
+		return String.valueOf(val);
+	}
+	
 }

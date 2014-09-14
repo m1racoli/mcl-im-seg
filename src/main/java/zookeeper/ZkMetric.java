@@ -70,7 +70,7 @@ public class ZkMetric {
 		
 		ZooKeeper zk = getZookeeperInstance(conf);
 		try {
-			if(override && zk.exists(path, false) != null) zk.delete(path, -1);
+			if(override && zk.exists(path, false) != null) zk.delete(path, -1);//TODO correct logic
 			zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			paths.add(path);
 		} catch (KeeperException e) {
