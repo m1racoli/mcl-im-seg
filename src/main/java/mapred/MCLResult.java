@@ -31,6 +31,7 @@ public class MCLResult {
 	public long runningtime = -1;
 	public long cpu_millis = -1;
 	public org.apache.hadoop.mapreduce.Counters counters = null;
+	public float chaos = 1.0f;
 	
 	public void run(Job job) throws Exception {
 		success = job.waitForCompletion(true);

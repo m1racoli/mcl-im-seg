@@ -85,7 +85,11 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 */
 	public abstract int inflateAndPrune(TaskAttemptContext context);
 	
-	public abstract void makeStochastic(TaskAttemptContext context);
+	/**
+	 * @param context
+	 * @return chaos
+	 */
+	public abstract float makeStochastic(TaskAttemptContext context);
 	
 	/**
 	 * equality test on implementation level

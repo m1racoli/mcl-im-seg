@@ -108,14 +108,21 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		return tresh < max ? tresh : max;
 	}
 	
-	protected final void normalize(double[] val, int s, int t, TaskAttemptContext context) {
+	/**
+	 * 
+	 * @param val
+	 * @param s
+	 * @param t
+	 * @param context
+	 * @return chaos
+	 */
+	protected final float normalize(double[] val, int s, int t, TaskAttemptContext context) {
 		
 		if(s == t){
-			return;
+			return 0.0f;
 		}
 		
-		double min = Float.MAX_VALUE;
-		double max = 0.0f;
+		
 		double sum = 0.0f;
 		
 		for(int i = s; i < t; i++){
@@ -123,14 +130,20 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		}
 		
 		if(sum == 0.0){
-			return;
-		}		
+			return 0.0f;
+		}
+		
+		double min = Float.MAX_VALUE;
+		double max = 0.0f;
+		double sumsq = 0.0;
 		
 		for(int i = s; i < t; i++){
 			final double v = val[i] / sum;
 			if(context != null && v > 0.5f){
 				context.getCounter(Counters.ATTRACTORS).increment(1);
 			}
+			
+			sumsq += v*v;
 
 			if(min > v) {
 				min = v;
@@ -144,6 +157,8 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		if(context != null && min == max){
 			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 		}
+		
+		return (float) (max - sumsq) * (t-s);
 	}
 	
 }

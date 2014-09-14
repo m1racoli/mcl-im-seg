@@ -6,6 +6,7 @@ package mapred;
 import java.io.File;
 import java.util.Arrays;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -15,9 +16,9 @@ import org.slf4j.LoggerFactory;
  * @author Cedrik
  *
  */
-public class MCLJob extends AbstractMCLAlgorithm {
+public class RMCLJob extends AbstractMCLAlgorithm {
 
-	private static final Logger logger = LoggerFactory.getLogger(MCLJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(RMCLJob.class);
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
@@ -45,30 +46,31 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		long converged_colums = 0;
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
-		System.out.println("iter\tchaos\ttransp.\tstep\ttotal\tnnz\tkmax\tattractors\thom.col\tcutoff\tprune\tcputime");
-		String outPattern = "%d\t%f\t%5.1f\t%5.1f\t%5.1f\t%9d\t%4d\t%9d\t%9d\t%9d\t%9d\t%5.1f\n";
+		System.out.println("iter\tstep\ttotal\tnnz\tkmax\tattractors\thom.col\tcutoff\tprune\tcputime");
+		String outPattern = "%d\t%5.1f\t%5.1f\t%9d\t%4d\t%9d\t%9d\t%9d\t%9d\t%5.1f\n";
 		final Path transposed = suffix(input, "t");
-		TransposeJob transpose = new TransposeJob();
+
+		logger.debug("run TransposeJob on {} => {}",m_i_1,transposed);
+		result = new TransposeJob().run(getConf(), m_i_1, transposed);
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			return 1;
+		}
+		logger.info("{}",result);
+		long transpose_millis = result.runningtime;
+		if(dumpCounters()){
+			result.dumpCounters(i-1, "transpose", countersFile);
+		}
+		
 		MCLStep mclStep = new MCLStep();
 		long total_tic = System.currentTimeMillis();
 		while(n > converged_colums && i < getMaxIterations()){
 			
 			logger.debug("iteration i = {}",i);
-			Path m_i = suffix(input,i++);
+			Path m_i = suffix(input,i++);			
 			
-			logger.debug("run TransposeJob on {} => {}",m_i_1,transposed);
 			long step_tic = System.currentTimeMillis();
-			result = transpose.run(getConf(), m_i_1, transposed);
-			if (result == null || !result.success) {
-				logger.error("failure! result = {}",result);
-				return 1;
-			}
-			logger.info("{}",result);
-			long transpose_millis = result.runningtime;
 			logger.debug("run MCLStep on {} * {} => {}",m_i_1,transposed,m_i);
-			if(dumpCounters()){
-				result.dumpCounters(i-1, "transpose", countersFile);
-			}
 			
 			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
 			long step_toc = System.currentTimeMillis() - step_tic;
@@ -83,7 +85,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 				result.dumpCounters(i-1, "step", countersFile);
 			}
 			
-			System.out.printf(outPattern, i-1,result.chaos,transpose_millis/1000.0,result.runningtime/1000.0,step_toc/1000.0,
+			System.out.printf(outPattern, i-1,result.runningtime/1000.0,step_toc/1000.0,
 					result.nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0);
 		}
 		
@@ -100,7 +102,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new MCLJob(), args));
+		System.exit(ToolRunner.run(new RMCLJob(), args));
 	}
 
 }

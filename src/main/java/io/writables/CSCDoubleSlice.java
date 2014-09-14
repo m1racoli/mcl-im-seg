@@ -578,10 +578,15 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public float makeStochastic(TaskAttemptContext context) {
+		
+		float chaos = 0.0f;
+		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], context);
+			chaos = Math.max(chaos, normalize(val, colPtr[col_start], colPtr[col_end], context));
 		}
+		
+		return chaos;
 	}
 
 	@Override

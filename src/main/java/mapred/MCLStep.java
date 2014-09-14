@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import io.writables.CSCSlice;
+import io.writables.FloatMatrixSlice;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
@@ -22,6 +23,10 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import zookeeper.DistributedFloat;
+import zookeeper.DistributedFloatMaximum;
+import zookeeper.ZkMetric;
 
 public class MCLStep extends AbstractMCLJob {
 	
@@ -75,7 +80,7 @@ public class MCLStep extends AbstractMCLJob {
 		
 		private M vec = null;
 		private int k_max = 0;
-		
+		private final DistributedFloat chaos = new DistributedFloatMaximum();
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
@@ -93,14 +98,15 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			
 			k_max = Math.max(k_max, vec.inflateAndPrune(context));
-			vec.makeStochastic(context);
+			chaos.set(vec.makeStochastic(context));
 			context.write(col, vec);
 		}
 		
 		@Override
 		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
-			MatrixMeta.writeKmax(context, k_max);			
+			ZkMetric.set(context.getConfiguration(), "/chaos", chaos);
+			MatrixMeta.writeKmax(context, k_max);
 		}
 	}
 	
@@ -149,7 +155,7 @@ public class MCLStep extends AbstractMCLJob {
 		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
-		
+		ZkMetric.init(conf, "/chaos", true);
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
@@ -162,6 +168,7 @@ public class MCLStep extends AbstractMCLJob {
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
+		result.chaos = ZkMetric.<DistributedFloat>get(conf, "/chaos").get();
 		
 		return result;
 	}

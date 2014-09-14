@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 import mapred.InputJob;
 import mapred.MCLJob;
+import mapred.RMCLJob;
 import mapred.TransposeJob;
 
 import org.apache.hadoop.util.ToolRunner;
@@ -38,6 +39,8 @@ public class Launcher {
 			TransposeJob.main(args);
 		case "mcl":
 			System.exit(ToolRunner.run(new MCLJob(), args));
+		case "rmcl":
+			System.exit(ToolRunner.run(new RMCLJob(), args));
 		default:
 			break;
 		}

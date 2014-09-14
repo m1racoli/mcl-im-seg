@@ -244,12 +244,17 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	}
 
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public float makeStochastic(TaskAttemptContext context) {
+		
+		float chaos = 0.0f;
+		
 		for(int col = 0, end = matrix.getColumnDimension(); col < end; col++){
 			final double[] val = matrix.getColumn(col);
-			normalize(val, 0, val.length, context);
+			chaos = Math.max(chaos, normalize(val, 0, val.length, context));
 			matrix.setColumn(col, val);
 		}
+		
+		return chaos;
 	}
 
 	@Override

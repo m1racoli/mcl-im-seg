@@ -40,7 +40,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 				max = v;
 		}
 		
-		final float tresh = cutoff * sum;//computeTreshold(sum/k, max);
+		//final float tresh = cutoff * sum;
+		final float tresh = computeTreshold(sum/k, max);
 		int selected = 0;		
 		
 		for(int i = s; i < t; i++){
@@ -108,20 +109,20 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		return tresh < max ? tresh : max;
 	}
 	
-	protected final void normalize(float[] val, int s, int t, TaskAttemptContext context) {
+	protected final float normalize(float[] val, int s, int t, TaskAttemptContext context) {
 		
 		switch (t - s) {
 		case 0:
 			if (context != null) {
 				context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
 			}
-			return;
+			return 0.0f;
 		case 1:
 			if (context != null) {
 				context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 				context.getCounter(Counters.ATTRACTORS).increment(1);
 			}
-			return;
+			return 0.0f;
 		default:
 			break;
 		}
@@ -134,11 +135,15 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 			sum += val[i];
 		}
 		
+		float sumsq = 0.0f;
+		
 		for(int i = s; i < t; i++){
 			final float v = val[i] / sum;
 			if(context != null && v > 0.5f){
 				context.getCounter(Counters.ATTRACTORS).increment(1);
 			}
+			
+			sumsq += v*v;
 			
 			if(min > v) min = v;
 			if(max < v) max = v;
@@ -149,6 +154,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 		}
 		
+		return (max - sumsq) * (t-s);		
 	}
 	
 }

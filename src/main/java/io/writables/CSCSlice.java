@@ -401,10 +401,15 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public float makeStochastic(TaskAttemptContext context) {
+		
+		float chaos = 0.0f;
+		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], context);
-		}		
+			chaos = Math.max(chaos, normalize(val, colPtr[col_start], colPtr[col_end], context));
+		}
+		
+		return chaos;
 	}
 	
 	@Override
@@ -614,7 +619,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			if(diag == -1){
 				//cannot insert additional element
 				logger.error("diagonal element does not exist");
-				throw new RuntimeException("diagonal element does not exist");				
+				throw new RuntimeException("diagonal element does not exist");
 			}
 			
 			if(max == 0.0f) max = 1.0f;

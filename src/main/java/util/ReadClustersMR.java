@@ -105,7 +105,7 @@ public class ReadClustersMR extends AbstractUtil {
 			
 			if(!has_children) context.getCounter(Counters.SINGLE_NODE_CLUSTERS).increment(1);
 			context.getCounter(Counters.CLUSTERS).increment(1);
-			context.write(builder, null);			
+			context.write(builder, null);
 		}
 		
 		@Override

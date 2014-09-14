@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
+import zookeeper.server.EmbeddedZkServer;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -54,7 +55,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private boolean dump_counters = false;
 	
 	@Parameter(names = "--abc")
-	private boolean abc = false;	
+	private boolean abc = false;
+	
+	@Parameter(names = "-zk")
+	private boolean embeddedZkServer = false;
 	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
@@ -91,11 +95,20 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (debug) {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
 			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+			
+			if(embeddedZkServer){
+				org.apache.log4j.Logger.getLogger("org.apache.zookeeper.server").setLevel(Level.DEBUG);
+			}
+			
 			//TODO package
 			MCLConfigHelper.setDebug(getConf(), true);
 			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
 				logger.debug("{}: {}",e.getKey(),e.getValue());
 			}
+		}
+		
+		if (embeddedZkServer) {
+			EmbeddedZkServer.init(getConf());
 		}
 		
 		return run(input, output);
