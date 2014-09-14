@@ -1,26 +1,26 @@
-package io.writables;
+package io.matrix;
 
-public final class SliceEntry implements Comparable<SliceEntry> {
-	public int col;
+public final class MatrixEntry implements Comparable<MatrixEntry> {
+	public long col;
 	public long row;
 	public float val;
 	
-	public SliceEntry(){
+	public MatrixEntry(){
 		this(0,0,0.0f);
 	}
 	
-	private SliceEntry(int col, long row, float val){
+	private MatrixEntry(long col, long row, float val){
 		this.col = col;
 		this.row = row;
 		this.val = val;
 	}
 	
-	public static SliceEntry get(int col, long row, float val) {
-		return new SliceEntry(col,row,val);
+	public static MatrixEntry get(int col, long row, float val) {
+		return new MatrixEntry(col,row,val);
 	}
 	
 	@Override
-	public int compareTo(SliceEntry o) {
+	public int compareTo(MatrixEntry o) {
 		int cmp = col == o.col ? 0 : col < o.col ? -1 : 1;
 		if(cmp != 0) return cmp;
 		return row == o.row ? 0 : row < o.row ? -1 : 1;
@@ -28,8 +28,8 @@ public final class SliceEntry implements Comparable<SliceEntry> {
 	
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof SliceEntry){
-			SliceEntry o = (SliceEntry) obj;
+		if(obj instanceof MatrixEntry){
+			MatrixEntry o = (MatrixEntry) obj;
 			return col == o.col && row == o.row && val == o.val;
 		}
 		return false;
@@ -37,7 +37,7 @@ public final class SliceEntry implements Comparable<SliceEntry> {
 	
 	@Override
 	public int hashCode() {
-		return 31 * col + (int) row;
+		return (int) (31 * col + row);
 	}
 	
 	@Override

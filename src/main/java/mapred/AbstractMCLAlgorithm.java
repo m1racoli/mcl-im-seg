@@ -53,6 +53,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-dump-counters")
 	private boolean dump_counters = false;
 	
+	@Parameter(names = "--abc")
+	private boolean abc = false;	
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	
@@ -79,7 +82,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			p.apply(getConf());
 		}
 		
-		org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
+		org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
 		
 		if (verbose) {
 			org.apache.log4j.Logger.getLogger(Job.class).setLevel(Level.INFO);
@@ -118,6 +121,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final boolean dumpCounters(){
 		return dump_counters;
+	}
+	
+	public final boolean abc(){
+		return abc;
 	}
 
 }

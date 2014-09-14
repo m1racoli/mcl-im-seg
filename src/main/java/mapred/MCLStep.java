@@ -93,6 +93,7 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			
 			k_max = Math.max(k_max, vec.inflateAndPrune(context));
+			vec.makeStochastic(context);
 			context.write(col, vec);
 		}
 		

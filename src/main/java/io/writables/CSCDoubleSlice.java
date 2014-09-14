@@ -584,4 +584,10 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 		}
 	}
 
+	@Override
+	public void addLoops(SliceIndex id) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

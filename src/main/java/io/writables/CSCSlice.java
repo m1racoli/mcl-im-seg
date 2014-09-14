@@ -14,6 +14,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	
 	private boolean top_aligned = true;
 	private SubBlockView view = null;
+	private SubBlockIterator subBlockIterator = null;
 
 	public CSCSlice(){}
 	
@@ -73,7 +75,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			rowInd[i] = readLong(in);
 		}
 		
-		assertOrder();
+		//assertOrder();
 	}
 
 	/* (non-Javadoc)
@@ -166,7 +168,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 //			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
 //			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
 //		} 
-		assertOrder();
+		//assertOrder();
 		return kmax;
 	}
 	
@@ -204,7 +206,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		top_aligned = !top_aligned;
-		assertOrder();
+		//assertOrder();
 	}
 
 	@Override
@@ -264,7 +266,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		colPtr[0] = tmp_end;		
 		top_aligned = false;
 		
-		assertOrder();
+		//assertOrder();
 		
 		return this;
 	}
@@ -360,20 +362,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 
 			final int cs = colPtr[col_start];
 			final int ct = colPtr[col_end];
-			final int k = ct-cs;
 			
 			colPtr[col_start] = valPtr;
 			
-			switch(k){
+			switch(ct-cs){
 			case 0:
-				if(context != null) context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
 				continue;
-			case 1:
-				if(context != null) {
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-				}
-				
+			case 1:				
 				rowInd[valPtr] = rowInd[cs];
 				val[valPtr++] = 1.0f;
 				if(max_s < 1) max_s = 1;
@@ -383,7 +378,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			}
 			
 			int selected = prune(val, cs, ct, selection, context);
-
+			if(max_s < selected) max_s = selected;
+			
+			if(selected == 1){
+				rowInd[valPtr] = rowInd[selection[0]];
+				val[valPtr++] = 1.0f;	
+				continue;
+			}
 			
 			for(int i  = 0; i < selected; i++){
 				final int idx = selection[i];
@@ -391,13 +392,11 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				val[valPtr++] = val[idx];
 			}
 			
-			if(max_s < selected) max_s = selected;
-			
 		}
 		
 		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
-		assertOrder();
+		//assertOrder();
 		return max_s;
 	}
 	
@@ -413,7 +412,12 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		assert top_aligned;
 		
-		return new SubBlockIterator(id);
+		if(subBlockIterator == null){
+			subBlockIterator = new SubBlockIterator();
+			view = new SubBlockView();
+		}
+		subBlockIterator.reset(id);
+		return subBlockIterator;
 	}
 
 	@Override
@@ -423,18 +427,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 
 	private final class SubBlockIterator extends ReadOnlyIterator<CSCSlice>{
 		private final int nsub = CSCSlice.this.nsub;
-		private final SliceId id;
+		private SliceId id = null;
 		private final Queue<SubBlockSlice> queue = new PriorityQueue<CSCSlice.SubBlockSlice>(nsub);
 		private final List<SubBlockSlice> list = new ArrayList<CSCSlice.SubBlockSlice>(nsub);
 		private final int[] offset = new int[nsub];
 		
-		public SubBlockIterator(SliceId sliceId) {
-			this.id = sliceId;
-						
-			if(view == null) {
-				view = new SubBlockView();
-			}
-			
+		private void reset(SliceId id){
+			this.id = id;
 			System.arraycopy(colPtr, 0, offset, 0, nsub);
 			
 			for(int column = 0, end = nsub; column < end; column++) {
@@ -585,15 +584,53 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		return false;
 	}
-	
-	private void assertOrder(){
-		for(int col = 0; col < nsub; col++){
-			assert colPtr[col] <= colPtr[col+1];
-			for(int i = colPtr[col], end = colPtr[col+1]-1; i < end; i++){
-				//TODO
-				assert rowInd[i] < rowInd[i+1];
+
+	@Override
+	public void addLoops(SliceIndex id) {
+		
+		final long shift = nsub * (long) id.getSliceId();
+		
+		for(int col = 0, end = nsub; col < end; ++col){
+			final int cs = colPtr[col];
+			final int ct = colPtr[col + 1];
+			
+			if(ct - cs == 0){
+				continue;
 			}
+			
+			final long colInd = shift + (long) col;
+			
+			float max = 0.0f;
+			int diag = -1;
+			
+			for(int i = cs; i < ct; i++){
+				if(rowInd[i] == colInd){
+					diag = i;
+				} else {
+					if(max < val[i]) max = val[i];
+				}
+			}
+			
+			if(diag == -1){
+				//cannot insert additional element
+				logger.error("diagonal element does not exist");
+				throw new RuntimeException("diagonal element does not exist");				
+			}
+			
+			if(max == 0.0f) max = 1.0f;
+			
+			val[diag] = max;
 		}
 	}
+	
+//	private void assertOrder(){
+//		for(int col = 0; col < nsub; col++){
+//			assert colPtr[col] <= colPtr[col+1];
+//			for(int i = colPtr[col], end = colPtr[col+1]-1; i < end; i++){
+//				//TODO
+//				assert rowInd[i] < rowInd[i+1];
+//			}
+//		}
+//	}
 
 }

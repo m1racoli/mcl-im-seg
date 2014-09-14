@@ -40,7 +40,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 				max = v;
 		}
 		
-		final float tresh = computeTreshold(sum/k, max);
+		final float tresh = cutoff * sum;//computeTreshold(sum/k, max);
 		int selected = 0;		
 		
 		for(int i = s; i < t; i++){
@@ -110,8 +110,20 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 	
 	protected final void normalize(float[] val, int s, int t, TaskAttemptContext context) {
 		
-		if(s == t){
+		switch (t - s) {
+		case 0:
+			if (context != null) {
+				context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
+			}
 			return;
+		case 1:
+			if (context != null) {
+				context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+				context.getCounter(Counters.ATTRACTORS).increment(1);
+			}
+			return;
+		default:
+			break;
 		}
 		
 		float min = Float.MAX_VALUE;
@@ -127,19 +139,16 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 			if(context != null && v > 0.5f){
 				context.getCounter(Counters.ATTRACTORS).increment(1);
 			}
-
-			if(min > v) {
-				min = v;
-			} else {
-				if(max < v) max = v;
-			}
-
+			
+			if(min > v) min = v;
+			if(max < v) max = v;
 			val[i] = v;
 		}
 		
-		if(context != null && min == max){
+		if(context != null && max-min <= 1e-6f){
 			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 		}
+		
 	}
 	
 }

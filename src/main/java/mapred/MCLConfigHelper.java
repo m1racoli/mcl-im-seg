@@ -22,7 +22,6 @@ public class MCLConfigHelper {
 	private static final String USE_VARINTS_CONF =	"mcl.use.varints";
 	private static final String INFLATION_CONF = 	"mcl.inflation";
 	private static final String CUTOFF_CONF =		"mcl.prune.cutoff";
-	private static final String CUTOFF_INV_CONF =	"mcl.prune.cutoff.inv";
 	private static final String SELECTION_CONF =		"mcl.prune.selection";
 	private static final String SELECTOR_CLS_CONF = "mcl.selector.class";
 	private static final String PRINT_MATRIX_CONF =	"mcl.print.matrix";
@@ -91,14 +90,6 @@ public class MCLConfigHelper {
 	
 	public static final float getCutoff(Configuration conf) {
 		return conf.getFloat(CUTOFF_CONF, MCLDefaults.cutoff);
-	}
-	
-	public static final void setCutoffInv(Configuration conf, int cutoff_inv) {
-		conf.setInt(CUTOFF_INV_CONF, cutoff_inv);
-	}
-	
-	public static final int getCutoffInv(Configuration conf) {
-		return conf.getInt(CUTOFF_INV_CONF, MCLDefaults.cutoff_inv);
 	}
 	
 	public static final void setSelection(Configuration conf, int selection) {

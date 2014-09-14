@@ -252,4 +252,10 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 		}
 	}
 
+	@Override
+	public void addLoops(SliceIndex id) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

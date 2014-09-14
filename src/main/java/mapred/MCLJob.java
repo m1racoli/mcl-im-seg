@@ -22,11 +22,20 @@ public class MCLJob extends AbstractMCLAlgorithm {
 	@Override
 	public int run(Path input, Path output) throws Exception {
 
+		File countersFile = null;
+		
+		if(dumpCounters()){
+			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
+			MCLResult.prepareCounters(countersFile);
+		}
+		
 		int i = 0;
 		Path m_i_1 = suffix(input,i++);
 		
 		logger.debug("run InputJob on {} => {}",input,m_i_1);
-		MCLResult result = new InputJob().run(getConf(), input, m_i_1);
+		MCLResult result = abc() 
+				? new InputAbcJob().run(getConf(), input, m_i_1)
+				: new InputJob().run(getConf(), input, m_i_1);
 		if (result == null || !result.success) {
 			logger.error("failure! result = {}",result);
 			return 1;
@@ -34,13 +43,6 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		logger.info("{}",result);
 		long n = result.n;
 		long converged_colums = 0;
-		
-		File countersFile = null;
-		
-		if(dumpCounters()){
-			countersFile = new File("counters.csv");
-			result.prepareCounters(countersFile);
-		}
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
 		System.out.println("iter\ttransp.\tstep\ttotal\tnnz\tkmax\tattractors\thom.col\tcutoff\tprune\tcputime");
@@ -90,6 +92,10 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		if(dumpCounters()) {
 			System.out.println("counters written to "+countersFile.getAbsolutePath());
 		}
+		
+		m_i_1.getFileSystem(getConf()).rename(m_i_1, output);
+		System.out.printf("Output written to: %s\n",output);
+		
 		return 0;
 	}
 	

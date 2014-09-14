@@ -92,6 +92,8 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 */
 	public abstract boolean equals(Object obj);
 
+	public abstract void addLoops(SliceIndex id);
+	
 	public final boolean isEmpty(){
 		return 0 == size();
 	}
@@ -140,12 +142,12 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
 		inflation = MCLConfigHelper.getInflation(conf);
-		cutoff = Math.max(MCLConfigHelper.getCutoff(conf),1.0f/MCLConfigHelper.getCutoffInv(conf));
+		cutoff = MCLConfigHelper.getCutoff(conf);
 		select = MCLConfigHelper.getSelection(conf);
 		print_matrix = MCLConfigHelper.getPrintMatrix(conf);
 		max_nnz = kmax * nsub;
 	}
-
+	
 	@Override
 	public String toString() {
 		

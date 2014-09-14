@@ -44,7 +44,8 @@ public class MCLResult {
 		return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d",success,kmax,n,nnz,attractors,homogenous_columns,cutoff,prune,runningtime,cpu_millis);
 	}
 	
-	public void prepareCounters(File file) throws IOException {
+	public static void prepareCounters(File file) throws IOException {
+		//file.createNewFile();
 		FileWriter fileWriter = new FileWriter(file);
 		BufferedWriter writer = new BufferedWriter(fileWriter);
 		writer.write("iteration\tjob\tgroup\tcounter\tvalue");

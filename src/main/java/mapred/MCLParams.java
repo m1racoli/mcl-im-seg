@@ -31,9 +31,14 @@ public class MCLParams {
 	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
 	
 	public void apply(Configuration conf) {
-		MCLConfigHelper.setInflation(conf, inflation);
-		MCLConfigHelper.setCutoff(conf, cutoff);
-		MCLConfigHelper.setCutoffInv(conf, cutoff_inv);
+		MCLConfigHelper.setInflation(conf, inflation);		
+		
+		if (cutoff == MCLDefaults.cutoff && cutoff_inv != MCLDefaults.cutoff_inv) {
+			MCLConfigHelper.setCutoff(conf, 1.0f/cutoff_inv);
+		} else {
+			MCLConfigHelper.setCutoff(conf, cutoff);
+		}
+		
 		MCLConfigHelper.setSelection(conf, selection);
 		MCLConfigHelper.setSelectorClass(conf, selectorClass);
 		MCLConfigHelper.setPrintMatrix(conf, printMatrix);
