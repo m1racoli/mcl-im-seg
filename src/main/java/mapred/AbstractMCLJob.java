@@ -77,6 +77,7 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 		if (debug) {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
 			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);
 			//TODO package
 			MCLConfigHelper.setDebug(getConf(), true);
 			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){

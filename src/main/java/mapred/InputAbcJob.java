@@ -3,19 +3,15 @@
  */
 package mapred;
 
-import java.awt.Point;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
-import io.writables.Pixel;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
 import model.nb.RadialPixelNeighborhood;
@@ -29,7 +25,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
@@ -80,14 +75,18 @@ public class InputAbcJob extends AbstractMCLJob {
 		protected void map(LongWritable key, Text value, Context context)
 				throws IOException, InterruptedException {
 			
-			final String[] split = PATTERN.split(value.toString());			
-			idx.row.set(Long.parseLong(split[0]));
-			final long col = Long.parseLong(split[1]);
-			idx.id.set(MCLInstance.getIdFromIndex(col, nsub));
-			idx.col.set(MCLInstance.getSubIndexFromIndex(col, nsub));
-			val.set(Float.parseFloat(split[2]));
+			final String[] split = PATTERN.split(value.toString());
+			final float v = Float.parseFloat(split[2]);
 			
+			if (v <= 0.0f) return;
+						
+			final long col = Long.parseLong(split[0]);
+			final long row = Long.parseLong(split[1]);
+			val.set(v);
+			idx.set(col, row, nsub);
 			context.write(idx, val);
+			//idx.set(row, col, nsub);
+			//context.write(idx, val);
 		}
 	}
 	

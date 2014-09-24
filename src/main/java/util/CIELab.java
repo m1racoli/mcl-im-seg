@@ -4,7 +4,13 @@
 package util;
 
 
+import java.awt.Transparency;
 import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
 
 /**
  * @author Cedrik
@@ -95,5 +101,14 @@ public class CIELab extends ColorSpace {
         ColorSpace.getInstance(ColorSpace.CS_CIEXYZ);
 
     private static final double N = 4.0 / 29.0;
+    
+    public static BufferedImage from(BufferedImage image){
+    	ColorConvertOp convertOp = new ColorConvertOp(image.getColorModel().getColorSpace(), getInstance(), null);
+    	final int[] bits = new int[]{8,8,8,8}; 
+		ColorModel cm = new ComponentColorModel(getInstance(), bits, false, true, Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+		BufferedImage dest = convertOp.createCompatibleDestImage(image, cm);
+		convertOp.filter(image.getRaster(), dest.getRaster());
+		return dest;
+    }
 
 }

@@ -14,6 +14,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
+import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -34,6 +35,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private long[] rowInd = null;
 	private int[] colPtr = null;
 	
+	//TODO private boolean hasColStats = false;
+	//private MCLColumnStats colStats = null;
+	
 	private boolean top_aligned = true;
 	private SubBlockView view = null;
 	private SubBlockIterator subBlockIterator = null;
@@ -50,11 +54,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		val = new float[max_nnz];
 		rowInd = new long[max_nnz];
 		colPtr = new int[nsub+1];
+		//colStats = new MCLColumnStats(nsub);
 	}
 
 	@Override
 	public void clear(){
 		Arrays.fill(colPtr, 0);
+		top_aligned = true;
 	}
 
 	/* (non-Javadoc)
@@ -75,7 +81,10 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			rowInd[i] = readLong(in);
 		}
 		
-		//assertOrder();
+//TODO		hasColStats = in.readBoolean();
+//		if(hasColStats){
+//			colStats.readFields(in);
+//		}
 	}
 
 	/* (non-Javadoc)
@@ -104,6 +113,12 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 					writeLong(out, rowInd[i] + row_shift);
 				}
 			}
+			
+//			out.writeBoolean(hasColStats);
+//			if(hasColStats){
+//				hasColStats = false;
+//				colStats.write(out);
+//			}
 
 			return;
 		}
@@ -117,6 +132,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			writeLong(out, rowInd[i]);
 		}
 		
+		//TODO out.writeBoolean(true);
+		// colStats.write(out);		
 	}
 	
 	@Override
@@ -132,6 +149,10 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		for(SliceEntry entry : entries){
 			
+			if(entry.col == current_col && entry.row == last_row){
+				continue;
+			}
+			
 			if(l == max_nnz) {
 				throw new IllegalArgumentException(String.format("matrix already full with max nnz = %d. Please specify proper k_max value",max_nnz));
 			}
@@ -140,12 +161,10 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				throw new IllegalArgumentException(String.format("wrong column order: %d > %d",current_col,entry.col));
 			}
 			
-			if(current_col < entry.col){
-				
+			if(current_col < entry.col){				
 				arrayfill(colPtr, current_col + 1, entry.col + 1, l);
-				
 				kmax = Math.max(kmax, l-cs);
-				last_row = -1;				
+				last_row = -1;
 				current_col = entry.col;
 				cs = colPtr[current_col];
 			}			
@@ -180,7 +199,20 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	@Override
 	public void add(CSCSlice m) {
 		
+//TODO		if(m.hasColStats){
+//			m.hasColStats = hasColStats;
+//			hasColStats = true;
+//			MCLColumnStats tmp_stats = m.colStats;
+//			m.colStats = colStats;
+//			colStats = tmp_stats;
+//		}		
+		
 		if(top_aligned) {
+			
+			if(isEmpty()){
+				flip(this,m);
+				return;
+			}
 			
 			int end = val.length;
 			
@@ -271,6 +303,21 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		return this;
 	}
 
+	private static void flip(CSCSlice m1, CSCSlice m2) {
+		float[] val_tmp = m1.val;
+		long[] rowInd_tmp = m1.rowInd;
+		int[] colPtr = m1.colPtr;
+		boolean top_aligned = m1.top_aligned;
+		m1.val = m2.val;
+		m1.rowInd = m2.rowInd;
+		m1.colPtr = m2.colPtr;
+		m1.top_aligned = m2.top_aligned;
+		m2.val = val_tmp;
+		m2.rowInd = rowInd_tmp;
+		m2.colPtr = colPtr;
+		m2.top_aligned = top_aligned;
+	}
+	
 	private final int addForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
 		return addMultForw(s1, t1, m, s2, t2, pos, 1.0f);
 	}
@@ -350,18 +397,15 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public int inflateAndPrune(TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
 		
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
-		int max_s = 0;
-		
-		inflate(val, colPtr[0], colPtr[nsub]);
 		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
-			final int cs = colPtr[col_start];
-			final int ct = colPtr[col_end];
+			int cs = colPtr[col_start];
+			int ct = colPtr[col_end];
 			
 			colPtr[col_start] = valPtr;
 			
@@ -371,18 +415,27 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			case 1:				
 				rowInd[valPtr] = rowInd[cs];
 				val[valPtr++] = 1.0f;
-				if(max_s < 1) max_s = 1;
+				if(stats.kmax < 1) stats.kmax = 1;
+				if(context != null) {
+					context.getCounter(Counters.ATTRACTORS).increment(1);
+					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+				}
 				continue;
 			default:
 				break;
 			}
 			
-			int selected = prune(val, cs, ct, selection, context);
-			if(max_s < selected) max_s = selected;
+			//TODO different pruning strategies
+			final int selected = prune(val, cs, ct, selection, context);
+			if(stats.kmax < selected) stats.kmax = selected;
 			
 			if(selected == 1){
 				rowInd[valPtr] = rowInd[selection[0]];
-				val[valPtr++] = 1.0f;	
+				val[valPtr++] = 1.0f;
+				if(context != null) {
+					context.getCounter(Counters.ATTRACTORS).increment(1);
+					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+				}
 				continue;
 			}
 			
@@ -392,24 +445,40 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				val[valPtr++] = val[idx];
 			}
 			
+			ct = valPtr;
+			cs = ct - selected;
+			
+			normalize(val, cs, ct, context);
+			
+			//TODO chaos, homogen seperate
+			double max = 0.0;
+			double new_center = 0.0;
+			//double sqv_inf = 0.0;
+			//double sqv_inf2 = 0.0;
+			for(int i = cs; i < ct; i++){
+				if(max < val[i]) max = val[i];
+				new_center += val[i]*val[i];
+				//final double val_inf = Math.pow(val[i], inflation);
+				//sqv_inf += val_inf;
+				//sqv_inf2 += val_inf*val_inf;
+			}			
+			double chaos = ((double) max - new_center) * (ct-cs);
+			//double homogen = (colStats.center[col_start]*sqv_inf*sqv_inf)/sqv_inf2;
+			//colStats.center[col_start] = new_center;
+			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
+			
+			inflate(val, cs, ct);
 		}
 		
 		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
-		//assertOrder();
-		return max_s;
 	}
 	
 	@Override
-	public float makeStochastic(TaskAttemptContext context) {
-		
-		float chaos = 0.0f;
-		
+	public void makeStochastic(TaskAttemptContext context) {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			chaos = Math.max(chaos, normalize(val, colPtr[col_start], colPtr[col_end], context));
+			normalize(val, colPtr[col_start], colPtr[col_end], context);
 		}
-		
-		return chaos;
 	}
 	
 	@Override
@@ -627,15 +696,42 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			val[diag] = max;
 		}
 	}
-	
-//	private void assertOrder(){
-//		for(int col = 0; col < nsub; col++){
-//			assert colPtr[col] <= colPtr[col+1];
-//			for(int i = colPtr[col], end = colPtr[col+1]-1; i < end; i++){
-//				//TODO
-//				assert rowInd[i] < rowInd[i+1];
-//			}
-//		}
-//	}
+
+	@Override
+	public double sumSquaredDifferences(CSCSlice o) {
+		
+		if(colPtr.length != o.colPtr.length){
+			throw new RuntimeException(String.format("slices are incompatible in nsub: %d != %d",colPtr.length,o.colPtr.length));
+		}
+		
+		double sum = 0.0;
+		int i1 = colPtr[0],i2 = o.colPtr[0], t1 = colPtr[nsub], t2 = o.colPtr[nsub];
+		
+		while(i1 < t1 && i2 < t2){
+			long r1 = rowInd[i1];
+			long r2 = o.rowInd[i2];
+			
+			if (r1 == r2) {
+				sum += (val[i1] - o.val[i2]) * (val[i1] - o.val[i2]);
+				i1++; i2++;
+			} else {
+				if (r1 < r2) {
+					sum += val[i1] * val[i1]; i1++;
+				} else {
+					sum += o.val[i2] * o.val[i2]; i2++;
+				}
+			}
+		}
+		
+		while(i1 < t1){
+			sum += val[i1] * val[i1]; i1++;
+		}
+		
+		while(i2 < t2){
+			sum += o.val[i2] * o.val[i2]; i2++;
+		}
+		
+		return sum;
+	}
 
 }

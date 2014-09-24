@@ -24,6 +24,7 @@ import io.writables.SliceEntry;
 import io.writables.SliceId;
 import mapred.MCLConfigHelper;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -71,7 +72,7 @@ public class ReadClustersMR extends AbstractUtil {
 
 			for(SliceEntry e : value.dump()){				
 				child.set(shift + (long) e.col);
-				attractor.set(e.row);				
+				attractor.set(e.row);
 				context.write(attractor, child);
 			}
 		}
@@ -130,7 +131,8 @@ public class ReadClustersMR extends AbstractUtil {
 		MatrixMeta meta = MatrixMeta.load(getConf(), input);
 		meta.apply(getConf());
 		
-		output.getFileSystem(getConf()).delete(output, true);
+		FileSystem fs = output.getFileSystem(getConf());
+		fs.delete(output, true);
 		
 		Job job = Job.getInstance(getConf(), "Read Clusters");
 		job.setJarByClass(ReadClustersMR.class);
@@ -147,6 +149,10 @@ public class ReadClustersMR extends AbstractUtil {
 		job.setOutputFormatClass(TextOutputFormat.class);
 		TextOutputFormat.setOutputPath(job, output);
 		
-		return job.waitForCompletion(true) ? 0 : 1;
+		int rc = job.waitForCompletion(true) ? 0 : 1;
+		
+		fs.copyToLocalFile(new Path("part-r-00000"), new Path("/mnt/hgfs/mcl-im-seg/examples/mr.clusters"));
+		
+		return rc;
 	}
 }

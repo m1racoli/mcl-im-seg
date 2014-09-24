@@ -8,6 +8,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.TreeSet;
 
+import mapred.MCLStats;
+
 import org.apache.commons.math3.linear.DefaultRealMatrixPreservingVisitor;
 import org.apache.commons.math3.linear.OpenMapRealMatrix;
 import org.apache.hadoop.conf.Configuration;
@@ -214,7 +216,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#inflateAndPrune(org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public int inflateAndPrune(TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
 		int kmax = 0;
 		int[] selection = new int[kmax];
 		for(int col = 0, end = nsub; col < end; col++){
@@ -230,8 +232,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 			normalize(newval, 0, newval.length, context);
 			matrix.setColumn(col, newval);
 		}
-		
-		return kmax;
+		//TODO
 	}
 	
 	@Override
@@ -244,23 +245,26 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	}
 
 	@Override
-	public float makeStochastic(TaskAttemptContext context) {
-		
-		float chaos = 0.0f;
+	public void makeStochastic(TaskAttemptContext context) {
 		
 		for(int col = 0, end = matrix.getColumnDimension(); col < end; col++){
 			final double[] val = matrix.getColumn(col);
-			chaos = Math.max(chaos, normalize(val, 0, val.length, context));
+			normalize(val, 0, val.length, context);
 			matrix.setColumn(col, val);
 		}
-		
-		return chaos;
+
 	}
 
 	@Override
 	public void addLoops(SliceIndex id) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public double sumSquaredDifferences(OpenMapSlice other) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

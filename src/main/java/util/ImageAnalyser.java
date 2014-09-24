@@ -49,9 +49,9 @@ public class ImageAnalyser {
 	private JFrame frame;
 	private final Action fileOpenAction = new OpenFileAction();
 	private ImagePanel panel;
-	private final Action imageCIELabAction = new SwingAction();
+	private final Action imageCIELabAction = new CIElabAction();
 	private final Action action = new SwingAction_1();
-	private final Action action_1 = new SwingAction_2();
+	private final Action action_1 = new CreateABCAction();
 	private final Action action_2 = new SwingAction_3();
 	private JSpinner scale;
 	private JSpinner radius;
@@ -164,8 +164,8 @@ public class ImageAnalyser {
 		}
 	}
 	
-	private class SwingAction extends AbstractAction {
-		public SwingAction() {
+	private class CIElabAction extends AbstractAction {
+		public CIElabAction() {
 			putValue(NAME, "CIELab");
 			putValue(SHORT_DESCRIPTION, "Some short description");
 		}
@@ -180,14 +180,14 @@ public class ImageAnalyser {
 			}
 			
 			final Raster data = image.getData();			
-			final int w = data.getWidth();
-			final int h = data.getHeight();
+			//final int w = data.getWidth();
+			//final int h = data.getHeight();
 			
-			final float[][] data_arrays = new float[3][h*w];
+			//final float[][] data_arrays = new float[3][h*w];
 			final CIELab cieLab = CIELab.getInstance();
-			final String[] names = {"L","a","b"};
-			float[] rgb = null;
-			float[] lab = null;
+			//final String[] names = {"L","a","b"};
+			//float[] rgb = null;
+			//float[] lab = null;
 			
 //			for(int y = 0; y < h; y++){
 //				for(int x = 0; x < w; x++){
@@ -201,11 +201,11 @@ public class ImageAnalyser {
 //			}
 			
 			final int[] bits = new int[]{8,8,8,8};
-			ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+			//ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
 			ColorModel cm = new ComponentColorModel(cieLab, bits, false, true, Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
-			SampleModel sm = cm.createCompatibleSampleModel(w, h);
+			//SampleModel sm = cm.createCompatibleSampleModel(w, h);
 			
-			WritableRaster destRaster = data.createCompatibleWritableRaster();
+			//WritableRaster destRaster = data.createCompatibleWritableRaster();
 			
 			ColorConvertOp convertOp = new ColorConvertOp(image.getColorModel().getColorSpace(), cieLab, null);
 			
@@ -244,8 +244,8 @@ public class ImageAnalyser {
 			
 		}
 	}
-	private class SwingAction_2 extends AbstractAction {
-		public SwingAction_2() {
+	private class CreateABCAction extends AbstractAction {
+		public CreateABCAction() {
 			putValue(NAME, "abc Matrix");
 			putValue(SHORT_DESCRIPTION, "Some short description");
 		}
@@ -274,7 +274,7 @@ public class ImageAnalyser {
 			
 			final BufferedImage image = panel.getImage();
 			
-			JFileChooser fileChooser = new JFileChooser(".\\src\\main\\resources\\io\\test");
+			JFileChooser fileChooser = new JFileChooser(".");
 			
 			if(fileChooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION){ 
 				return;

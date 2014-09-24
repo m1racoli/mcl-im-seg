@@ -14,6 +14,8 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import mapred.Counters;
+import mapred.MCLStats;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
@@ -351,8 +353,8 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 	
 	@Override
-	public int inflateAndPrune(TaskAttemptContext context) {
-		
+	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+		//TODO
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
 		int max_s = 0;
@@ -400,7 +402,6 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 		
 		colPtr[nsub] = valPtr;
 		if(context != null) context.getCounter(Counters.NNZ).increment(size());
-		return max_s;
 	}
 	
 	@Override
@@ -578,21 +579,22 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public float makeStochastic(TaskAttemptContext context) {
-		
-		float chaos = 0.0f;
-		
+	public void makeStochastic(TaskAttemptContext context) {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			chaos = Math.max(chaos, normalize(val, colPtr[col_start], colPtr[col_end], context));
+			normalize(val, colPtr[col_start], colPtr[col_end], context);
 		}
-		
-		return chaos;
 	}
 
 	@Override
 	public void addLoops(SliceIndex id) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public double sumSquaredDifferences(CSCDoubleSlice other) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

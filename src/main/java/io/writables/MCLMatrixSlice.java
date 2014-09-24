@@ -17,6 +17,7 @@ import java.util.List;
 import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
 import mapred.MCLInstance;
+import mapred.MCLStats;
 import mapred.PrintMatrix;
 
 import org.apache.hadoop.conf.Configuration;
@@ -83,13 +84,13 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * inflate, prune and normalize
 	 * @return max column size
 	 */
-	public abstract int inflateAndPrune(TaskAttemptContext context);
+	public abstract void inflateAndPrune(MCLStats stats, TaskAttemptContext context);
 	
 	/**
 	 * @param context
 	 * @return chaos
 	 */
-	public abstract float makeStochastic(TaskAttemptContext context);
+	public abstract void makeStochastic(TaskAttemptContext context);
 	
 	/**
 	 * equality test on implementation level
@@ -97,6 +98,12 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	public abstract boolean equals(Object obj);
 
 	public abstract void addLoops(SliceIndex id);
+	
+	/**
+	 * get sum [ (x_ij-y_ij)^2 ] of this matrix and the other
+	 * @param return prematurely if value is greater than this value
+	 */
+	public abstract double sumSquaredDifferences(M other);
 	
 	public final boolean isEmpty(){
 		return 0 == size();
@@ -227,6 +234,5 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 			throw new RuntimeException(e);
 		}
 	}
-	
 	
 }

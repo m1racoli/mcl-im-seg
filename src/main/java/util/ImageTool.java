@@ -114,8 +114,7 @@ public class ImageTool extends Configured implements Tool {
 		for(Point offset : nb){
 			
 			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
-			final double d = offset.distance(0.0, 0.0)/a;
-			final double mds = -d*d;
+			final double mds = -offset.distanceSq(0.0, 0.0)/a;
 			
 			for(int y1 = area.y; y1 < area.y + area.height; y1++){
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
@@ -206,7 +205,7 @@ public class ImageTool extends Configured implements Tool {
 			
 			div(avg, split.length);
 			
-			avg(avg);
+			//avg(avg);
 			
 			for(int i = 0; i< xs.length;i++){
 				destRaster.setPixel(xs[i], ys[i], avg);

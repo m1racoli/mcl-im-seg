@@ -6,6 +6,7 @@ package mapred;
 import java.io.File;
 import java.util.Arrays;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -30,7 +31,8 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		}
 		
 		int i = 0;
-		Path m_i_1 = suffix(input,i++);
+		Path m_i_1 = new Path(output,"tmp_0"); //suffix(input,i++);
+		Path m_i = new Path(output,"tmp_1");
 		
 		logger.debug("run InputJob on {} => {}",input,m_i_1);
 		MCLResult result = abc() 
@@ -43,18 +45,19 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		logger.info("{}",result);
 		long n = result.n;
 		long converged_colums = 0;
+		final long init_nnz = result.nnz;
+		long last_nnz = init_nnz;
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
-		System.out.println("iter\tchaos\ttransp.\tstep\ttotal\tnnz\tkmax\tattractors\thom.col\tcutoff\tprune\tcputime");
-		String outPattern = "%d\t%f\t%5.1f\t%5.1f\t%5.1f\t%9d\t%4d\t%9d\t%9d\t%9d\t%9d\t%5.1f\n";
+		MCLOut.init();
 		final Path transposed = suffix(input, "t");
 		TransposeJob transpose = new TransposeJob();
 		MCLStep mclStep = new MCLStep();
 		long total_tic = System.currentTimeMillis();
-		while(n > converged_colums && i < getMaxIterations()){
-			
+		while(n > converged_colums && ++i <= getMaxIterations()){
 			logger.debug("iteration i = {}",i);
-			Path m_i = suffix(input,i++);
+			MCLOut.startIteration(i);
+			//Path m_i = suffix(input,i++);
 			
 			logger.debug("run TransposeJob on {} => {}",m_i_1,transposed);
 			long step_tic = System.currentTimeMillis();
@@ -64,10 +67,9 @@ public class MCLJob extends AbstractMCLAlgorithm {
 				return 1;
 			}
 			logger.info("{}",result);
-			long transpose_millis = result.runningtime;
 			logger.debug("run MCLStep on {} * {} => {}",m_i_1,transposed,m_i);
 			if(dumpCounters()){
-				result.dumpCounters(i-1, "transpose", countersFile);
+				result.dumpCounters(i, "transpose", countersFile);
 			}
 			
 			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
@@ -78,13 +80,32 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			}
 			logger.info("{}",result);
 			converged_colums = result.homogenous_columns;
+			
+			Path tmp = m_i_1;
 			m_i_1 = m_i;
+			m_i = tmp;
+			
 			if(dumpCounters()){
 				result.dumpCounters(i-1, "step", countersFile);
 			}
+			MCLOut.progress(0.0f, 1.0f);
 			
-			System.out.printf(outPattern, i-1,result.chaos,transpose_millis/1000.0,result.runningtime/1000.0,step_toc/1000.0,
-					result.nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0);
+			final long nnz_final = result.nnz;
+			final long nnz_expand = nnz_final + result.cutoff + result.prune;
+			
+			MCLOut.stats(result.chaos
+					, step_toc/1000.0
+					, 0.0
+					, 0.0
+					, 0.0
+					, (double) nnz_expand / (last_nnz + 1L)
+					, (double) nnz_final  / (last_nnz + 1L)
+					, (double) nnz_final  / (init_nnz + 1L));
+			
+			last_nnz = nnz_final;
+			//System.out.printf(outPattern, i,result.chaos,transpose_millis/1000.0,result.runningtime/1000.0,step_toc/1000.0,
+			//		result.nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0);
+			MCLOut.finishIteration();
 		}
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
@@ -93,8 +114,13 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			System.out.println("counters written to "+countersFile.getAbsolutePath());
 		}
 		
-		m_i_1.getFileSystem(getConf()).rename(m_i_1, output);
-		System.out.printf("Output written to: %s\n",output);
+		FileSystem fs = output.getFileSystem(getConf());
+		Path res = new Path(output,"result");
+		fs.rename(m_i_1, res);
+		fs.delete(m_i, true);
+		fs.delete(transposed, true);
+		
+		System.out.printf("Output written to: %s\n",res);
 		
 		return 0;
 	}

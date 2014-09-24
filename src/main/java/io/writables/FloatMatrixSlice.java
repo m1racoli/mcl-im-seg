@@ -10,6 +10,7 @@ import java.util.Queue;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import mapred.Counters;
+import mapred.MCLStats;
 
 /**
  * @author Cedrik
@@ -21,8 +22,16 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 	
 	protected final void inflate(float[] val, int s, int t) {
 		final double I = inflation;
+		float sum = 0.0f;
+		
 		for(int i = s; i < t; i++) {
-			val[i] = (float) Math.pow(val[i], I);
+			final float inf_val = (float) Math.pow(val[i], I);
+			val[i] = inf_val;
+			sum += val[i];
+		}
+		
+		for(int i = s; i < t; i++) {
+			val[i] /= sum;
 		}
 	}
 	
@@ -40,8 +49,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 				max = v;
 		}
 		
-		//final float tresh = cutoff * sum;
-		final float tresh = computeTreshold(sum/k, max);
+		final float tresh = cutoff;// * max;
+		//final float tresh = computeTreshold(sum/k, max);
 		int selected = 0;		
 		
 		for(int i = s; i < t; i++){
@@ -109,23 +118,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		return tresh < max ? tresh : max;
 	}
 	
-	protected final float normalize(float[] val, int s, int t, TaskAttemptContext context) {
-		
-		switch (t - s) {
-		case 0:
-			if (context != null) {
-				context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
-			}
-			return 0.0f;
-		case 1:
-			if (context != null) {
-				context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-				context.getCounter(Counters.ATTRACTORS).increment(1);
-			}
-			return 0.0f;
-		default:
-			break;
-		}
+	protected final void normalize(float[] val, int s, int t, TaskAttemptContext context) {
 		
 		float min = Float.MAX_VALUE;
 		float max = 0.0f;
@@ -133,28 +126,24 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		
 		for(int i = s; i < t; i++){
 			sum += val[i];
-		}
-		
-		float sumsq = 0.0f;
+		}		
 		
 		for(int i = s; i < t; i++){
 			final float v = val[i] / sum;
+			
 			if(context != null && v > 0.5f){
 				context.getCounter(Counters.ATTRACTORS).increment(1);
 			}
 			
-			sumsq += v*v;
-			
 			if(min > v) min = v;
 			if(max < v) max = v;
-			val[i] = v;
+			val[i] = v;			
 		}
 		
 		if(context != null && max-min <= 1e-6f){
+			//TODO interesting or do we use chaos?
 			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
 		}
-		
-		return (max - sumsq) * (t-s);		
 	}
 	
 }

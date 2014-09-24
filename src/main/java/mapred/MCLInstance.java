@@ -16,7 +16,6 @@ import org.apache.hadoop.io.WritableUtils;
  */
 public class MCLInstance extends MCLContext implements Configurable {
 	
-	private Configuration conf = null;
 	protected boolean vint = MCLDefaults.varints;	
 	protected int kmax = MCLDefaults.kmax;
 	protected long n = MCLDefaults.n;
@@ -25,13 +24,11 @@ public class MCLInstance extends MCLContext implements Configurable {
 	
 	@Override
 	public void setConf(Configuration conf) {
-		this.conf = conf;
 		vint = MCLConfigHelper.getUseVarints(conf);
 		kmax = MCLConfigHelper.getKMax(conf);
 		n = MCLConfigHelper.getN(conf);
 		nsub = MCLConfigHelper.getNSub(conf);
 		te = MCLConfigHelper.getNumThreads(conf);
-		
 		MCLContext.setLogging(conf);
 	}
 	
@@ -65,6 +62,12 @@ public class MCLInstance extends MCLContext implements Configurable {
 
 	@Override
 	public Configuration getConf() {
+		Configuration conf = new Configuration();
+		MCLConfigHelper.setUseVarints(conf, vint);
+		MCLConfigHelper.setKMax(conf, kmax);
+		MCLConfigHelper.setN(conf, n);
+		MCLConfigHelper.setNSub(conf, nsub);
+		MCLConfigHelper.setNumThreads(conf, te);
 		return conf;
 	}
 }

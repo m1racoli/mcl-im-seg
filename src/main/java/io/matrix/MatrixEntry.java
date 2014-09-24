@@ -1,5 +1,9 @@
 package io.matrix;
 
+import java.util.Comparator;
+
+import mapred.MCLInstance;
+
 public final class MatrixEntry implements Comparable<MatrixEntry> {
 	public long col;
 	public long row;
@@ -15,7 +19,7 @@ public final class MatrixEntry implements Comparable<MatrixEntry> {
 		this.val = val;
 	}
 	
-	public static MatrixEntry get(int col, long row, float val) {
+	public static MatrixEntry get(long col, long row, float val) {
 		return new MatrixEntry(col,row,val);
 	}
 	
@@ -43,5 +47,14 @@ public final class MatrixEntry implements Comparable<MatrixEntry> {
 	@Override
 	public String toString() {
 		return String.format("[c: %d, r: %d, v: %f]", col,row,val);
+	}
+	
+	public static class ValueComparator implements Comparator<MatrixEntry> {
+
+		@Override
+		public int compare(MatrixEntry o1, MatrixEntry o2) {
+			return o1.val < o2.val ? -1 : o1.val > o2.val ? 1 : 0;
+		}
+		
 	}
 }

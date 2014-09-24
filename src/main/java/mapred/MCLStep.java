@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 
 import io.writables.CSCSlice;
-import io.writables.FloatMatrixSlice;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
@@ -24,17 +23,23 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import zookeeper.DistributedFloat;
-import zookeeper.DistributedFloatMaximum;
+import zookeeper.DistributedDouble;
+import zookeeper.DistributedDoubleMaximum;
+import zookeeper.DistributedDoubleSum;
 import zookeeper.ZkMetric;
 
 public class MCLStep extends AbstractMCLJob {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
+	private static final String CHAOS = "/chaos";
+	private static final String SSD = "/ssd";
+	
 	
 	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
 		private final SliceId id = new SliceId();
+		private DistributedDouble ssd = null; //sum squared differences
+		private int last_id = -1;
 		
 		@Override
 		protected void setup(Context context)
@@ -46,10 +51,28 @@ public class MCLStep extends AbstractMCLJob {
 		protected void map(SliceId key, TupleWritable tuple, Context context)
 				throws IOException, InterruptedException {
 			
+			M m = (M) tuple.get(0);
+			
+			if(tuple.size() > 2 && last_id != key.get()){
+				last_id = key.get();
+				ssd = ssd == null ? new DistributedDoubleSum() : ssd;
+				//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
+					ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
+				//}
+			}
+			
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
 			id.set(subBlock.id);
-			M m = (M) tuple.get(0);
+			
 			context.write(id,subBlock.subBlock.multipliedBy(m, context));
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			if(ssd != null){
+				ZkMetric.set(context.getConfiguration(), SSD, ssd);
+			}
 		}
 	}
 	
@@ -80,7 +103,9 @@ public class MCLStep extends AbstractMCLJob {
 		
 		private M vec = null;
 		private int k_max = 0;
-		private final DistributedFloat chaos = new DistributedFloatMaximum();
+		private final DistributedDouble chaos = new DistributedDoubleMaximum();
+		private final MCLStats stats = new MCLStats();
+		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
@@ -97,15 +122,17 @@ public class MCLStep extends AbstractMCLJob {
 				vec.add(m);
 			}
 			
-			k_max = Math.max(k_max, vec.inflateAndPrune(context));
-			chaos.set(vec.makeStochastic(context));
+			vec.inflateAndPrune(stats, context);
+			k_max = Math.max(k_max, stats.kmax);
+			chaos.set(stats.maxChaos);
 			context.write(col, vec);
 		}
 		
 		@Override
 		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
-			ZkMetric.set(context.getConfiguration(), "/chaos", chaos);
+			logger.debug("stats: {}",stats);
+			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			MatrixMeta.writeKmax(context, k_max);
 		}
 	}
@@ -113,10 +140,12 @@ public class MCLStep extends AbstractMCLJob {
 	@Override
 	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
+		boolean computeChange = inputs.size() > 2;//TODO clean
+		
 		if(inputs == null || inputs.size() < 2 || output == null){
 			throw new RuntimeException(String.format("invalid input/output: in=%s, out=%s",inputs,output));
 		}
-		
+		//TODO calculate change
 		final Configuration conf = getConf();
 		
 		MatrixMeta meta = MatrixMeta.load(conf, inputs.get(0));
@@ -141,7 +170,9 @@ public class MCLStep extends AbstractMCLJob {
 		job.setInputFormatClass(CompositeInputFormat.class);
 		job.getConfiguration().set(
 				CompositeInputFormat.JOIN_EXPR,
-				CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
+				computeChange 
+				? CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1),inputs.get(2))
+						: CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
 		
 		job.setMapperClass(MCLMapper.class);
 		job.setMapOutputKeyClass(SliceId.class);
@@ -155,7 +186,9 @@ public class MCLStep extends AbstractMCLJob {
 		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
-		ZkMetric.init(conf, "/chaos", true);
+		ZkMetric.init(conf, CHAOS, true);
+		if(computeChange) ZkMetric.init(conf, SSD, true);
+		
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
@@ -168,8 +201,8 @@ public class MCLStep extends AbstractMCLJob {
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
-		result.chaos = ZkMetric.<DistributedFloat>get(conf, "/chaos").get();
-		
+		result.chaos = ZkMetric.<DistributedDouble>get(conf, CHAOS).get();
+		if(computeChange) result.changeInNorm = Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN(); 
 		return result;
 	}
 	

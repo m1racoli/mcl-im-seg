@@ -7,6 +7,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import mapred.MCLInstance;
+
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.WritableComparable;
@@ -21,6 +23,12 @@ public class Index implements WritableComparable<Index>, SliceIndex {
 	public final SliceId id = new SliceId();
 	public final IntWritable col = new IntWritable();
 	public final LongWritable row = new LongWritable();
+	
+	public void set(long col, long row, int nsub){
+		this.id.set(MCLInstance.getIdFromIndex(col, nsub));
+		this.col.set(MCLInstance.getSubIndexFromIndex(col, nsub));
+		this.row.set(row);
+	}
 	
 	@Override
 	public void readFields(DataInput in) throws IOException {

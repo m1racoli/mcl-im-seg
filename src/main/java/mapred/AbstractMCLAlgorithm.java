@@ -95,9 +95,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (debug) {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
 			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);			
 			
 			if(embeddedZkServer){
-				org.apache.log4j.Logger.getLogger("org.apache.zookeeper.server").setLevel(Level.DEBUG);
+				//org.apache.log4j.Logger.getLogger("org.apache.zookeeper.server").setLevel(Level.DEBUG);
 			}
 			
 			//TODO package
@@ -110,6 +111,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (embeddedZkServer) {
 			EmbeddedZkServer.init(getConf());
 		}
+		
+		FileSystem outFS = output.getFileSystem(getConf());
+		if (outFS.exists(output)) {
+			outFS.delete(output, true);
+		}
+		
+		outFS.mkdirs(output);
 		
 		return run(input, output);
 	}

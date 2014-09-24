@@ -32,7 +32,7 @@ public class MCLSliceTest {
 		sr.add(s2);
 		System.out.println("dist after add: "+dist(mr, sr));
 		System.out.println(sr);
-		int k = sr.inflateAndPrune(null);
+		//TODO int k = sr.inflateAndPrune(null);
 		System.out.println(sr);
 		System.out.println(k);
 	}
