@@ -151,7 +151,7 @@ public class ReadClustersMR extends AbstractUtil {
 		
 		int rc = job.waitForCompletion(true) ? 0 : 1;
 		
-		fs.copyToLocalFile(new Path("part-r-00000"), new Path("/mnt/hgfs/mcl-im-seg/examples/mr.clusters"));
+		fs.copyToLocalFile(new Path(output,"part-r-00000"), new Path("/mnt/hgfs/mcl-im-seg/examples/mr.clusters"));
 		
 		return rc;
 	}

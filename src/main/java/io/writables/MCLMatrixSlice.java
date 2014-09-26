@@ -3,6 +3,8 @@
  */
 package io.writables;
 
+import iterators.ReadOnlyIterator;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -25,8 +27,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import com.beust.jcommander.IStringConverter;
-
-import util.ReadOnlyIterator;
 
 /**
  * @author Cedrik

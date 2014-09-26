@@ -3,6 +3,8 @@
  */
 package io.writables;
 
+import iterators.ReadOnlyIterator;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -17,8 +19,6 @@ import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import util.ReadOnlyIterator;
 
 /**
  * @author Cedrik

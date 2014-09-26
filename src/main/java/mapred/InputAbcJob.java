@@ -14,6 +14,7 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
+import iterators.ReadOnlyIterator;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
@@ -30,8 +31,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import util.ReadOnlyIterator;
 
 import com.beust.jcommander.Parameter;
 

@@ -13,7 +13,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -168,6 +170,28 @@ public class ImageTool extends Configured implements Tool {
 		return (float) (t > Math.pow(6/29,3) ? Math.pow(t,1.0/3.0) : t * Math.pow(29.0/6.0,2)/3.0 + 4.0/29.0) ;
 	}
 	
+	public static int[] readClusters(File file, int w, int h) throws IOException {
+		
+		final int[] result = new int[h*w];
+		BufferedReader reader = new BufferedReader(new FileReader(file));
+		
+		int cluster = 1;
+		for(String line = reader.readLine(); line != null; line = reader.readLine()){
+			
+			final String[] split = line.split("\\t");
+			
+			for(int i = 0; i < split.length; i++){
+				final int index = Integer.parseInt(split[i]);
+				result[index] = cluster;
+			}
+			cluster++;
+		}
+		reader.close();
+		return result;
+	}
+	
+	
+	
 	public static BufferedImage readClusters(File file, BufferedImage src) throws IOException{
 		
 		final Raster srcRaster = src.getData();
@@ -176,6 +200,7 @@ public class ImageTool extends Configured implements Tool {
 		final int w = src.getWidth();
 		final int h = src.getHeight();
 		
+		Random rnd = new Random(0);
 		BufferedReader reader = new BufferedReader(new FileReader(file));
 		
 		int cluster = 0;
@@ -190,8 +215,8 @@ public class ImageTool extends Configured implements Tool {
 			
 			for(int i = 0; i < split.length; i++){
 				final int index = Integer.parseInt(split[i]);
-				final int x = index % w;
-				final int y = index / w;
+				final int x = w > h ? index / h : index % w;
+				final int y = w > h ? index % h : index / w;
 				xs[i] = x;
 				ys[i] = y;
 				
@@ -205,7 +230,9 @@ public class ImageTool extends Configured implements Tool {
 			
 			div(avg, split.length);
 			
-			//avg(avg);
+			int v = rnd.nextInt(256);
+			
+			Arrays.fill(avg, v);
 			
 			for(int i = 0; i< xs.length;i++){
 				destRaster.setPixel(xs[i], ys[i], avg);
