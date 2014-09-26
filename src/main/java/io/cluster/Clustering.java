@@ -9,6 +9,6 @@ import java.util.Set;
  * @author Cedrik
  *
  */
-public interface ClusterSet<E> extends Set<Cluster<E>> {
+public interface Clustering<E> extends Set<Cluster<E>> {
 
 }

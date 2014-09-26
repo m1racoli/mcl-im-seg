@@ -12,7 +12,13 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 
-public class ArrayClusterSet extends AbstractSet<Cluster<Integer>> implements ClusterSet<Integer> {
+/**
+ * array backed cluster set
+ * 
+ * @author Cedrik
+ *
+ */
+public class ArrayClustering extends AbstractSet<Cluster<Integer>> implements Clustering<Integer> {
 
 	private static final Pattern PATTERN = Pattern.compile("\\t");
 	private final int l;
@@ -20,7 +26,7 @@ public class ArrayClusterSet extends AbstractSet<Cluster<Integer>> implements Cl
 	private int[] clElements = new int[32];
 	private int[] clIdx = new int[32];
 	
-	public ArrayClusterSet(File file) throws IOException {
+	public ArrayClustering(File file) throws IOException {
 		l = read(new FileReader(file), 0);		
 	}
 	

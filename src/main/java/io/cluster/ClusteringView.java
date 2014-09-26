@@ -4,24 +4,25 @@
 package io.cluster;
 
 import iterators.IteratorView;
+
 import java.util.AbstractSet;
 import java.util.Iterator;
+
+import transform.Transformation;
 
 /**
  * @author Cedrik
  *
  */
-public abstract class ClusterSetView<K,V> extends AbstractSet<Cluster<V>> implements ClusterSet<V> {
+public class ClusteringView<K,V> extends AbstractSet<Cluster<V>> implements Clustering<V> {
 
-	private final ClusterSet<K> instance;
+	private final Clustering<K> instance;
+	private final Transformation<K, V> transformation;
 	
-	public ClusterSetView(ClusterSet<K> instance){
+	public ClusteringView(Clustering<K> instance, Transformation<K, V> transformation){
 		this.instance = instance;
+		this.transformation = transformation;
 	}
-	
-	public abstract V forw(K src);
-	
-	public abstract K back(Object dest);
 	
 	@Override
 	public int size() {
@@ -33,7 +34,7 @@ public abstract class ClusterSetView<K,V> extends AbstractSet<Cluster<V>> implem
 		return new IteratorView<Cluster<K>, Cluster<V>>(instance.iterator()) {
 
 			@Override
-			public Cluster<V> transform(Cluster<K> val) {
+			public Cluster<V> get(Cluster<K> val) {
 				return new ClusterView(val);
 			}
 		};
@@ -52,8 +53,8 @@ public abstract class ClusterSetView<K,V> extends AbstractSet<Cluster<V>> implem
 			return new IteratorView<K, V>(inst.iterator()) {
 
 				@Override
-				public V transform(K val) {
-					return forw(val);
+				public V get(K val) {
+					return get(val);
 				}
 			};
 		}
@@ -65,7 +66,7 @@ public abstract class ClusterSetView<K,V> extends AbstractSet<Cluster<V>> implem
 		
 		@Override
 		public boolean contains(Object o) {
-			return inst.contains(back(o));
+			return inst.contains(transformation.inv(o));
 		}
 		
 	}

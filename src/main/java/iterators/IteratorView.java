@@ -17,7 +17,7 @@ public abstract class IteratorView<K, V> implements Iterator<V> {
 		this.iter = iter;
 	}
 	
-	public abstract V transform(K val);
+	public abstract V get(K val);
 	
 	/* (non-Javadoc)
 	 * @see java.util.Iterator#hasNext()
@@ -32,7 +32,7 @@ public abstract class IteratorView<K, V> implements Iterator<V> {
 	 */
 	@Override
 	public V next() {
-		return transform(iter.next());
+		return get(iter.next());
 	}
 
 	/* (non-Javadoc)
