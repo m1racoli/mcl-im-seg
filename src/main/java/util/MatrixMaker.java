@@ -12,9 +12,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
@@ -23,13 +21,8 @@ import javax.imageio.ImageIO;
 import model.nb.CocentricPixelNeighborhood;
 
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.Writer.Option;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.util.Options.PathOption;
-
 import com.beust.jcommander.Parameter;
 
 /**
@@ -179,10 +172,16 @@ public class MatrixMaker extends AbstractUtil {
 		return Math.exp(-off.distanceSq(0.0, 0.0)/a);
 	}
 	
-	private static double getMeasure(double[] p1, double[] p2, double b){
+	public static double getMeasure(double[] p1, double[] p2){
+		double val = distanceSq(p1, p2);
+		return Math.exp(-val);
+	}
+	
+	public static double getMeasure(double[] p1, double[] p2, double b){
 		double val = distanceSq(p1, p2);
 		return Math.exp(-val/b);
 	}
+	
 	private static final long getIdx(int x, int y, int w, int h){
 		return w < h ? x + w*y : y + h*x;
 	}

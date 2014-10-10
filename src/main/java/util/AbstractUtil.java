@@ -34,7 +34,13 @@ public abstract class AbstractUtil extends Configured implements Tool {
 	public final int run(String[] args) throws Exception {
 		JCommander cmd = new JCommander(this);
 		cmd.addConverterFactory(new PathConverter.Factory());
-		cmd.parse(args);		
+		cmd.parse(args);
+		
+		if(help){
+			cmd.usage();
+			System.exit(1);
+		}
+		
 		return run(input, output, hdfs);
 	}
 	

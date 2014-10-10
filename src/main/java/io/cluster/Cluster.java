@@ -11,4 +11,6 @@ import java.util.Set;
  */
 public interface Cluster<E> extends Set<E>{
 	
+	public Cluster<E> not();
+	
 }

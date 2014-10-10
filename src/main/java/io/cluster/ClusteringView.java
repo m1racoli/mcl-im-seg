@@ -7,6 +7,7 @@ import iterators.IteratorView;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import transform.Transformation;
 
@@ -40,6 +41,11 @@ public class ClusteringView<K,V> extends AbstractSet<Cluster<V>> implements Clus
 		};
 	}
 	
+	@Override
+	public Cluster<V> getCluster(V e) {
+		return new ClusterView(instance.getCluster(transformation.inv(e)));
+	}
+	
 	private final class ClusterView extends AbstractSet<V> implements Cluster<V> {
 
 		private final Cluster<K> inst;
@@ -54,7 +60,7 @@ public class ClusteringView<K,V> extends AbstractSet<Cluster<V>> implements Clus
 
 				@Override
 				public V get(K val) {
-					return get(val);
+					return transformation.get(val);
 				}
 			};
 		}
@@ -68,8 +74,12 @@ public class ClusteringView<K,V> extends AbstractSet<Cluster<V>> implements Clus
 		public boolean contains(Object o) {
 			return inst.contains(transformation.inv(o));
 		}
+
+		@Override
+		public Cluster<V> not() {
+			return new ClusterView(inst.not());
+		}
 		
-	}
-	
+	}	
 	
 }

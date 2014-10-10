@@ -1,5 +1,8 @@
 package util;
 
+import io.cluster.ImageClustering;
+import io.cluster.ImageClusterings;
+
 import java.awt.EventQueue;
 import java.awt.Image;
 import java.awt.Transparency;
@@ -285,7 +288,10 @@ public class ImageAnalyser {
 			JFrame frame = new JFrame("Clusters");
 			ImagePanel panel = new ImagePanel();
 			try {
-				panel.setImage(ImageTool.readClusters(file, image));
+				ImageClustering clustering = ImageClusterings.read(file, image.getWidth(), image.getHeight());
+				BufferedImage result = ImageClusterings.visualize(clustering, image);
+				panel.setImage(result);
+				//panel.setImage(ImageTool.readClusters(file, image));
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();

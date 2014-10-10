@@ -1,7 +1,5 @@
 package util;
 
-import io.writables.Pixel;
-
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -13,21 +11,24 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.imageio.ImageIO;
 
 import model.nb.RadialPixelNeighborhood;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.VLongWritable;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -46,6 +47,21 @@ public class ImageTool extends Configured implements Tool {
 	@Parameter(names = "-o")
 	private String output = null;
 	
+	@Parameter(names = "-r")
+	private double radius = 3.0;
+	
+	@Parameter(names = "-a")
+	private double a = 1.0;
+	
+	@Parameter(names = "-b")
+	private double b = 1.0;
+	
+	@Parameter(names = "-cielab")
+	private boolean cielab = false;
+	
+	@Parameter(names = "-te")
+	private int te = 1;
+	
 	@Override
 	public int run(String[] args) throws Exception {
 
@@ -55,37 +71,40 @@ public class ImageTool extends Configured implements Tool {
 		}
 		
 		logger.info("load image {}",input);
-		final BufferedImage image = ImageIO.read(new File(input));
+		BufferedImage image = ImageIO.read(new File(input));
+		if(cielab) image = CIELab.from(image);
 		final int w = image.getWidth();
 		final int h = image.getHeight();
 		logger.info("width: {}, height: {}",w,h);
-		final Raster raster = image.getRaster();
-
-		final Configuration conf = getConf();
-		final FileSystem fs = FileSystem.get(conf);
-		final Path output = new Path(this.output);
-		final Path data = new Path(output,"img.data");
-		//final Path meta = new Path(output,"img.meta");
-		final LongWritable id = new LongWritable();
-		final Pixel p = new Pixel();
+//		final Raster raster = image.getRaster();
 		
-		logger.info("data to {}",fs.makeQualified(data));
-		
-		SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, data, LongWritable.class, Pixel.class);
-		
-		try {			
-			for(p.y = 0; p.y < h; p.y++){
-				for(p.x = 0; p.x < w; p.x++){
-					id.set( (long) p.x + (long) w* (long)p.y);
-					raster.getPixel(p.x, p.y, p.v);
-					writer.append(id, p);
-				}
-			}
-		} finally {
-			if(writer != null) writer.close();
-		}
-		
-		logger.info("success");
+		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), a, b, te);
+		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), a, b);
+//		final Configuration conf = getConf();
+//		final FileSystem fs = FileSystem.get(conf);
+//		final Path output = new Path(this.output);
+//		final Path data = new Path(output,"img.data");
+//		//final Path meta = new Path(output,"img.meta");
+//		final LongWritable id = new LongWritable();
+//		final Pixel p = new Pixel();
+//		
+//		logger.info("data to {}",fs.makeQualified(data));
+//		
+//		SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, data, LongWritable.class, Pixel.class);
+//		
+//		try {			
+//			for(p.y = 0; p.y < h; p.y++){
+//				for(p.x = 0; p.x < w; p.x++){
+//					id.set( (long) p.x + (long) w* (long)p.y);
+//					raster.getPixel(p.x, p.y, p.v);
+//					writer.append(id, p);
+//				}
+//			}
+//		} finally {
+//			if(writer != null) writer.close();
+//		}
+//		
+//		logger.info("success");
 		
 		return 0;
 	}
@@ -97,9 +116,128 @@ public class ImageTool extends Configured implements Tool {
 	}
 	
 	private static final double r = 3.0;
-	private static final double b = 0.5;
-	private static final double a = Math.sqrt(-(r*r)/Math.log(b));
+	private static final double b1 = 0.5;
+	private static final double a1 = Math.sqrt(-(r*r)/Math.log(b1));
 	
+	public static void writeABC(File file, BufferedImage image, RadialPixelNeighborhood nb, double a, double b) throws IOException {
+		
+		final Raster raster = image.getData();
+		final Dimension dim = new Dimension(image.getWidth(), image.getHeight());
+		System.out.printf("width: %d, height: %d, total: %d, nb: %d\n",dim.width,dim.height, dim.width * dim.height, nb.size());	
+		
+		if(file.exists())file.delete();
+		FileWriter writer = new FileWriter(file);
+		float[] p1 = new float[4];
+		float[] p2 = new float[4];
+		
+		int edges = 0;
+		
+		for(Point offset : nb){
+			
+			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
+			final double mds = -offset.distanceSq(0.0, 0.0)/a;
+			
+			for(int y1 = area.y; y1 < area.y + area.height; y1++){
+				for(int x1 = area.x; x1 < area.x + area.width; x1++){
+					final int x2 = x1+offset.x;
+					final int y2 = y1+offset.y;					
+					final long i = x1 + dim.width*y1;
+					final long j = x2 + dim.width*y2;
+					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
+					final double w = Math.exp(mds-(d_squared/b));
+					writer.write(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
+					edges++;
+				}
+			}
+		}
+		
+		writer.close();
+		
+		System.out.printf("%d edges written to %s\n",edges,file);
+		
+	}
+
+	public static void writeABC(File file, BufferedImage image, RadialPixelNeighborhood nb, double a, double b, int te) throws Exception {
+		
+		ExecutorService executor = Executors.newFixedThreadPool(te);
+		List<Future<Iterable<String>>> futures = new ArrayList<Future<Iterable<String>>>(nb.size());
+		
+		final Raster raster = image.getData();
+		final Dimension dim = new Dimension(image.getWidth(), image.getHeight());
+		System.out.printf("width: %d, height: %d, total: %d, nb: %d\n",dim.width,dim.height, dim.width * dim.height, nb.size());	
+		
+		if(file.exists())file.delete();
+		FileWriter writer = new FileWriter(file);
+		
+		int edges = 0;
+		
+		for(Point offset : nb){
+			
+			OffsetProcessor offsetProcessor = new OffsetProcessor(offset, raster, dim, a, b);
+			futures.add(executor.submit(offsetProcessor));
+		}
+		
+		executor.shutdown();
+		
+		Iterator<Future<Iterable<String>>> iter = futures.iterator();
+		
+		
+		
+		while(iter.hasNext()){
+			for(String str : iter.next().get()){
+				writer.write(str);
+				edges++;
+			}
+			iter.remove();
+		}
+		
+		writer.close();
+		
+		System.out.printf("%d edges written to %s\n",edges,file);
+		
+	}
+
+	public static class OffsetProcessor implements Callable<Iterable<String>> {
+
+		private final Point offset;
+		private final Raster raster;
+		private final Dimension dim;
+		private final double a;
+		private final double b;
+		
+		public OffsetProcessor(Point offset, Raster raster, Dimension dim, double a, double b) {
+			this.offset = new Point(offset);
+			this.raster = raster;
+			this.dim = dim;
+			this.a = a;
+			this.b = b;
+		}
+		
+		@Override
+		public Iterable<String> call() throws Exception {
+			
+			final List<String> results = new ArrayList<String>(dim.height*dim.width);
+			final float[] p1 = new float[4];
+			final float[] p2 = new float[4];
+			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
+			final double mds = -offset.distanceSq(0.0, 0.0)/a;
+			
+			for(int y1 = area.y; y1 < area.y + area.height; y1++){
+				for(int x1 = area.x; x1 < area.x + area.width; x1++){
+					final int x2 = x1+offset.x;
+					final int y2 = y1+offset.y;					
+					final long i = x1 + dim.width*y1;
+					final long j = x2 + dim.width*y2;
+					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
+					final double w = Math.exp(mds-(d_squared/b));
+					results.add(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
+				}
+			}
+			return results;
+		}
+		
+	}
+
 	public static void writeABC(File file, BufferedImage image, RadialPixelNeighborhood nb, final double scale) throws IOException {
 		
 		final Raster raster = image.getData();
@@ -116,7 +254,7 @@ public class ImageTool extends Configured implements Tool {
 		for(Point offset : nb){
 			
 			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
-			final double mds = -offset.distanceSq(0.0, 0.0)/a;
+			final double mds = -offset.distanceSq(0.0, 0.0)/a1;
 			
 			for(int y1 = area.y; y1 < area.y + area.height; y1++){
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
@@ -168,29 +306,7 @@ public class ImageTool extends Configured implements Tool {
 	
 	private static final float f(float t){
 		return (float) (t > Math.pow(6/29,3) ? Math.pow(t,1.0/3.0) : t * Math.pow(29.0/6.0,2)/3.0 + 4.0/29.0) ;
-	}
-	
-	public static int[] readClusters(File file, int w, int h) throws IOException {
-		
-		final int[] result = new int[h*w];
-		BufferedReader reader = new BufferedReader(new FileReader(file));
-		
-		int cluster = 1;
-		for(String line = reader.readLine(); line != null; line = reader.readLine()){
-			
-			final String[] split = line.split("\\t");
-			
-			for(int i = 0; i < split.length; i++){
-				final int index = Integer.parseInt(split[i]);
-				result[index] = cluster;
-			}
-			cluster++;
-		}
-		reader.close();
-		return result;
-	}
-	
-	
+	}	
 	
 	public static BufferedImage readClusters(File file, BufferedImage src) throws IOException{
 		

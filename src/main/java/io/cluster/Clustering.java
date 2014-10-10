@@ -11,4 +11,6 @@ import java.util.Set;
  */
 public interface Clustering<E> extends Set<Cluster<E>> {
 
+	public Cluster<E> getCluster(E e);
+	
 }
