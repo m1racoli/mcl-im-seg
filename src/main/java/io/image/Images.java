@@ -68,4 +68,14 @@ public class Images {
 			v[i] /= d;
 	}
 	
+	public static void add(double[] v, double d){
+		for(int i = 2; i >= 0; --i)
+			v[i] += d;
+	}
+	
+	public static void bound(double[] v) {
+		for(int i = 2; i >= 0; --i)
+			v[i] = Math.max(0.0, Math.min(255.0, v[i]));		
+	}
+	
 }

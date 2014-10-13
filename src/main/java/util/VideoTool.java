@@ -87,11 +87,13 @@ public class VideoTool extends Configured implements Tool {
 		List<BufferedImage> images = new ArrayList<BufferedImage>(imDir.list().length);
 		
 		for(File imFile : imDir.listFiles()){
-			logger.debug("load {}",imFile);
+			logger.info("load {}",imFile);
 			BufferedImage image = null;
 			try{
 				image = ImageIO.read(imFile);
-			} catch (IOException e) {
+			} catch (IOException e) {}
+			
+			if(image == null){
 				logger.warn("could not load {}", imFile);
 				continue;
 			}

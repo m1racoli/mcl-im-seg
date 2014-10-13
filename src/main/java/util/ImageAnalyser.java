@@ -55,7 +55,7 @@ public class ImageAnalyser {
 	private final Action imageCIELabAction = new CIElabAction();
 	private final Action action = new SwingAction_1();
 	private final Action action_1 = new CreateABCAction();
-	private final Action action_2 = new SwingAction_3();
+	private final Action action_2 = new OpenClusteringAction();
 	private JSpinner scale;
 	private JSpinner radius;
 
@@ -268,8 +268,8 @@ public class ImageAnalyser {
 			}
 		}
 	}
-	private class SwingAction_3 extends AbstractAction {
-		public SwingAction_3() {
+	private class OpenClusteringAction extends AbstractAction {
+		public OpenClusteringAction() {
 			putValue(NAME, "open cluster file");
 			putValue(SHORT_DESCRIPTION, "Some short description");
 		}
