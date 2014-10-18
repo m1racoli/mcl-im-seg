@@ -16,10 +16,11 @@ import org.apache.hadoop.io.WritableUtils;
  * @author Cedrik
  *
  */
-public final class TOFPixel implements FeatureWritable<TOFPixel>, Configurable {
+public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configurable {
 
-	public static final String SIGMA_X_CONF = "sigma.x";
-	public static final String SIGMA_I_CONF = "sigma.y";
+	public static final String SIGMA_X_CONF = "sigma.X";
+	public static final String SIGMA_I_CONF = "sigma.I";
+	public static final String SIGMA_S_CONF = "sigma.S";
 	
 	private final Point p = new Point();
 	private final double[] X = new double[3]; // {X,Y,Z}
@@ -27,36 +28,46 @@ public final class TOFPixel implements FeatureWritable<TOFPixel>, Configurable {
 	
 	private double sigma_I = 1.0;
 	private double sigma_X = 1.0;
+	private double sigma_S = 1.0;
 	
 	@Override
 	public float dist(TOFPixel o) {
-		double d = 0.0;
-		for(int i = 0; i < 3; i++){
-			final double diff = x[i] - o.x[i];
-			d += diff*diff;
-		}
-		d += norm(x-o.x,y-o.y);
-		return (float) Math.exp(-d);
+		double dX = p.distanceSq(o.p)/sigma_X;
+		double dS = distSq(X, o.X)/sigma_S;
+		double dI = (I - o.I) * (I - o.I)/sigma_I;
+		return (float) Math.exp(-(dX+dS+dI));
 	}
 
-	private static final double norm(double x, double y){
-		return x*x + y*y;
+	private static final double distSq(double[] v1, double[] v2){
+		double s = 0.0;
+		for(int i = 2; i >= 0; i--){
+			s += (v1[i] - v2[i])*(v1[i] - v2[i]);
+		}
+		return s;
 	}
 	
 	@Override
 	public void write(DataOutput out) throws IOException {
 		WritableUtils.writeVInt(out, p.x);
 		WritableUtils.writeVInt(out, p.y);
-		for(int i = 0; i < 3; i++)
-			out.writeDouble(x[i]);
+		
+		for(int i = 0; i < 3; i++){
+			out.writeDouble(X[i]);
+		}
+		
+		out.writeDouble(I);
 	}
 
 	@Override
 	public void readFields(DataInput in) throws IOException {
 		p.x = WritableUtils.readVInt(in);
 		p.y = WritableUtils.readVInt(in);
-		for(int i = 0; i < 4; i++)
-			x[i] = in.readDouble();
+		
+		for(int i = 0; i < 3; i++){
+			X[i] = in.readDouble();
+		}
+		
+		I = in.readDouble();
 	}
 	
 	@Override
@@ -66,14 +77,23 @@ public final class TOFPixel implements FeatureWritable<TOFPixel>, Configurable {
 
 	@Override
 	public void setConf(Configuration conf) {
-		// TODO Auto-generated method stub
-		
+		sigma_I = conf.getDouble(SIGMA_I_CONF, sigma_I);
+		sigma_X = conf.getDouble(SIGMA_X_CONF, sigma_X);
+		sigma_S = conf.getDouble(SIGMA_S_CONF, sigma_S);
 	}
 
 	@Override
 	public Configuration getConf() {
-		// TODO Auto-generated method stub
-		return null;
+		Configuration conf = new Configuration();
+		conf.setDouble(SIGMA_I_CONF, sigma_I);
+		conf.setDouble(SIGMA_X_CONF, sigma_X);
+		conf.setDouble(SIGMA_S_CONF, sigma_S);
+		return conf;
+	}
+
+	@Override
+	public Point getPosition() {
+		return p;
 	}
 
 }

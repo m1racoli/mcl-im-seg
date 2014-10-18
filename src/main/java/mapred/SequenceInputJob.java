@@ -9,24 +9,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Pattern;
-
 import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
-import io.writables.Pixel;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
+import io.writables.SpatialFeatureWritable;
+import io.writables.TOFPixel;
 import iterators.ReadOnlyIterator;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -65,12 +61,14 @@ public class SequenceInputJob extends AbstractMCLJob {
 	
 	private Applyable initParams = null;
 	
-	private static final class InputMapper extends Mapper<LongWritable, Pixel, Index, Pixel> {
+	private static final class InputMapper<V extends SpatialFeatureWritable<V>> extends Mapper<IntWritable, V, Index, V> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
 		private int w = 0;
 		private int h = 0;
 		private int f = 1;
+		private long l;
 		private int nsub;
+		private int r;
 		private final Index idx1 = new Index();
 		private final Index idx2 = new Index();
 		private static RadialPixelNeighborhood nb = null;
@@ -78,39 +76,48 @@ public class SequenceInputJob extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
+			double radius = context.getConfiguration().getDouble(NB_RADIUS_CONF, 3.0);
 			if(nb == null){
-				synchronized (InputMapper.class) {
-					if(nb == null){
-						nb = new RadialPixelNeighborhood(context.getConfiguration().getFloat(NB_RADIUS_CONF, 3));
-					}
-				}
+				nb = new RadialPixelNeighborhood(radius);
 			}
+			r = (int) radius;
 			w = context.getConfiguration().getInt(DIM_WIDTH_CONF, w);
 			h = context.getConfiguration().getInt(DIM_HEIGHT_CONF, h);
+			l = (long) w * (long) h;
 			f = context.getConfiguration().getInt(NUM_FRAMES_CONF, f);
 			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
 		}
 		
+		private final long getIndex(long frame, Point p){
+			return l * frame + (long) w * (long) p.y + (long) p.x;
+		}
+		
+		private final long getIndex(Point p){
+			return (long) w * (long) p.y + (long) p.x;
+		}
+		
 		@Override
-		protected void map(LongWritable key, Pixel value, Context context)
+		protected void map(IntWritable key, V value, Context context)
 				throws IOException, InterruptedException {
-			final long k1 = key.get();
+			final int frame = key.get();
+			final long k1 = getIndex(frame, value.getPosition());
+			
 			idx1.id.set(MCLContext.getIdFromIndex(k1,nsub));
 			idx1.col.set(MCLContext.getSubIndexFromIndex(k1,nsub));
 			idx2.row.set(k1);
 			
-			for(Point p : nb.local(value.x, value.y, w, h, list)){
-				final long k2 = (long) p.x + (long) w * (long) p.y;
-				idx1.row.set(k2);
-				idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
-				idx2.col.set(MCLContext.getSubIndexFromIndex(k2,nsub));
-
-				context.write(idx1, value);
+			for(Point p : nb.local(value.getPosition(), w, h, list)){
+				final long k2_pre = getIndex(p);
+				for(long i = Math.max(0, frame-r), end = Math.min(f, frame+r); i <= end; i++){
+					final long k2 = l * i + k2_pre;
+					idx1.row.set(k2);
+					idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
+					idx2.col.set(MCLContext.getSubIndexFromIndex(k2,nsub));
+					
+					context.write(idx1, value);
+					context.write(idx2, value);
+				}
 				
-				if(idx1.isDiagonal())
-					continue;
-				
-				context.write(idx2, value);
 			}
 		}
 	}
@@ -177,13 +184,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 				
 				entry.col = idx.col.get();
 				entry.row = idx.row.get();
-				
-				if(idx.isDiagonal()){
-					entry.val = 1.0f;
-					return entry;
-				}
-				
-				entry.val = f1.dist(iter.next()); //TODO dist
+				entry.val = f1.dist(iter.next());
 				return entry;
 			}
 		}		
@@ -217,14 +218,14 @@ public class SequenceInputJob extends AbstractMCLJob {
 
 		job.setMapperClass(InputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
-		job.setReducerClass(InputReducer.class);
-
-		job.setMapOutputValueClass(Pixel.class);
+		job.setMapOutputValueClass(TOFPixel.class); //TODO dynamic		
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
+		job.setReducerClass(InputReducer.class);
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
 		job.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));//TODO
 		if(MCLConfigHelper.getNumThreads(conf) > 1) job.setPartitionerClass(SlicePartitioner.class);//TODO
+		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
@@ -233,11 +234,6 @@ public class SequenceInputJob extends AbstractMCLJob {
 		
 		if(!result.success) return result;
 		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
-		
-//		while(job.cleanupProgress() < 1) {
-//			logger.debug("wait for cleanup");
-//			Thread.sleep(200);
-//		}
 		
 		meta.mergeKmax(conf, output);
 		result.kmax = meta.getKmax();

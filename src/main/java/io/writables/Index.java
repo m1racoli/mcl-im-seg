@@ -57,10 +57,6 @@ public class Index implements WritableComparable<Index>, SliceIndex {
 	public int hashCode() {
 		return id.hashCode();
 	}
-	
-	public boolean isDiagonal(){
-		return row.get() == col.get();
-	}
 
 	@Override
 	public String toString() {

@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Pattern;
-
 import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
@@ -23,10 +21,8 @@ import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -99,11 +95,7 @@ public class InputJob extends AbstractMCLJob {
 				idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
 				idx2.col.set(MCLContext.getSubIndexFromIndex(k2,nsub));
 
-				context.write(idx1, value);
-				
-				if(idx1.isDiagonal())
-					continue;
-				
+				context.write(idx1, value);				
 				context.write(idx2, value);
 			}
 		}
@@ -170,13 +162,7 @@ public class InputJob extends AbstractMCLJob {
 				final V f1 = iter.next();
 				
 				entry.col = idx.col.get();
-				entry.row = idx.row.get();
-				
-				if(idx.isDiagonal()){
-					entry.val = 1.0f;
-					return entry;
-				}
-				
+				entry.row = idx.row.get();				
 				entry.val = f1.dist(iter.next()); //TODO dist
 				return entry;
 			}

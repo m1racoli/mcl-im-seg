@@ -55,6 +55,10 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 		return list;
 	}
 	
+	public List<Point> local(Point p, int w, int h, List<Point> list){
+		return local(p.x, p.y, w, h, list);
+	}
+	
 	@Override
 	public Iterator<Point> iterator() {
 		return new Iterator<Point>() {
