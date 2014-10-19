@@ -38,9 +38,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-o", required = true)
 	private Path output = null;
 	
-	@Parameter(names = "-cm")
-	private boolean compress_map_output = false;
-	
 	@Parameter(names = "-debug")
 	private boolean debug = false;
 	
