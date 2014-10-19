@@ -65,7 +65,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	
 	private volatile MCLInitParams initParams = null;
 	
-	private static final class InputMapper<V extends SpatialFeatureWritable<V>> extends Mapper<IntWritable, V, Index, V> {
+	private static final class SequenceInputMapper<V extends SpatialFeatureWritable<V>> extends Mapper<IntWritable, V, Index, V> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
 		private int w = 0;
 		private int h = 0;
@@ -254,7 +254,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		SequenceFileInputFormat.setInputPaths(job, input);		
 
-		job.setMapperClass(InputMapper.class);
+		job.setMapperClass(SequenceInputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
 		job.setMapOutputValueClass(TOFPixel.class); //TODO dynamic		
 		job.setOutputKeyClass(SliceId.class);
