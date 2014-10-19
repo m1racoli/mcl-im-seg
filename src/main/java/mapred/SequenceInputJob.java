@@ -249,8 +249,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		
 		MatrixMeta meta = MatrixMeta.create(conf, n, kmax);
 		
-		Job job = Job.getInstance(conf, "Input to "+output.getName());
-		job.setJarByClass(getClass());
+		Job job = Job.getInstance(conf, "SequenceInputJob");
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		SequenceFileInputFormat.setInputPaths(job, input);		

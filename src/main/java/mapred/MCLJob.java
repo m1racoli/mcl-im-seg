@@ -44,7 +44,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			logger.debug("run InputJob on {} => {}",input,m_i_1);
 			result = abc() 
 					? new InputAbcJob().run(getConf(), input, m_i_1)
-					: new InputJob().run(getConf(), input, m_i_1);
+					: new SequenceInputJob().run(getConf(), input, m_i_1);
 			
 		} else {
 			result = new NativeInputJob().run(getConf(), input, m_i_1);			
