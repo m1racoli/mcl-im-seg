@@ -63,11 +63,11 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
 		MCLOut.init();
-		final Path transposed = suffix(input, "t");
+		final Path transposed = suffix(output, "t");
 		TransposeJob transpose = new TransposeJob();
 		MCLStep mclStep = new MCLStep();
 		long total_tic = System.currentTimeMillis();
-		while(n > converged_colums && ++i <= getMaxIterations()){
+		while(n > converged_colums && ++i <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",i);
 			MCLOut.startIteration(i);
 			//Path m_i = suffix(input,i++);
@@ -85,6 +85,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 				result.dumpCounters(i, "transpose", countersFile);
 			}
 			
+			// MCL step
 			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
 			long step_toc = System.currentTimeMillis() - step_tic;
 			if (result == null || !result.success) {
