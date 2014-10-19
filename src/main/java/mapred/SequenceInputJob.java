@@ -52,7 +52,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private static final String NUM_FRAMES_CONF = "num.frames";
 	
 	@Parameter(names = "-r")
-	private float radius = 3.0f;
+	private float radius = 2.0f;
 	
 	@Parameter(names = "-w")
 	private int w = 0;
