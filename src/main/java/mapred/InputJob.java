@@ -7,8 +7,10 @@ import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
 import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
@@ -228,7 +230,7 @@ public class InputJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Iterable<Applyable> getParams() {
+	protected Collection<Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}

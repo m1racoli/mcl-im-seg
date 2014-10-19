@@ -7,8 +7,10 @@ import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
 import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
@@ -21,6 +23,8 @@ import iterators.ReadOnlyIterator;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -48,7 +52,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private static final String NUM_FRAMES_CONF = "num.frames";
 	
 	@Parameter(names = "-r")
-	private Float radius = 3.0f;
+	private float radius = 3.0f;
 	
 	@Parameter(names = "-w")
 	private int w = 0;
@@ -59,7 +63,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	@Parameter(names = "-f")
 	private int f = 1;
 	
-	private Applyable initParams = null;
+	private volatile MCLInitParams initParams = null;
 	
 	private static final class InputMapper<V extends SpatialFeatureWritable<V>> extends Mapper<IntWritable, V, Index, V> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
@@ -108,7 +112,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			
 			for(Point p : nb.local(value.getPosition(), w, h, list)){
 				final long k2_pre = getIndex(p);
-				for(long i = Math.max(0, frame-r), end = Math.min(f, frame+r); i <= end; i++){
+				for(long i = Math.max(0, frame-r), end = Math.min(f-1, frame+r); i <= end; i++){
 					final long k2 = l * i + k2_pre;
 					idx1.row.set(k2);
 					idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
@@ -190,6 +194,29 @@ public class SequenceInputJob extends AbstractMCLJob {
 		}		
 	}
 	
+	private boolean loadMeta(Configuration conf, Path dir){
+		
+		try {
+			FileSystem fs = FileSystem.get(conf);
+			Path file = new Path(dir,"_meta");
+			if(!fs.exists(file)){
+				return false;
+			}
+			
+			FSDataInputStream in = fs.open(file);
+			w = in.readInt();
+			h = in.readInt();
+			f = in.readInt();			
+			in.close();
+			fs.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			return false;
+		}
+		
+		return true;
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
 	 */
@@ -200,13 +227,25 @@ public class SequenceInputJob extends AbstractMCLJob {
 			throw new RuntimeException(String.format("invalid input/output: int=%s, out=%s", inputs,output));
 		}
 		
+		Path input = inputs.get(0);
+		
+		if(!loadMeta(getConf(), input)){
+			if(w == 0 || h == 0){
+				logger.error("dimensions (weigth,height) not set");
+				return null;
+			}
+			
+			logger.warn("no meta information found");
+		}
+		
 		final Configuration conf = getConf();
 		conf.setFloat(NB_RADIUS_CONF, radius);
 		conf.setInt(DIM_HEIGHT_CONF, h);
 		conf.setInt(DIM_WIDTH_CONF, w);
+		conf.setInt(NUM_FRAMES_CONF, f);
 		
-		int kmax = RadialPixelNeighborhood.size(radius);
-		long n = (long) w * (long) h;		
+		int kmax = RadialPixelNeighborhood.size(radius) * (2*(int) radius + 1);
+		long n = (long) w * (long) h * (long) f;		
 		
 		MatrixMeta meta = MatrixMeta.create(conf, n, kmax);
 		
@@ -214,7 +253,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		job.setJarByClass(getClass());
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
-		SequenceFileInputFormat.setInputPaths(job, inputs.get(0));		
+		SequenceFileInputFormat.setInputPaths(job, input);		
 
 		job.setMapperClass(InputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
@@ -244,12 +283,21 @@ public class SequenceInputJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Iterable<Applyable> getParams() {
+	protected Collection<? extends Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}
 		
 		return Arrays.asList(initParams);
+	}
+	
+	@Override
+	protected void setCommander(List<Object> list) {
+		if (initParams == null) {
+			initParams = new MCLInitParams();
+		}
+		
+		list.add(initParams);
 	}
 	
 	/**

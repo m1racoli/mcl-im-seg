@@ -3,7 +3,9 @@
  */
 package mapred;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -18,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
-import util.PathConverter.Factory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -37,9 +38,6 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	@Parameter(names = "-o", required = true)
 	private Path output = null;
 	
-	@Parameter(names = "-cm")
-	private boolean compress_map_output = false;
-	
 	@Parameter(names = "-debug")
 	private boolean debug = false;
 	
@@ -47,28 +45,33 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	private boolean verbose = false;
 	
 	private final MCLParams params = new MCLParams();
+	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
 	 */
 	@Override
 	public final int run(String[] args) throws Exception {
-		JCommander cmd = new JCommander(this);
+		
+		List<Object> params = new LinkedList<Object>();
+		params.add(this);
+		params.add(this.params);
+		params.add(this.compressionParams);
+		
+		//params.add(getParams());
+		setCommander(params);
+		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
-		cmd.addObject(params);
-		for(Applyable params : getParams()){
-			cmd.addObject(params);
-		}
 		cmd.parse(args);
 		
-		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
-		params.apply(getConf());
+		this.params.apply(getConf());
+		this.compressionParams.apply(getConf());
 		
-		for(Applyable params : getParams()) {
-			params.apply(getConf());
+		for(Applyable p : getParams()) {
+			p.apply(getConf());
 		}
 		
-		org.apache.log4j.Logger.getRootLogger().setLevel(Level.WARN);
+		org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
 		
 		if (verbose) {
 			org.apache.log4j.Logger.getLogger(Job.class).setLevel(Level.INFO);
@@ -113,14 +116,18 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 			outFs.delete(output, true);
 		}
 		return run(inputs, output);
-	}
+	}	
 	
 	/**
 	 * override for more params which get applied to config
 	 * @return additional params
 	 */
-	protected Iterable<Applyable> getParams() {
+	protected Collection<? extends Applyable> getParams() {
 		return Collections.emptyList();
+	}
+	
+	protected void setCommander(List<Object> list){
+		
 	}
 	
 	protected abstract MCLResult run(List<Path> inputs, Path output) throws Exception;

@@ -9,7 +9,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -62,6 +61,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
+	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
@@ -73,14 +73,15 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		params.add(this);
 		params.add(this.params);
 		params.add(initParams);
+		params.add(compressionParams);
 		params.add(getParams());
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
 		
-		getConf().setBoolean("mapreduce.compress.map.output", compress_map_output);
 		this.params.apply(getConf());
 		initParams.apply(getConf());
+		compressionParams.apply(getConf());
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
@@ -126,7 +127,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 * override for more params which get applied to config
 	 * @return additional params
 	 */
-	protected Collection<Applyable> getParams() {
+	protected Collection<? extends Applyable> getParams() {
 		return Collections.emptyList();
 	}
 	

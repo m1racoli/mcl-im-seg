@@ -5,6 +5,7 @@ package mapred;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -213,7 +214,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Iterable<Applyable> getParams() {
+	protected Collection<Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}
