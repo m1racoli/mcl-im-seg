@@ -42,7 +42,7 @@ public class ZkMetric {
 		if(zk == null){
 			synchronized (ZkMetric.class) {
 				String hosts = conf.get(ZK_METRIC_HOSTS_CONF,"localhost:2181");
-				String path = conf.get(ZK_METRIC_HOSTS_CONF,"");
+				String path = conf.get(ZK_METRIC_PATH_CONF,"");
 				int sessionTimeout = conf.getInt(ZK_METRIC_SESSION_TIMEOUT_CONF, 10000);
 				final CountDownLatch lock = new CountDownLatch(1);
 				final Watcher watcher = new Watcher(){
