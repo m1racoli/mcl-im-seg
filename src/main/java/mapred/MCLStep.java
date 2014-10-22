@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import zookeeper.DistributedDouble;
 import zookeeper.DistributedDoubleMaximum;
 import zookeeper.DistributedDoubleSum;
+import zookeeper.DistributedInt;
+import zookeeper.DistributedIntMaximum;
 import zookeeper.ZkMetric;
 
 public class MCLStep extends AbstractMCLJob {
@@ -33,7 +35,7 @@ public class MCLStep extends AbstractMCLJob {
 	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
 	private static final String CHAOS = "/chaos";
 	private static final String SSD = "/ssd";
-	
+	private static final String KMAX = "/kmax";	
 	
 	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
@@ -102,7 +104,7 @@ public class MCLStep extends AbstractMCLJob {
 	public static final class MCLReducer<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {		
 		
 		private M vec = null;
-		private int k_max = 0;
+		private final DistributedInt k_max = new DistributedIntMaximum();
 		private final DistributedDouble chaos = new DistributedDoubleMaximum();
 		private final MCLStats stats = new MCLStats();
 		
@@ -123,7 +125,7 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			
 			vec.inflateAndPrune(stats, context);
-			k_max = Math.max(k_max, stats.kmax);
+			k_max.set(stats.kmax);
 			chaos.set(stats.maxChaos);
 			context.write(col, vec);
 		}
@@ -133,7 +135,7 @@ public class MCLStep extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			logger.debug("stats: {}",stats);
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
-			MatrixMeta.writeKmax(context, k_max);
+			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
 		}
 	}
 	
@@ -187,12 +189,13 @@ public class MCLStep extends AbstractMCLJob {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		ZkMetric.init(conf, CHAOS, true);
+		ZkMetric.init(conf, KMAX, true);
 		if(computeChange) ZkMetric.init(conf, SSD, true);
 		
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
-		meta.mergeKmax(conf, output);
+		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
 		MatrixMeta.save(conf, output, meta);
 		
 		result.kmax = meta.getKmax();

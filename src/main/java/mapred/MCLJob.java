@@ -47,7 +47,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 					: new SequenceInputJob().run(getConf(), input, m_i_1);
 			
 		} else {
-			result = new NativeInputJob().run(getConf(), input, m_i_1);			
+			result = new NativeInputJob().run(getConf(), input, m_i_1);
 		}
 		
 		if (result == null || !result.success) {
@@ -63,7 +63,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
 		MCLOut.init();
-		final Path transposed = suffix(output, "t");
+		final Path transposed = new Path(output, "t");
 		TransposeJob transpose = new TransposeJob();
 		MCLStep mclStep = new MCLStep();
 		long total_tic = System.currentTimeMillis();

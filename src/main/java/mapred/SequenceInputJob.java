@@ -36,6 +36,11 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import zookeeper.DistributedDouble;
+import zookeeper.DistributedInt;
+import zookeeper.DistributedIntMaximum;
+import zookeeper.ZkMetric;
+
 import com.beust.jcommander.Parameter;
 
 /**
@@ -50,6 +55,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private static final String DIM_WIDTH_CONF = "dim.width";
 	private static final String DIM_HEIGHT_CONF = "dim.height";
 	private static final String NUM_FRAMES_CONF = "num.frames";
+	private static final String KMAX = "/kmax";
 	
 	@Parameter(names = "-r")
 	private float radius = 2.0f;
@@ -129,7 +135,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private static final class InputReducer<M extends MCLMatrixSlice<M>,V extends FeatureWritable<V>> extends Reducer<Index, V, SliceId, M>{
 		
 		private M col = null;
-		private int kmax = 0;
+		//private int kmax = 0;
+		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
 		
 		@Override
 		protected void setup(Context context)
@@ -153,7 +160,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 			col.addLoops(idx);
 			col.makeStochastic(context);
 			
-			if(kmax < kmax_tmp) kmax = kmax_tmp;
+			kmax.set(kmax_tmp);
+			
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
 			context.getCounter(Counters.NNZ).increment(col.size());
 			context.write(idx.id, col);
@@ -162,7 +170,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			MatrixMeta.writeKmax(context, kmax);
+			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
+			//MatrixMeta.writeKmax(context, kmax);
 			//TODO multiple otput or correct path
 		}
 		
@@ -268,13 +277,16 @@ public class SequenceInputJob extends AbstractMCLJob {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
+		ZkMetric.init(conf, KMAX, true);
+		
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
 		if(!result.success) return result;
 		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
 		
-		meta.mergeKmax(conf, output);
+		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
+		//meta.mergeKmax(conf, output);
 		result.kmax = meta.getKmax();
 		result.n = n;
 		
