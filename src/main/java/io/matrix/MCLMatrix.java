@@ -7,16 +7,22 @@ package io.matrix;
  * @author Cedrik
  *
  */
-public abstract class MCLMatrix {
+public abstract class MCLMatrix implements Iterable<MatrixEntry> {
 	
-	public abstract void fill(Iterable<MatrixEntry> entries);
+	public void fill(Iterable<MatrixEntry> entries){
+		throw new UnsupportedOperationException();
+	}
 	
-	public abstract void mclStep();
+	public void mclStep(){
+		throw new UnsupportedOperationException();
+	}
 	
-	public abstract void rmclStep();
+	public void rmclStep(){
+		throw new UnsupportedOperationException();
+	}
 	
-	public abstract void transpose();
-	
-	public abstract Iterable<MatrixEntry> dump();
+	public void transpose(){
+		throw new UnsupportedOperationException();
+	}
 
 }
