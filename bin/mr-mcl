@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#
+# Inspired by the hadoop start script
+# 
+# Cedrik Neumann
+#
+
+bin=`which $0`
+bin=`dirname ${bin}`
+bin=`cd "$bin"; pwd`
+
+JAR="$bin"/../mcl-im-seg-jar-with-dependencies.jar
+
+exec hadoop jar $JAR "$@"

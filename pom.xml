@@ -6,6 +6,12 @@
   <name>MCL Image Segmentation</name>
   <build>
   <finalName>mcl-im-seg</finalName>
+  <resources>
+  	<resource>
+        <directory>bin</directory>
+        <targetPath>${project.build.directory}/bin</targetPath>
+      </resource>
+  </resources>
   	<plugins>
   	<plugin>
       		<artifactId>maven-compiler-plugin</artifactId>
@@ -88,6 +94,12 @@
   		<groupId>net.sourceforge.jmatio</groupId>
   		<artifactId>jmatio</artifactId>
   		<version>1.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.hadoop.gplcompression</groupId>
+  		<artifactId>hadoop-lzo</artifactId>
+  		<version>0.4.15</version>
+  		<scope>provided</scope>
   	</dependency>
   </dependencies>
   <properties>
