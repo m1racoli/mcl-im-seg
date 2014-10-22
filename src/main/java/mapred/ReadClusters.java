@@ -1,28 +1,17 @@
 /**
  * 
  */
-package util;
+package mapred;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
-import mapred.MCLConfigHelper;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,16 +29,16 @@ import org.slf4j.LoggerFactory;
  * @author Cedrik
  *
  */
-public class ReadClustersMR extends AbstractUtil {
+public class ReadClusters extends AbstractMCLJob {
 
-	private static final Logger logger = LoggerFactory.getLogger(ReadClustersMR.class);
+	private static final Logger logger = LoggerFactory.getLogger(ReadClusters.class);
 	
 	/**
 	 * @param args
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new ReadClustersMR(), args));
+		System.exit(ToolRunner.run(new ReadClusters(), args));
 	}
 
 	private static final class ClusterMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId,M,LongWritable,LongWritable>{
@@ -126,19 +115,19 @@ public class ReadClustersMR extends AbstractUtil {
 	}
 	
 	@Override
-	protected int run(Path input, Path output, boolean hdfsOutput) throws Exception {
+	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
-		MatrixMeta meta = MatrixMeta.load(getConf(), input);
+		MatrixMeta meta = MatrixMeta.load(getConf(), inputs.get(0));
 		meta.apply(getConf());
 		
 		FileSystem fs = output.getFileSystem(getConf());
 		fs.delete(output, true);
 		
 		Job job = Job.getInstance(getConf(), "Read Clusters");
-		job.setJarByClass(ReadClustersMR.class);
+		job.setJarByClass(ReadClusters.class);
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
-		SequenceFileInputFormat.setInputPaths(job, input);
+		SequenceFileInputFormat.setInputPaths(job, inputs.get(0));
 		
 		job.setMapperClass(ClusterMapper.class);
 		job.setMapOutputKeyClass(LongWritable.class);
@@ -149,10 +138,8 @@ public class ReadClustersMR extends AbstractUtil {
 		job.setOutputFormatClass(TextOutputFormat.class);
 		TextOutputFormat.setOutputPath(job, output);
 		
-		int rc = job.waitForCompletion(true) ? 0 : 1;
-		
-		fs.copyToLocalFile(new Path(output,"part-r-00000"), new Path("/mnt/hgfs/mcl-im-seg/examples/mr.clusters"));
-		
-		return rc;
+		MCLResult result = new MCLResult();
+		result.run(job);		
+		return result;
 	}
 }
