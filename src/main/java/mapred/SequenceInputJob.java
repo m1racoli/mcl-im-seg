@@ -36,7 +36,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import zookeeper.DistributedDouble;
 import zookeeper.DistributedInt;
 import zookeeper.DistributedIntMaximum;
 import zookeeper.ZkMetric;
