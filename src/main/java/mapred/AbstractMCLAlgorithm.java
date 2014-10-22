@@ -56,6 +56,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-zk")
 	private boolean embeddedZkServer = false;
 	
+	@Parameter(names = "local")
+	private boolean local = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
@@ -104,6 +107,12 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
 				logger.debug("{}: {}",e.getKey(),e.getValue());
 			}
+		}
+		
+		if(local){
+			logger.info("run mapreduce in local mode");
+			getConf().set("mapreduce.framework.name", "local");
+			getConf().set("yarn.resourcemanager.address", "local");
 		}
 		
 		if (embeddedZkServer) {

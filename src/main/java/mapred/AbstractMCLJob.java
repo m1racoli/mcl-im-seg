@@ -44,6 +44,9 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	@Parameter(names = "-verbose")
 	private boolean verbose = false;
 	
+	@Parameter(names = "-local")
+	private boolean local = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
@@ -86,6 +89,12 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
 				logger.debug("{}: {}",e.getKey(),e.getValue());
 			}
+		}
+		
+		if(local){
+			logger.info("run mapreduce in local mode");
+			getConf().set("mapreduce.framework.name", "local");
+			getConf().set("yarn.resourcemanager.address", "local");
 		}
 		
 		FileSystem outFs = output.getFileSystem(getConf());
