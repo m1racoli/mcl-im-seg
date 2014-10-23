@@ -12,14 +12,14 @@ public final class SlicePartitioner<V> extends Partitioner<SliceIndex, V> implem
 	
 	@Override
 	public void setConf(Configuration conf) {
-		// TODO Auto-generated method stub
-		
+		long n = MCLConfigHelper.getN(conf);
+		int nsub = MCLConfigHelper.getNSub(conf);
+		numBlocks = (int) Math.ceil((double) n/nsub);		
 	}
 
 	@Override
 	public Configuration getConf() {
-		// TODO Auto-generated method stub
-		return null;
+		return new Configuration();
 	}
 
 	@Override

@@ -30,6 +30,30 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	private double sigma_X = 1.0;
 	private double sigma_S = 1.0;
 	
+	public void setP(int x, int y){
+		p.setLocation(x, y);
+	}
+	
+	public void setP(Point p){
+		p.setLocation(p);
+	}
+	
+	public void setX(double x){
+		X[0] = x;
+	}
+	
+	public void setY(double y){
+		X[1] = y;
+	}
+	
+	public void setZ(double z){
+		X[2] = z;
+	}
+	
+	public void setI(double i){
+		I = i;
+	}
+	
 	@Override
 	public float dist(TOFPixel o) {
 		double dX = p.distanceSq(o.p)/sigma_X;

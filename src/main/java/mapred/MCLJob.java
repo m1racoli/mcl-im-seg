@@ -12,6 +12,8 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * @author Cedrik
  *
@@ -19,6 +21,9 @@ import org.slf4j.LoggerFactory;
 public class MCLJob extends AbstractMCLAlgorithm {
 
 	private static final Logger logger = LoggerFactory.getLogger(MCLJob.class);
+	
+	@Parameter(names = "-native-input")
+	private boolean native_input = false;
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
@@ -33,15 +38,23 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		int i = 0;
 		Path m_i_1 = new Path(output,"tmp_0"); //suffix(input,i++);
 		Path m_i = new Path(output,"tmp_1");
+		MCLResult result = null;
 		
-		logger.debug("run InputJob on {} => {}",input,m_i_1);
-		MCLResult result = abc() 
-				? new InputAbcJob().run(getConf(), input, m_i_1)
-				: new InputJob().run(getConf(), input, m_i_1);
+		if(!native_input){
+			logger.debug("run InputJob on {} => {}",input,m_i_1);
+			result = abc() 
+					? new InputAbcJob().run(getConf(), input, m_i_1)
+					: new SequenceInputJob().run(getConf(), input, m_i_1);
+			
+		} else {
+			result = new NativeInputJob().run(getConf(), input, m_i_1);
+		}
+		
 		if (result == null || !result.success) {
 			logger.error("failure! result = {}",result);
 			return 1;
 		}
+		
 		logger.info("{}",result);
 		long n = result.n;
 		long converged_colums = 0;
@@ -50,11 +63,11 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
 		MCLOut.init();
-		final Path transposed = suffix(input, "t");
+		final Path transposed = new Path(output, "t");
 		TransposeJob transpose = new TransposeJob();
 		MCLStep mclStep = new MCLStep();
 		long total_tic = System.currentTimeMillis();
-		while(n > converged_colums && ++i <= getMaxIterations()){
+		while(n > converged_colums && ++i <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",i);
 			MCLOut.startIteration(i);
 			//Path m_i = suffix(input,i++);
@@ -72,6 +85,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 				result.dumpCounters(i, "transpose", countersFile);
 			}
 			
+			// MCL step
 			result = mclStep.run(getConf(), Arrays.asList(m_i_1, transposed), m_i);
 			long step_toc = System.currentTimeMillis() - step_tic;
 			if (result == null || !result.success) {

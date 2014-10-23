@@ -141,9 +141,7 @@ public class MatrixMeta implements Writable, Applyable {
 	 * @return null if path does not contain '.meta' file
 	 * @throws IOException
 	 */
-	public static MatrixMeta load(Configuration conf, Path path) throws IOException {
-
-		FileSystem fs = path.getFileSystem(conf);
+	public static MatrixMeta load(Configuration conf, FileSystem fs, Path path) throws IOException {
 		Path src = new Path(path,FILENAME);
 		if (!fs.exists(src)) {
 			logger.error("{} does not exist",src);
@@ -157,7 +155,16 @@ public class MatrixMeta implements Writable, Applyable {
 		return meta;
 	}
 	
-	
+	/**
+	 * loads MatrixMeta from paths inclusive compatibility check
+	 * @param conf
+	 * @param path
+	 * @return null if path does not contain '.meta' file
+	 * @throws IOException
+	 */
+	public static MatrixMeta load(Configuration conf, Path path) throws IOException {
+		return load(conf,path.getFileSystem(conf),path);
+	}
 	
 	public static void save(Configuration conf, Path path, MatrixMeta meta) throws IOException {
 		Path dest = new Path(path,FILENAME);

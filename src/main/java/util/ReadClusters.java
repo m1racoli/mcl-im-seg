@@ -3,27 +3,14 @@
  */
 package util;
 
-import java.awt.Transparency;
-import java.awt.color.ColorSpace;
-import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.ComponentColorModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.DataBufferByte;
-import java.awt.image.Raster;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.imageio.ImageIO;
 
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
@@ -42,8 +29,6 @@ import org.apache.hadoop.io.SequenceFile.Reader.Option;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.beust.jcommander.Parameter;
 
 /**
  * @author Cedrik
