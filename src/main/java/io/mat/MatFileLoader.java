@@ -49,6 +49,12 @@ public class MatFileLoader extends AbstractUtil {
 	@Parameter(names = "-te", description = "parallelism, i.e. number of output files in this case")
 	private int te = 1;
 
+	@Parameter(names = "-s", description = "start frame (inclusive)")
+	private int s = 0;
+	
+	@Parameter(names = "-t", description = "end frame (exclusive)")
+	private int t = -1;
+	
 	/**
 	 * @param args
 	 * @throws Exception 
@@ -79,17 +85,26 @@ public class MatFileLoader extends AbstractUtil {
 		
 		MLStructure ss0 = (MLStructure) arr;
 		
-		int f = ss0.getSize();
+		if(t == -1){
+			t = ss0.getSize();
+		}
 		
-		logger.info("{} frames",f);
+		if(s >= t || s >= ss0.getSize()){
+			logger.warn("selection outside frame range. frames: {}, s: {}, t: {}",ss0.getSize(),s,t);
+			return 0;
+		}
+		
+		int f = s-t;
+		
+		logger.info("{} frames selected",f);
 		
 		int frames_per_thread = f/te;
 		int rest = f % te;
 		
 		int[] off = new int[te+1];		
-		for(int i = 1, s = 0; i <= te; i++){
-			s += i <= rest ? frames_per_thread + 1 : frames_per_thread;
-			off[i] = s;
+		for(int i = 1, st = s; i <= te; i++){
+			st += i <= rest ? frames_per_thread + 1 : frames_per_thread;
+			off[i] = st;
 		}
 		
 		if(off[te] != f){
@@ -107,8 +122,7 @@ public class MatFileLoader extends AbstractUtil {
 			Path file = fs.makeQualified(new Path(output,fileName));
 			FeatureWriter writer = new FeatureWriter(getConf(), file, ss0, off[i], off[i+1]);
 			futures.add(executorService.submit(writer));
-		}
-		
+		}		
 			
 		executorService.shutdown();		
 
@@ -227,5 +241,5 @@ public class MatFileLoader extends AbstractUtil {
 		}
 		
 	}
-
+	
 }
