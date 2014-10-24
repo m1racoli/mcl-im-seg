@@ -4,6 +4,12 @@
   <artifactId>mcl-im-seg</artifactId>
   <version>0.0.1</version>
   <name>MCL Image Segmentation</name>
+  <repositories>
+  	<repository>
+  		<id>twitter-twttr</id>
+  		<url>http://maven.twttr.com</url>
+  	</repository>
+  </repositories>
   <build>
   <finalName>mcl-im-seg</finalName>
   <resources>
@@ -98,7 +104,7 @@
   	<dependency>
   		<groupId>com.hadoop.gplcompression</groupId>
   		<artifactId>hadoop-lzo</artifactId>
-  		<version>0.4.15</version>
+  		<version>0.4.19</version>
   		<scope>provided</scope>
   	</dependency>
   </dependencies>
