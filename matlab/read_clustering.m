@@ -1,8 +1,8 @@
 function [ C ] = read_clustering( filename )
-%% reads a clustering from a textfile where each line of delimited integers
-%% represents a cluster.
-%% the result is a cell array containing vectors of interger ids of
-%% the items in the respective clusters
+% reads a clustering from a textfile where each line of delimited integers
+% represents a cluster.
+% the result is a cell array containing vectors of interger ids of
+% the items in the respective clusters
 fileID = fopen(filename);
 lines = textscan(fileID,'%s', 'delimiter','\n');
 fclose(fileID);
