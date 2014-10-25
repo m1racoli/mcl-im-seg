@@ -225,8 +225,8 @@ public class MatFileLoader extends AbstractUtil {
 						setDim(X);
 					}
 					
-					for(int x = 0, w = dim.width, h = dim.height; x < w; x++){
-						for(int y = 0, index = y + h*x; y < h; y++){
+					for(int x = 0, index = 0, w = dim.width, h = dim.height; x < w; x++){
+						for(int y = 0; y < h; y++, index++){
 							pixel.setP(x, y);
 							pixel.setX(X.getReal(index));
 							pixel.setY(Y.getReal(index));
