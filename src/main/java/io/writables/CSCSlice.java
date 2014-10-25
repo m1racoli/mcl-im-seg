@@ -606,7 +606,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private final class EntryIterator extends ReadOnlyIterator<SliceEntry> {
 
 		private final SliceEntry entry = new SliceEntry();
-		private final int l = colPtr[nsub];
+		private final int l = colPtr[nsub]-colPtr[0];
 		private int col_end = colPtr[1];
 		private int col = 0;
 		private int i = colPtr[0];
