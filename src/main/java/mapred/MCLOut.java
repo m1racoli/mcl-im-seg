@@ -22,6 +22,9 @@ public final class MCLOut {
 	}
 	
 	public static void progress(float last, float current) {
+		if(last >= current)
+			return;
+		
 		int diff = ((int) (100.0f * current)/5) - ((int) (100.0f * last)/5);
 		//print diff times a '.'
 		System.out.print(new String(new char[diff]).replace('\0', '.'));
