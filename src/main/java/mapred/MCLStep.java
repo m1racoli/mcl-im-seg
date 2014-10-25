@@ -55,13 +55,18 @@ public class MCLStep extends AbstractMCLJob {
 			
 			M m = (M) tuple.get(0);
 			
-			if(tuple.size() > 2 && last_id != key.get()){
+			if(last_id != key.get())
+			{
 				last_id = key.get();
-				ssd = ssd == null ? new DistributedDoubleSum() : ssd;
-				//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
-					ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
-				//}
 				context.getCounter(Counters.INPUT_NNZ).increment(m.size());
+				
+				if(tuple.size() > 2)
+				{					
+					ssd = ssd == null ? new DistributedDoubleSum() : ssd;
+					//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
+						ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
+					//}				
+				}
 			}
 			
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
@@ -75,6 +80,7 @@ public class MCLStep extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			if(ssd != null){
 				ZkMetric.set(context.getConfiguration(), SSD, ssd);
+				ZkMetric.close();
 			}
 		}
 	}
