@@ -46,14 +46,14 @@ public class MatFileLoader extends AbstractUtil {
 
 	private static final Logger logger = LoggerFactory.getLogger(MatFileLoader.class);
 	
-	@Parameter(names = "-te", description = "parallelism, i.e. number of output files in this case")
+	@Parameter(names = "-te", description = "parallelism, i.e. number of threads and output files in this case")
 	private int te = 1;
 
 	@Parameter(names = "-s", description = "start frame (inclusive)")
 	private int s = 0;
 	
 	@Parameter(names = "-t", description = "end frame (exclusive)")
-	private int t = -1;
+	private int t = Integer.MAX_VALUE;
 	
 	/**
 	 * @param args
@@ -85,30 +85,35 @@ public class MatFileLoader extends AbstractUtil {
 		
 		MLStructure ss0 = (MLStructure) arr;
 		
+		
 		if(t == -1){
 			t = ss0.getSize();
+		} else {
+			//TODO
 		}
 		
-		if(s >= t || s >= ss0.getSize()){
+		if(s < 0 || s >= t || s >= ss0.getSize()){ //TODO check properly or adjust dynamically
 			logger.warn("selection outside frame range. frames: {}, s: {}, t: {}",ss0.getSize(),s,t);
 			return 0;
 		}
 		
-		int f = s-t;
+		int f = t-s;
 		
 		logger.info("{} frames selected",f);
 		
 		int frames_per_thread = f/te;
 		int rest = f % te;
 		
-		int[] off = new int[te+1];		
+		int[] off = new int[te+1];
+		off[0] = s;
+		
 		for(int i = 1, st = s; i <= te; i++){
 			st += i <= rest ? frames_per_thread + 1 : frames_per_thread;
 			off[i] = st;
 		}
 		
-		if(off[te] != f){
-			logger.error("num frames {} != end of offset {}",f,off[te]);
+		if(off[te] != t){
+			logger.error("num frames {} != end of offset {}",t,off[te]);
 			return 1;
 		}
 		
