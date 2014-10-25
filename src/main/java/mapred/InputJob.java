@@ -165,7 +165,7 @@ public class InputJob extends AbstractMCLJob {
 				
 				entry.col = idx.col.get();
 				entry.row = idx.row.get();				
-				entry.val = f1.dist(iter.next()); //TODO dist
+				entry.val = f1.dist(iter.next()); //TODO fix self comparison or leave it completely
 				return entry;
 			}
 		}		
