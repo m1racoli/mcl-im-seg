@@ -1,4 +1,4 @@
-function [stats] = clustering_stats( C )
+function [stats] = cl_info( C )
 %VISUALIZE_CLUSTERING Summary of this function goes here
 %   Detailed explanation goes here
 

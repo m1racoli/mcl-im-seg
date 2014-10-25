@@ -1,4 +1,4 @@
-function h = clustering_hist( C )
+function h = cl_hist( C )
 
 l = length(C);
 v = zeros(l,1);
