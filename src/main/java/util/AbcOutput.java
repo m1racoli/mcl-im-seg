@@ -38,13 +38,15 @@ public class AbcOutput extends AbstractUtil {
 			throws Exception {
 		
 		Configuration conf = getConf();
-		FileSystem fs = FileSystem.getLocal(conf);
-		input = fs.makeQualified(input);
+		
 		MatrixMeta meta = MatrixMeta.load(conf, input);
 		
 		if(meta == null){
 			return 1;
 		}
+		
+		FileSystem inFs = FileSystem.get(conf);
+		FileSystem outfs = hdfsOutput ? FileSystem.get(conf) : FileSystem.getLocal(conf);		
 		
 		logger.info(meta.toString());
 		
@@ -55,8 +57,8 @@ public class AbcOutput extends AbstractUtil {
 		long nnz = 0;
 		int num_files = 0;
 		
-		RemoteIterator<LocatedFileStatus> it = fs.listFiles(input, false);
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fs.create(output, true)));
+		RemoteIterator<LocatedFileStatus> it = inFs.listFiles(input, false);
+		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outfs.create(output, true)));
 		
 		while(it.hasNext()){
 			LocatedFileStatus fileStatus = it.next();
@@ -91,6 +93,7 @@ public class AbcOutput extends AbstractUtil {
 		}
 		
 		writer.close();
+		outfs.close();
 		
 		logger.info("{} entries from {} files written",nnz,num_files);
 		
