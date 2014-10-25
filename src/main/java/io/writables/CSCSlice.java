@@ -471,7 +471,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		colPtr[nsub] = valPtr;
-		if(context != null) context.getCounter(Counters.NNZ).increment(size());
+		if(context != null) context.getCounter(Counters.OUTPUT_NNZ).increment(size());
 	}
 	
 	@Override
@@ -688,7 +688,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			if(diag == -1){
 				//cannot insert additional element
 				logger.error("diagonal element does not exist");
-				throw new RuntimeException("diagonal element does not exist");
+				throw new IllegalStateException("diagonal element does not exist. id="+id.getSliceId()+" col: "+col);
 			}
 			
 			if(max == 0.0f) max = 1.0f;

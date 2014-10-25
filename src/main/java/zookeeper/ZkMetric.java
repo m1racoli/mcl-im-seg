@@ -148,13 +148,10 @@ public class ZkMetric {
 		}
 	}
 	
-	public static final void close(Configuration conf) throws IOException, InterruptedException{
+	public static final void cleanup(Configuration conf) throws IOException, InterruptedException{
 		
 		if(paths.isEmpty()){
-			if(zk != null) {
-				zk.close();
-				zk = null;
-			}
+			close();
 			return;
 		}
 		
@@ -164,6 +161,13 @@ public class ZkMetric {
 		paths.clear();
 		zk.close();
 		zk = null;
+	}
+	
+	public static final void close() throws InterruptedException{
+		if(zk != null) {
+			zk.close();
+			zk = null;
+		}
 	}
 	
 	private static String initLock(ZooKeeper zk, String path) throws InterruptedException, KeeperException{

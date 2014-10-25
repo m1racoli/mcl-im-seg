@@ -29,16 +29,17 @@ public class MatrixMeta implements Writable, Applyable {
 	private int kmax;
 	private int nsub;
 	private boolean varints;
-	
-	//TODOMatrixSlice class, threads!
+	private int te;
+	//TODO MatrixSlice class!
 	
 	private MatrixMeta() {}
 	
-	public MatrixMeta(long n, int kmax, int nsub, boolean varints) {
+	public MatrixMeta(long n, int kmax, int nsub, boolean varints, int te) {
 		this.n = n;
 		this.kmax = kmax;
 		this.nsub = nsub;
 		this.varints = varints;
+		this.te = te;
 	}
 	
 	public int getKmax(){
@@ -53,6 +54,10 @@ public class MatrixMeta implements Writable, Applyable {
 		return nsub;
 	}
 	
+	public int getNumThreads() {
+		return te;
+	}
+	
 	public void setKmax(int kmax) {
 		this.kmax = kmax < n ? kmax : (int) n;
 		logger.debug("kmax set to {}",this.kmax);
@@ -64,6 +69,7 @@ public class MatrixMeta implements Writable, Applyable {
 		out.writeInt(nsub);
 		out.writeInt(kmax);
 		out.writeBoolean(varints);
+		out.writeInt(te);
 	}
 
 	@Override
@@ -72,6 +78,7 @@ public class MatrixMeta implements Writable, Applyable {
 		nsub = in.readInt();
 		kmax = in.readInt();
 		varints = in.readBoolean();
+		te = in.readInt();
 	}
 	
 	public <M extends MCLMatrixSlice<M>> void write(Reducer<SliceId, M, SliceId, M>.Context context) throws IOException {
@@ -83,6 +90,7 @@ public class MatrixMeta implements Writable, Applyable {
 		outputStream.close();
 	}
 	
+	@Deprecated
 	public static <M extends MCLMatrixSlice<M>> void writeKmax(Reducer<?, ?, SliceId, M>.Context context, int kmax) throws IOException {
 		int partition = context.getTaskAttemptID().getId();
 		Path path = FileOutputFormat.getOutputPath(context);
@@ -94,6 +102,7 @@ public class MatrixMeta implements Writable, Applyable {
 		logger.info("kmax {} writen to {}",kmax,output);
 	}
 	
+	@Deprecated
 	public void mergeKmax(Configuration conf, Path path) throws IOException {
 		int k_max = 0;
 		FileSystem fs = path.getFileSystem(conf);
@@ -111,9 +120,11 @@ public class MatrixMeta implements Writable, Applyable {
 		this.kmax = k_max;
 	}
 	
+	@Deprecated
 	private static final String KMAX_PREFIX = "_kmax_";
 	private static final String FILENAME = ".meta";
 	
+	@Deprecated
 	private static final PathFilter pathFilter = new PathFilter() {
 		
 		@Override
@@ -128,6 +139,7 @@ public class MatrixMeta implements Writable, Applyable {
 		meta.kmax = kmax;
 		meta.nsub = MCLConfigHelper.getNSub(conf);
 		meta.varints = MCLConfigHelper.getUseVarints(conf);
+		meta.te = MCLConfigHelper.getNumThreads(conf);
 		MCLConfigHelper.setN(conf, n);
 		MCLConfigHelper.setKMax(conf, kmax);
 		logger.debug("created {} ",meta);
@@ -196,14 +208,14 @@ public class MatrixMeta implements Writable, Applyable {
 	}
 	
 	private static void checkParamaters(MatrixMeta m) {
-		if(m.n <= 0 || m.nsub <= 0 || m.kmax < 0){
+		if(m.n <= 0 || m.nsub <= 0 || m.kmax < 0 || m.te <= 0){
 			throw new RuntimeException(String.format("invalid paramters: {}", m));
 		}
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("[n: %d, n_sub: %d, k_max: %d, varints: %s]", n,nsub,kmax,varints);
+		return String.format("[n: %d, n_sub: %d, k_max: %d, varints: %s, threads: %d]", n,nsub,kmax,varints,te);
 	}
 
 	@Override
@@ -212,6 +224,7 @@ public class MatrixMeta implements Writable, Applyable {
 		MCLConfigHelper.setKMax(conf, kmax);
 		MCLConfigHelper.setNSub(conf, nsub);
 		MCLConfigHelper.setUseVarints(conf, varints);
+		MCLConfigHelper.setNumThreads(conf, te);
 		logger.debug("apply {}",this);
 	}
 }

@@ -36,7 +36,8 @@ public class MCLContext {
 	public static final void setLogging(Configuration conf){
 		if (MCLConfigHelper.getDebug(conf)) {
 			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
+			org.apache.log4j.Logger.getLogger("io").setLevel(Level.DEBUG);
+			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);
 		}
 	}
 

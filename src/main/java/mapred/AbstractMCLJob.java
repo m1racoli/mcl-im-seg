@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
+import zookeeper.server.EmbeddedZkServer;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -43,6 +44,9 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 	
 	@Parameter(names = "-verbose")
 	private boolean verbose = false;
+	
+	@Parameter(names = "-zk")
+	private boolean embeddedZkServer = false;
 	
 	@Parameter(names = "-local")
 	private boolean local = false;
@@ -95,6 +99,10 @@ public abstract class AbstractMCLJob extends Configured implements Tool {
 			logger.info("run mapreduce in local mode");
 			getConf().set("mapreduce.framework.name", "local");
 			getConf().set("yarn.resourcemanager.address", "local");
+		}
+		
+		if (embeddedZkServer) {
+			EmbeddedZkServer.init(getConf());
 		}
 		
 		FileSystem outFs = output.getFileSystem(getConf());

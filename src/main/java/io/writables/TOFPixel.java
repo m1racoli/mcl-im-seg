@@ -20,7 +20,6 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 
 	public static final String SIGMA_X_CONF = "sigma.X";
 	public static final String SIGMA_I_CONF = "sigma.I";
-	public static final String SIGMA_S_CONF = "sigma.S";
 	
 	private final Point p = new Point();
 	private final double[] X = new double[3]; // {X,Y,Z}
@@ -28,7 +27,6 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	
 	private double sigma_I = 1.0;
 	private double sigma_X = 1.0;
-	private double sigma_S = 1.0;
 	
 	public void setP(int x, int y){
 		p.setLocation(x, y);
@@ -56,10 +54,10 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	
 	@Override
 	public float dist(TOFPixel o) {
-		double dX = p.distanceSq(o.p)/sigma_X;
-		double dS = distSq(X, o.X)/sigma_S;
+		//double dX = p.distanceSq(o.p)/sigma_X;
+		double dX = distSq(X, o.X)/sigma_X;
 		double dI = (I - o.I) * (I - o.I)/sigma_I;
-		return (float) Math.exp(-(dX+dS+dI));
+		return (float) Math.exp(-(dX+dI));
 	}
 
 	private static final double distSq(double[] v1, double[] v2){
@@ -103,7 +101,6 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	public void setConf(Configuration conf) {
 		sigma_I = conf.getDouble(SIGMA_I_CONF, sigma_I);
 		sigma_X = conf.getDouble(SIGMA_X_CONF, sigma_X);
-		sigma_S = conf.getDouble(SIGMA_S_CONF, sigma_S);
 	}
 
 	@Override
@@ -111,7 +108,6 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 		Configuration conf = new Configuration();
 		conf.setDouble(SIGMA_I_CONF, sigma_I);
 		conf.setDouble(SIGMA_X_CONF, sigma_X);
-		conf.setDouble(SIGMA_S_CONF, sigma_S);
 		return conf;
 	}
 

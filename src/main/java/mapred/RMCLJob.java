@@ -49,7 +49,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 		long n = result.n;
 		long converged_colums = 0;
 		
-		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
+		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.out_nnz,result.kmax);
 		System.out.println("iter\tchaos\tstep\ttotal\tnnz\tkmax\tattractors\thom.col\tcutoff\tprune\tcputime\tchange");
 		String outPattern = "%d\t%2.1f\t%5.1f\t%5.1f\t%9d\t%4d\t%9d\t%9d\t%9d\t%9d\t%5.1f\t%f\n";
 		final Path transposed = new Path(output,"transposed");
@@ -96,7 +96,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 			}
 			
 			System.out.printf(outPattern, i, result.chaos, result.runningtime/1000.0,step_toc/1000.0,
-					result.nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0,result.changeInNorm);
+					result.out_nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0,result.changeInNorm);
 		}
 		
 		long total_toc = System.currentTimeMillis() - total_tic;

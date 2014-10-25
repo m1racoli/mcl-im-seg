@@ -59,6 +59,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "local")
 	private boolean local = false;
 	
+	@Parameter(names = {"-native-input","-n"}, description= "input matrix is matrix slice") //TODO default
+	private boolean native_input = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
@@ -153,6 +156,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final boolean abc(){
 		return abc;
+	}
+	
+	public final boolean isNativeInput(){
+		return native_input;
 	}
 
 }

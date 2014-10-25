@@ -142,7 +142,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
-			}			
+			}
 		}
 		
 		@Override
@@ -162,7 +162,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			kmax.set(kmax_tmp);
 			
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
-			context.getCounter(Counters.NNZ).increment(col.size());
+			context.getCounter(Counters.OUTPUT_NNZ).increment(col.size());
 			context.write(idx.id, col);
 		}
 		
@@ -170,8 +170,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
-			//MatrixMeta.writeKmax(context, kmax);
-			//TODO multiple otput or correct path
+			ZkMetric.close();
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<SliceEntry> {
@@ -222,6 +221,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			return false;
 		}
 		
+		logger.debug("sequence meta: w: {}, h: {}, f: {}",w,h,f);
 		return true;
 	}
 	
@@ -251,6 +251,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 		conf.setInt(DIM_HEIGHT_CONF, h);
 		conf.setInt(DIM_WIDTH_CONF, w);
 		conf.setInt(NUM_FRAMES_CONF, f);
+		
+		//TODO SIGMA
 		
 		int kmax = RadialPixelNeighborhood.size(radius) * (2*(int) radius + 1);
 		long n = (long) w * (long) h * (long) f;		
@@ -282,7 +284,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		result.run(job);
 		
 		if(!result.success) return result;
-		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
 		
 		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
 		//meta.mergeKmax(conf, output);

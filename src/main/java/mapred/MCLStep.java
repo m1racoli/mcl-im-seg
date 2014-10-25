@@ -61,6 +61,7 @@ public class MCLStep extends AbstractMCLJob {
 				//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
 					ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
 				//}
+				context.getCounter(Counters.INPUT_NNZ).increment(m.size());
 			}
 			
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
@@ -136,6 +137,7 @@ public class MCLStep extends AbstractMCLJob {
 			logger.debug("stats: {}",stats);
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
+			ZkMetric.close();
 		}
 	}
 	
@@ -199,7 +201,8 @@ public class MCLStep extends AbstractMCLJob {
 		MatrixMeta.save(conf, output, meta);
 		
 		result.kmax = meta.getKmax();
-		result.nnz = job.getCounters().findCounter(Counters.NNZ).getValue();
+		result.in_nnz = job.getCounters().findCounter(Counters.INPUT_NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
 		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();

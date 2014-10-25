@@ -12,8 +12,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
-
 /**
  * @author Cedrik
  *
@@ -21,9 +19,6 @@ import com.beust.jcommander.Parameter;
 public class MCLJob extends AbstractMCLAlgorithm {
 
 	private static final Logger logger = LoggerFactory.getLogger(MCLJob.class);
-	
-	@Parameter(names = "-native-input")
-	private boolean native_input = false;
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
@@ -40,7 +35,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		Path m_i = new Path(output,"tmp_1");
 		MCLResult result = null;
 		
-		if(!native_input){
+		if(!isNativeInput()){
 			logger.debug("run InputJob on {} => {}",input,m_i_1);
 			result = abc() 
 					? new InputAbcJob().run(getConf(), input, m_i_1)
@@ -58,10 +53,9 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		logger.info("{}",result);
 		long n = result.n;
 		long converged_colums = 0;
-		final long init_nnz = result.nnz;
-		long last_nnz = init_nnz;
+		Long init_nnz = null; //result.out_nnz;
 		
-		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.nnz,result.kmax);
+		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		MCLOut.init();
 		final Path transposed = new Path(output, "t");
 		TransposeJob transpose = new TransposeJob();
@@ -104,7 +98,9 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			}
 			MCLOut.progress(0.0f, 1.0f);
 			
-			final long nnz_final = result.nnz;
+			if(init_nnz == null) init_nnz = result.in_nnz;
+			final long last_nnz = result.in_nnz;
+			final long nnz_final = result.out_nnz;
 			final long nnz_expand = nnz_final + result.cutoff + result.prune;
 			
 			MCLOut.stats(result.chaos
@@ -115,10 +111,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 					, (double) nnz_expand / (last_nnz + 1L)
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L));
-			
-			last_nnz = nnz_final;
-			//System.out.printf(outPattern, i,result.chaos,transpose_millis/1000.0,result.runningtime/1000.0,step_toc/1000.0,
-			//		result.nnz,result.kmax,result.attractors,result.homogenous_columns,result.cutoff,result.prune,result.cpu_millis/1000.0);
+
 			MCLOut.finishIteration();
 		}
 		
