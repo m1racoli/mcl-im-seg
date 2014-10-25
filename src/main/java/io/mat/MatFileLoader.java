@@ -46,6 +46,8 @@ public class MatFileLoader extends AbstractUtil {
 
 	private static final Logger logger = LoggerFactory.getLogger(MatFileLoader.class);
 	
+	private static final double I_scale = 65535.0;
+	
 	@Parameter(names = "-te", description = "parallelism, i.e. number of threads and output files in this case")
 	private int te = 1;
 
@@ -125,7 +127,7 @@ public class MatFileLoader extends AbstractUtil {
 		for(int i = 0; i < te; i++){
 			String fileName = String.format("part-%05d", i);
 			Path file = fs.makeQualified(new Path(output,fileName));
-			FeatureWriter writer = new FeatureWriter(getConf(), file, ss0, off[i], off[i+1]);
+			FeatureWriter writer = new FeatureWriter(getConf(), file, ss0, off[i], off[i+1], s);
 			futures.add(executorService.submit(writer));
 		}		
 			
@@ -173,13 +175,15 @@ public class MatFileLoader extends AbstractUtil {
 		private final MLStructure ss0;
 		private final int s;
 		private final int t;
+		private final int s0;
 		
-		public FeatureWriter(Configuration conf, Path file, MLStructure ss0, int s, int t) {
+		public FeatureWriter(Configuration conf, Path file, MLStructure ss0, int s, int t, int s0) {
 			this.conf = conf;
 			this.file = file;
 			this.ss0 = ss0;
 			this.s = s;
 			this.t = t;
+			this.s0 = s0;
 		}
 
 		private static CompressionCodec codec = new Lz4Codec();
@@ -211,7 +215,7 @@ public class MatFileLoader extends AbstractUtil {
 				TOFPixel pixel = new TOFPixel();
 				
 				for(int f = s; f < t; f++){
-					frame.set(f);
+					frame.set(f-s0);
 					final MLNumericArray<Double> X = (MLNumericArray<Double>) ss0.getField("X", f);
 					final MLNumericArray<Double> Y = (MLNumericArray<Double>) ss0.getField("Y", f);
 					final MLNumericArray<Double> Z = (MLNumericArray<Double>) ss0.getField("Z", f);
@@ -227,7 +231,7 @@ public class MatFileLoader extends AbstractUtil {
 							pixel.setX(X.getReal(index));
 							pixel.setY(Y.getReal(index));
 							pixel.setZ(Z.getReal(index));
-							pixel.setI(intenSR.getReal(index));
+							pixel.setI(intenSR.getReal(index)/I_scale);
 							
 							writer.append(frame, pixel);
 						}
