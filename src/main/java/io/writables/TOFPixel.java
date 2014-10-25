@@ -7,7 +7,6 @@ import java.awt.Point;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
@@ -57,7 +56,7 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 		//double dX = p.distanceSq(o.p)/sigma_X;
 		double dX = distSq(X, o.X)/sigma_X;
 		double dI = (I - o.I) * (I - o.I)/sigma_I;
-		return (float) Math.exp(-(dX+dI));
+		return (float) Math.exp(-dX-dI);
 	}
 
 	private static final double distSq(double[] v1, double[] v2){
@@ -115,5 +114,20 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	public Point getPosition() {
 		return p;
 	}
+
+	@Override
+	public TOFPixel copy(TOFPixel instance) {
+
+		if(instance == null){
+			instance = new TOFPixel();
+		}
+		
+		instance.p.setLocation(p);
+		instance.I = I;
+		System.arraycopy(X, 0, instance.X, 0, X.length);
+		return instance;
+	}
+
+
 
 }

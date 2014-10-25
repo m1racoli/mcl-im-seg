@@ -6,7 +6,6 @@ package io.writables;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -53,6 +52,19 @@ public final class Pixel implements FeatureWritable<Pixel> {
 	@Override
 	public String toString() {
 		return String.format("x: %d, y: %d, {%d,%d,%d}", x,y,v[0],v[1],v[2]);
+	}
+
+	@Override
+	public Pixel copy(Pixel instance) {
+
+		if(instance == null){
+			instance = new Pixel();
+		}
+		
+		instance.x = x;
+		instance.y = y;
+		System.arraycopy(v, 0, instance.v, 0, v.length);
+		return instance;
 	}
 
 }

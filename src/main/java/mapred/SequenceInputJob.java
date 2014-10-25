@@ -178,6 +178,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			private final SliceEntry entry = new SliceEntry();
 			private final Index idx;
 			private final Iterator<V> iter;
+			private V inst = null;
 			
 			private ValueIterator(Index idx, Iterator<V> iter){
 				this.idx = idx;
@@ -191,11 +192,10 @@ public class SequenceInputJob extends AbstractMCLJob {
 			
 			@Override
 			public SliceEntry next() {
-				final V f1 = iter.next();
-				
+				inst = iter.next().copy(inst);				
+				entry.val = inst.dist(iter.next());
 				entry.col = idx.col.get();
-				entry.row = idx.row.get();
-				entry.val = f1.dist(iter.next());
+				entry.row = idx.row.get();				
 				return entry;
 			}
 		}		
