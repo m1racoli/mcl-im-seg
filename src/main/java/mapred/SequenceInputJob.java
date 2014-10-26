@@ -54,6 +54,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private static final String DIM_WIDTH_CONF = "dim.width";
 	private static final String DIM_HEIGHT_CONF = "dim.height";
 	private static final String NUM_FRAMES_CONF = "num.frames";
+	private static final String OVERLAP_FRAMES_CONF = "overlap.frames";
 	private static final String KMAX = "/kmax";
 	
 	@Parameter(names = "-r")
@@ -68,16 +69,19 @@ public class SequenceInputJob extends AbstractMCLJob {
 	@Parameter(names = "-f")
 	private int f = 1;
 	
+	@Parameter(names = {"-fo","--frame-overlap"}, description = "overlap of frame comparison")
+	private int overlap = 0;
+	
 	private volatile MCLInitParams initParams = null;
 	
 	private static final class SequenceInputMapper<V extends SpatialFeatureWritable<V>> extends Mapper<IntWritable, V, Index, V> {
 		private final ArrayList<Point> list = new ArrayList<Point>();
 		private int w = 0;
 		private int h = 0;
-		private int f = 1;
+		private int frames = 1;
 		private long l;
 		private int nsub;
-		private int r;
+		private int overlap = 0;
 		private final Index idx1 = new Index();
 		private final Index idx2 = new Index();
 		private static RadialPixelNeighborhood nb = null;
@@ -85,15 +89,15 @@ public class SequenceInputJob extends AbstractMCLJob {
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			double radius = context.getConfiguration().getDouble(NB_RADIUS_CONF, 3.0);
+			double radius = context.getConfiguration().getDouble(NB_RADIUS_CONF, -1);
 			if(nb == null){
 				nb = new RadialPixelNeighborhood(radius);
 			}
-			r = (int) radius;
+			overlap = context.getConfiguration().getInt(OVERLAP_FRAMES_CONF, overlap);
 			w = context.getConfiguration().getInt(DIM_WIDTH_CONF, w);
 			h = context.getConfiguration().getInt(DIM_HEIGHT_CONF, h);
 			l = (long) w * (long) h;
-			f = context.getConfiguration().getInt(NUM_FRAMES_CONF, f);
+			frames = context.getConfiguration().getInt(NUM_FRAMES_CONF, frames);
 			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
 		}
 		
@@ -117,7 +121,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			
 			for(Point p : nb.local(value.getPosition(), w, h, list)){
 				final long k2_pre = getIndex(p);
-				for(long i = Math.max(0, frame-r), end = Math.min(f-1, frame+r); i <= end; i++){
+				for(long i = Math.max(0, frame-overlap), end = Math.min(frames-1, frame+overlap); i <= end; i++){
 					final long k2 = l * i + k2_pre;
 					idx1.row.set(k2);
 					idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
@@ -251,7 +255,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		conf.setInt(DIM_HEIGHT_CONF, h);
 		conf.setInt(DIM_WIDTH_CONF, w);
 		conf.setInt(NUM_FRAMES_CONF, f);
-		
+		conf.setInt(OVERLAP_FRAMES_CONF, overlap);
 		//TODO SIGMA
 		
 		int kmax = RadialPixelNeighborhood.size(radius) * (2*(int) radius + 1);
