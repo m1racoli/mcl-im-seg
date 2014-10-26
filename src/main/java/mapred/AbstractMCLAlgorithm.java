@@ -3,6 +3,7 @@
  */
 package mapred;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -65,6 +66,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
+	
+	private Path transposePath = null;
+	private File countersFile = null;
+	private TransposeJob transposeJob = new TransposeJob();
+	private int transposeIter = 0;
+	private int stepIter = 0;
+	private MCLStep stepJob = new MCLStep();
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
@@ -129,7 +137,22 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		outFS.mkdirs(output);
 		
-		return run(input, output);
+		if(dumpCounters()){
+			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
+			MCLResult.prepareCounters(countersFile);
+		}
+		
+		transposePath = new Path(output,"t");
+		
+		int rc = run(input, output);
+		
+		if(rc != 0) return rc;
+		
+		if(dumpCounters()) {
+			System.out.println("counters written to "+countersFile.getAbsolutePath());
+		}
+		
+		return rc;
 	}
 	
 	/**
@@ -141,6 +164,63 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	}
 	
 	protected abstract int run(Path input, Path output) throws Exception;
+	
+	protected final MCLResult inputJob(Path input, Path output) throws Exception {
+		MCLResult result = null;
+		
+		if(!isNativeInput()){
+			logger.debug("run InputJob on {} => {}",input,output);
+			result = abc() 
+					? new InputAbcJob().run(getConf(), input, output)
+					: new SequenceInputJob().run(getConf(), input, output);
+			
+		} else {
+			result = new NativeInputJob().run(getConf(), input, output);
+		}
+		
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			System.exit(1);
+		}
+		
+		return result;
+	}
+	
+	protected final MCLResult transposeJob(Path input) throws Exception {
+		
+		logger.debug("run TransposeJob on {} => {}",input,transposePath);
+		MCLResult result = transposeJob.run(getConf(), input, transposePath);
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			System.exit(1);
+		}
+		
+		logger.info("{}",result);
+		
+		if(dumpCounters()){
+			result.dumpCounters(++transposeIter, "transpose", countersFile);
+		}
+		
+		if(dumpCounters()){
+			result.dumpCounters(++stepIter, "step", countersFile);
+		}
+		
+		return result;
+	}
+	
+	protected final MCLResult stepJob(List<Path> paths, Path output) throws Exception{
+		
+		logger.debug("run MCLStep on {}  => {}",paths,output);		
+		MCLResult result = stepJob.run(paths, output);
+		
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			System.exit(1);
+		}
+		
+		logger.info("{}",result);
+		return result;
+	}
 	
 	public static final Path suffix(Path path, Object suffix){
 		return new Path(path.getParent(),String.format("%s_%s", path.getName(),suffix));
@@ -162,4 +242,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return native_input;
 	}
 
+	public final Path transposedPath(){
+		return transposePath;
+	}
+	
 }
