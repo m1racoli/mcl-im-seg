@@ -55,8 +55,8 @@ public final class TOFPixel implements SpatialFeatureWritable<TOFPixel>, Configu
 	public float dist(TOFPixel o) {
 		//double dX = p.distanceSq(o.p)/sigma_X;
 		double dX = distSq(X, o.X)/sigma_X;
-		double dI = (I - o.I) * (I - o.I)/sigma_I;
-		return (float) Math.exp(-dX-dI);
+		//double dI = (I - o.I) * (I - o.I)/sigma_I;
+		return (float) Math.exp(-dX);
 	}
 
 	private static final double distSq(double[] v1, double[] v2){
