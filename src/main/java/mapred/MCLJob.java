@@ -23,14 +23,14 @@ public class MCLJob extends AbstractMCLAlgorithm {
 	public int run(Path input, Path output) throws Exception {
 
 		int i = 0;
-		Path m_i_1 = new Path(output,"tmp_0"); //suffix(input,i++);
-		Path m_i = new Path(output,"tmp_1");
+		Path m_i_1 = new Path(output,"tmp_0");
+		Path m_i   = new Path(output,"tmp_1");
 		
-		MCLResult result = inputJob(input, output);
+		MCLResult result = inputJob(input, m_i_1);
 		
 		logger.info("{}",result);
 		long n = result.n;
-		long converged_colums = 0;
+		double chaos = Double.MAX_VALUE;
 		Long init_nnz = null; //result.out_nnz;
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
@@ -38,7 +38,8 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		
 		long total_tic = System.currentTimeMillis();
 		
-		while(n > converged_colums && ++i <= getMaxIterations()){ //TODO chaos
+		
+		while(chaos >= getChaosLimit() && ++i <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",i);
 			MCLOut.startIteration(i);
 			
@@ -48,7 +49,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			result = stepJob(Arrays.asList(m_i_1, transposedPath()), m_i);
 
 			long step_toc = System.currentTimeMillis() - step_tic;
-			converged_colums = result.homogenous_columns;
+			chaos = result.chaos;
 			
 			Path tmp = m_i_1;
 			m_i_1 = m_i;
@@ -61,7 +62,7 @@ public class MCLJob extends AbstractMCLAlgorithm {
 			final long nnz_final = result.out_nnz;
 			final long nnz_expand = nnz_final + result.cutoff + result.prune;
 			
-			MCLOut.stats(result.chaos
+			MCLOut.stats(chaos
 					, step_toc/1000.0
 					, 0.0
 					, 0.0

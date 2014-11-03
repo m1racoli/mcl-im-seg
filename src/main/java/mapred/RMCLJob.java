@@ -30,16 +30,15 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 		}
 		
 		int i = 0;
-		
-		Path m_i_2 = new Path(output,"tmp_0"); //suffix(input,i++);
+		Path m_i_2 = new Path(output,"tmp_0");
 		Path m_i_1 = new Path(output,"tmp_1");
 		Path m_i   = new Path(output,"tmp_2");		
 		
-		MCLResult result = inputJob(input, output);
+		MCLResult result = inputJob(input, m_i_1);
 		
 		logger.info("{}",result);
 		long n = result.n;
-		long converged_colums = 0;
+		double changeInNorm = Double.POSITIVE_INFINITY;
 		Long init_nnz = null;
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.out_nnz,result.kmax);
@@ -48,7 +47,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 		long total_tic = System.currentTimeMillis();
 		result = transposeJob(m_i_1);
 
-		while(n > converged_colums && ++i <= getMaxIterations()){
+		while(changeInNorm >= getChangeLimit() && ++i <= getMaxIterations()){
 			logger.debug("iteration i = {}",i);
 			
 			MCLOut.startIteration(i);			
@@ -57,12 +56,12 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 			result = stepJob(i == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
 			
 			long step_toc = System.currentTimeMillis() - step_tic;
-			converged_colums = result.homogenous_columns;
+			changeInNorm = result.changeInNorm;
 			
-			Path tmp = m_i_1;
+			Path tmp = m_i_2;
+			m_i_2 = m_i_1;
 			m_i_1 = m_i;
-			m_i = m_i_2;
-			m_i_2 = tmp;
+			m_i = tmp;
 			
 			MCLOut.progress(0.0f, 1.0f);
 			
@@ -80,6 +79,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L));
 
+			System.out.printf("\t%f",changeInNorm); //TODO not quick and dirty
 			MCLOut.finishIteration();
 		}
 		

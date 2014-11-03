@@ -48,6 +48,12 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-iter")
 	private int max_iterations = MCLDefaults.max_iterations;
 	
+	@Parameter(names = "--chaos-limit", description = "convergence treshold for chaos (MCL)")
+	private double chaos_limit = MCLDefaults.chaosLimit;
+	
+	@Parameter(names = "--change-limit", description = "convergence treshold (R-MCL)")
+	private double change_limit = MCLDefaults.changeLimit;
+	
 	@Parameter(names = "-dump-counters")
 	private boolean dump_counters = false;
 	
@@ -211,7 +217,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	protected final MCLResult stepJob(List<Path> paths, Path output) throws Exception{
 		
 		logger.debug("run MCLStep on {}  => {}",paths,output);		
-		MCLResult result = stepJob.run(paths, output);
+		MCLResult result = stepJob.run(getConf(), paths, output);
 		
 		if (result == null || !result.success) {
 			logger.error("failure! result = {}",result);
@@ -228,6 +234,14 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final int getMaxIterations() {
 		return max_iterations;
+	}
+	
+	public final double getChaosLimit() {
+		return chaos_limit;
+	}
+	
+	public final double getChangeLimit() {
+		return change_limit;
 	}
 	
 	public final boolean dumpCounters(){

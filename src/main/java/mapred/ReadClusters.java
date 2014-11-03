@@ -4,6 +4,7 @@
 package mapred;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,11 +46,15 @@ public class ReadClusters extends AbstractMCLJob {
 		
 		private final LongWritable attractor = new LongWritable();
 		private final LongWritable child = new LongWritable();		
-		private long nsub;
+		private int nsub;
+		private long[] attIdx;
+		private float[] attVal;
 		
 		protected void setup(Context context)
 				throws IOException ,InterruptedException {
 			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
+			attIdx = new long[nsub];
+			attVal = new float[nsub];
 		}
 		
 		@Override
@@ -57,11 +62,32 @@ public class ReadClusters extends AbstractMCLJob {
 				Mapper<SliceId, M, LongWritable, LongWritable>.Context context)
 				throws IOException, InterruptedException {
 			
-			final long shift = nsub * (long) key.get();
+			Arrays.fill(attIdx, -1);
+			Arrays.fill(attVal, 0.0f);
+			
+			final long shift = (long) nsub * (long) key.get();
 
-			for(SliceEntry e : value.dump()){				
-				child.set(shift + (long) e.col);
-				attractor.set(e.row);
+			for(SliceEntry e : value.dump()){
+				final int col = e.col;
+				if(attVal[col] < e.val){
+					attVal[col] = e.val;
+					attIdx[col] = e.row;
+				}
+				
+			}
+			
+			for(int col = nsub - 1; col >= 0; --col){
+				final long att = attIdx[col];
+				if(att == -1)
+					continue;
+				
+				if(attVal[col] < 0.5f){
+					context.getCounter(Counters.WEAK_ATTRACTORS).increment(1);
+				} else {
+					context.getCounter(Counters.STRONG_ATTRACTORS).increment(1);
+				}
+				child.set(shift + (long) col);
+				attractor.set(att);
 				context.write(attractor, child);
 			}
 		}
@@ -111,7 +137,7 @@ public class ReadClusters extends AbstractMCLJob {
 	}
 	
 	private static enum Counters {
-		CLUSTERS,SINGLE_NODE_CLUSTERS,ATTRACTORS_AS_CHILDREN
+		CLUSTERS,SINGLE_NODE_CLUSTERS,ATTRACTORS_AS_CHILDREN, STRONG_ATTRACTORS, WEAK_ATTRACTORS
 	}
 	
 	@Override

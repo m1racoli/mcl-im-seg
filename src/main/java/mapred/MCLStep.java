@@ -72,7 +72,16 @@ public class MCLStep extends AbstractMCLJob {
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
 			id.set(subBlock.id);
 			
-			context.write(id,subBlock.subBlock.multipliedBy(m, context));
+			M product = subBlock.subBlock.multipliedBy(m, context);
+			
+			//count output records on diagonal and off diagonal
+			if(id.get() == key.get()){
+				context.getCounter(Counters.DIAG_MASS).increment(m.size());
+			} else {
+				context.getCounter(Counters.NON_DIAG_MASS).increment(m.size());
+			}
+			
+			context.write(id, product);
 		}
 		
 		@Override
@@ -214,7 +223,7 @@ public class MCLStep extends AbstractMCLJob {
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
 		result.chaos = ZkMetric.<DistributedDouble>get(conf, CHAOS).get();
-		if(computeChange) result.changeInNorm = Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN(); 
+		result.changeInNorm = computeChange ? Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN() : Double.POSITIVE_INFINITY; 
 		return result;
 	}
 	
