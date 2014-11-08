@@ -208,7 +208,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 	private boolean loadMeta(Configuration conf, Path dir){
 		
 		try {
-			FileSystem fs = FileSystem.get(conf);
+			
+			FileSystem fs = dir.getFileSystem(conf);
 			Path file = new Path(dir,"_meta");
 			if(!fs.exists(file)){
 				return false;
