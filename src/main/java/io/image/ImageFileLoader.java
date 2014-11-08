@@ -185,7 +185,7 @@ public class ImageFileLoader extends AbstractUtil {
 			try {
 				WritableRaster raster = image.getRaster();
 				SequenceFile.Writer writer = createWriter(conf, file);
-				IntWritable frame = new IntWritable(1);
+				IntWritable frame = new IntWritable(0);
 				Pixel pixel = new Pixel();
 				
 				for(int y = s; y < t; y++){
