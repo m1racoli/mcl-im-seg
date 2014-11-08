@@ -24,9 +24,12 @@ public class MCLDefaults {
 	public static final float cutoff = 0.0001f;
 	public static final int cutoff_inv = 10000;
 	public static final int selection = 50;	
+	public static final float pruneA = 0.9f;
+	public static final float pruneB = 2.0f;
 	
 	//algorithm
 	public static final int max_iterations = 1000;
 	public static double chaosLimit = 0.0001;
 	public static double changeLimit = 0.00001;
+	
 }

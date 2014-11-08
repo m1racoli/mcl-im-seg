@@ -162,7 +162,6 @@ public class VideoTool extends Configured implements Tool {
 					executor.submit(offsetProcessor);
 				}
 			}
-			
 		}
 		
 		executor.shutdown();

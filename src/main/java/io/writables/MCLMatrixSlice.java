@@ -39,6 +39,8 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	protected int select = MCLDefaults.selection;
 	protected PrintMatrix print_matrix = MCLDefaults.printMatrix;
 	protected int max_nnz = kmax * nsub;
+	protected float pruneA = MCLDefaults.pruneA;
+	protected float pruneB = MCLDefaults.pruneB;
 	
 	/**
 	 *  clear contents
@@ -157,6 +159,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		select = MCLConfigHelper.getSelection(conf);
 		print_matrix = MCLConfigHelper.getPrintMatrix(conf);
 		max_nnz = kmax * nsub;
+		//TODO pruneA,pruneB
 	}
 	
 	@Override

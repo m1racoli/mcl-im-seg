@@ -22,10 +22,10 @@ public abstract class AbstractUtil extends Configured implements Tool {
 	private Path output = null;
 	
 	@Parameter(names = "-hdfs", description = "output to hdfs")
-	private boolean hdfs;
+	private boolean hdfs = false;
 	
 	@Parameter(names = {"-h","--help"}, help = true)
-	private boolean help;
+	private boolean help = false;
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])

@@ -91,7 +91,7 @@ public class InputJob extends AbstractMCLJob {
 			idx1.col.set(MCLContext.getSubIndexFromIndex(k1,nsub));
 			idx2.row.set(k1);
 			
-			for(Point p : nb.local(value.x, value.y, w, h, list)){
+			for(Point p : nb.local(value.getPosition().x, value.getPosition().y, w, h, list)){
 				final long k2 = (long) p.x + (long) w * (long) p.y;
 				idx1.row.set(k2);
 				idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));

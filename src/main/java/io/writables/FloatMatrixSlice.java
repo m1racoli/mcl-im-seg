@@ -111,9 +111,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		}
 	}
 	
-	private final float computeTreshold(float avg, float max) {
-		//TODO a,b
-		float tresh = 0.9f*avg*(1-2.0f*(max-avg));
+	protected final float computeTreshold(float avg, float max) {
+		float tresh = pruneA*avg*(1.0f-(pruneB*(max-avg)));
 		tresh = tresh < cutoff ? cutoff : tresh;
 		return tresh < max ? tresh : max;
 	}

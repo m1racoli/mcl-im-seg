@@ -271,7 +271,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 
 		job.setMapperClass(SequenceInputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
-		job.setMapOutputValueClass(TOFPixel.class); //TODO dynamic		
+		job.setMapOutputValueClass(TOFPixel.class); //TODO dynamic
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setReducerClass(InputReducer.class);
