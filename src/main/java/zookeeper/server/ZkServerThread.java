@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
+import mapred.MCLConfigHelper;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -26,6 +28,9 @@ public class ZkServerThread extends Thread {
 	private final ServerConfig configuration;
 	
 	public static ZkServerThread fromConfig(Configuration conf){
+		
+		String host = DnsUtil.localDns();
+		MCLConfigHelper.setZkHosts(conf, host+":2181");
 		
 		Properties properties = new Properties();
 		

@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import mapred.MCLConfigHelper;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.zookeeper.CreateMode;
@@ -30,7 +32,6 @@ public class ZkMetric {
 
 	private static final Logger logger = LoggerFactory.getLogger(ZkMetric.class);
 	
-	public static final String ZK_METRIC_HOSTS_CONF = "zk.metric.hosts";
 	public static final String ZK_METRIC_PATH_CONF = "zk.metric.path";
 	public static final String ZK_METRIC_SESSION_TIMEOUT_CONF = "zk.metric.session.timeout";
 	
@@ -41,7 +42,7 @@ public class ZkMetric {
 		
 		if(zk == null){
 			synchronized (ZkMetric.class) {
-				String hosts = conf.get(ZK_METRIC_HOSTS_CONF,"localhost:2181");
+				String hosts = MCLConfigHelper.getZkHosts(conf);
 				String path = conf.get(ZK_METRIC_PATH_CONF,"");
 				int sessionTimeout = conf.getInt(ZK_METRIC_SESSION_TIMEOUT_CONF, 10000);
 				final CountDownLatch lock = new CountDownLatch(1);

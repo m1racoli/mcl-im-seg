@@ -26,6 +26,7 @@ public class MCLConfigHelper {
 	private static final String SELECTOR_CLS_CONF = "mcl.selector.class";
 	private static final String PRINT_MATRIX_CONF =	"mcl.print.matrix";
 	private static final String DEBUG_CONF =		"mcl.debug";
+	private static final String ZK_HOSTS_CONF =		"mcl.zk.hosts";
 	
 	public static final void setKMax(Configuration conf, int kmax) {
 		conf.setInt(KMAX_CONF, kmax);
@@ -127,5 +128,13 @@ public class MCLConfigHelper {
 	
 	public static final <S extends Selector> S getSelectorInstance(Configuration conf) {
 		return ReflectionUtils.newInstance(MCLConfigHelper.<S>getSelectorClass(conf), conf);
+	}
+	
+	public static final void setZkHosts(Configuration conf, String ... hosts){
+		conf.setStrings(ZK_HOSTS_CONF, hosts);
+	}
+	
+	public static final String getZkHosts(Configuration conf){
+		return conf.get(ZK_HOSTS_CONF, "localhost:2181");
 	}
 }
