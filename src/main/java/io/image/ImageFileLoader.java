@@ -73,9 +73,14 @@ public class ImageFileLoader extends AbstractUtil {
 		FileSystem inFS = input.getFileSystem(getConf());
 		BufferedImage image = ImageIO.read(inFS.open(input));
 		
-		if(cielab) image = CIELab.from(image);
+		if(cielab){
+			logger.info("transform to cielab space");
+			image = CIELab.from(image);
+		}
 		
 		final Dimension dim = new Dimension(image.getWidth(), image.getHeight());
+		
+		logger.info("{} images with dim=[w={},h={}]",1,dim.getWidth(),dim.getHeight());
 		
 		FileSystem fs = hdfsOutput ? output.getFileSystem(getConf()) : FileSystem.getLocal(getConf());		
 		fs.delete(output, true);
