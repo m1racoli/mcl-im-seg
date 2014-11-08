@@ -4,6 +4,7 @@
 package io.image;
 
 import io.writables.Pixel;
+
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
@@ -27,12 +28,14 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Lz4Codec;
+import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+
 import util.AbstractUtil;
 import util.CIELab;
 
@@ -165,7 +168,7 @@ public class ImageFileLoader extends AbstractUtil {
 			this.dim = dim;
 		}
 
-		private static CompressionCodec codec = new Lz4Codec();
+		private static CompressionCodec codec = new DefaultCodec();
 		
 		private static SequenceFile.Writer createWriter(Configuration conf, Path file) throws IOException{
 			return SequenceFile.createWriter(conf,
