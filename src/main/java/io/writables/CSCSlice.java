@@ -399,8 +399,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	@Override
 	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
 		
-		final int[] selection = new int[kmax];
+		//TODO remove final int[] selection = new int[kmax];
 		int valPtr = 0;
+		final double inf = inflation;
 		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
@@ -425,7 +426,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				break;
 			}
 			
-			//TODO different pruning strategies
+			/* old pruning ------------------------
 			final int selected = prune(val, cs, ct, selection, context);
 			if(stats.kmax < selected) stats.kmax = selected;
 			
@@ -468,6 +469,45 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
 			
 			inflate(val, cs, ct);
+			-----------------------------------*/
+			
+			// new pruning ---------------------
+			float sum = 0.0f;
+			float max = 0.0f;
+			for(int i = ct - 1; i <= cs; i--){
+				float v = (float) Math.pow(val[i], inf);
+				val[i] = v;
+				sum += v;
+				if(max < v) max = v;
+			}
+			
+			final float tresh = computeTreshold(sum/(ct-cs), max);
+			int selected = cs;
+			sum = 0.0f;
+			
+			for(int i = cs; i < ct; i++){
+				float v = val[i];
+				if(v >= tresh){
+					val[selected++] = v;
+					sum += v;
+				} else {
+					if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
+				}
+			}
+			
+			ct = selected;
+			
+			double new_center = 0.0;
+
+			for(int i = ct - 1; i >= cs; i--){
+				float v = val[i]/sum;
+				val[i] = v;
+				if(max < v) max = v;
+				new_center += v*v;
+			}
+			
+			double chaos = ((double) max - new_center) * (ct-cs);
+			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
 		}
 		
 		colPtr[nsub] = valPtr;
