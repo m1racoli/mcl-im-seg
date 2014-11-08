@@ -3,7 +3,6 @@
  */
 package mapred;
 
-import java.io.File;
 import java.util.Arrays;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,13 +20,6 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
-
-		File countersFile = null;
-		
-		if(dumpCounters()){
-			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
-			MCLResult.prepareCounters(countersFile);
-		}
 		
 		int i = 0;
 		Path m_i_2 = new Path(output,"tmp_0");
@@ -85,9 +77,6 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
 		System.out.printf("total runtime: %d seconds\n",total_toc/1000L);
-		if(dumpCounters()) {
-			System.out.println("counters written to "+countersFile.getAbsolutePath());
-		}
 		
 		FileSystem fs = output.getFileSystem(getConf());
 		Path res = new Path(output,"result");
