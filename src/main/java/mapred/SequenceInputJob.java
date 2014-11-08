@@ -18,8 +18,8 @@ import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
 import io.writables.SpatialFeatureWritable;
-import io.writables.TOFPixel;
 import iterators.ReadOnlyIterator;
+import mapred.util.FileUtil;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
@@ -263,6 +263,13 @@ public class SequenceInputJob extends AbstractMCLJob {
 		
 		MatrixMeta meta = MatrixMeta.create(conf, n, kmax);
 		
+		Class<?>[] seqClasses = FileUtil.checkKeyValueClasses(conf, input.getFileSystem(conf), input);
+		
+		if(seqClasses == null){
+			logger.error("error getting key/value class from {}",input);
+			return null;
+		}
+		
 		Job job = Job.getInstance(conf, "SequenceInputJob");
 		job.setJarByClass(SequenceInputJob.class);
 		
@@ -271,7 +278,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 
 		job.setMapperClass(SequenceInputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
-		job.setMapOutputValueClass(TOFPixel.class); //TODO dynamic
+		job.setMapOutputValueClass(seqClasses[1]);
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setReducerClass(InputReducer.class);
