@@ -159,7 +159,7 @@ public class ImageFileLoader extends AbstractUtil {
 		FSDataOutputStream meta = fs.create(new Path(output,"_meta"),true);
 		meta.writeInt(dim.width);
 		meta.writeInt(dim.height);
-		meta.writeInt(1);
+		meta.writeInt(images.size());
 		meta.close();
 		fs.close();	
 		logger.info("{} files with {} bytes total written",te,bytes);

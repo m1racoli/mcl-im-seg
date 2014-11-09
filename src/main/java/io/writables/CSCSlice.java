@@ -399,9 +399,10 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	@Override
 	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
 		
-		//TODO remove final int[] selection = new int[kmax];
+		final int[] selection = new int[kmax];
 		int valPtr = 0;
 		final double inf = inflation;
+		final int S = select;
 		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
@@ -474,39 +475,60 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			// new pruning ---------------------
 			float sum = 0.0f;
 			float max = 0.0f;
-			for(int i = ct - 1; i <= cs; i--){
+			for(int i = ct - 1; i >= cs; --i){
 				float v = (float) Math.pow(val[i], inf);
 				val[i] = v;
 				sum += v;
 				if(max < v) max = v;
 			}
 			
-			final float tresh = computeTreshold(sum/(ct-cs), max);
-			int selected = cs;
-			sum = 0.0f;
+			final float tresh = computeTreshold(sum/(ct-cs), max);			
+			int selected = 0;			
 			
-			for(int i = cs; i < ct; i++){
-				float v = val[i];
-				if(v >= tresh){
-					val[selected++] = v;
-					sum += v;
+			for(int i = cs; i < ct; ++i){
+				if(val[i] >= tresh){
+					selection[selected++] = i;
 				} else {
 					if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
 				}
 			}
 			
-			ct = selected;
+			if(selected == 0){
+				logger.error("BAD! all values pruned away. nothing left");
+				throw new RuntimeException("pruned empty column");
+			}
+			
+			if(selected > S){
+				select(val, selection, selected, S);
+				if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
+				selected = S;
+			}
+			
+			sum = 0.0f;
+			int new_pos = valPtr;
+			
+			for(int idx = 0; idx < selected; idx++){
+				float v = val[selection[idx]];
+				val[new_pos++] = v;
+				sum += v;
+			}
 			
 			double new_center = 0.0;
-
-			for(int i = ct - 1; i >= cs; i--){
+			
+			for(int i = new_pos - 1; i >= valPtr; --i){
 				float v = val[i]/sum;
 				val[i] = v;
 				if(max < v) max = v;
 				new_center += v*v;
+				if(context != null && v > 0.5f){
+					context.getCounter(Counters.ATTRACTORS).increment(1);
+				}
 			}
 			
-			double chaos = ((double) max - new_center) * (ct-cs);
+			int k = new_pos - valPtr;
+			valPtr = new_pos;
+			if(stats.kmax < k) stats.kmax = k;
+			double chaos = ((double) max - new_center) * k;
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
 		}
 		

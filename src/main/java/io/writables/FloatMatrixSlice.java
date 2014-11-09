@@ -70,7 +70,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		return selected;
 	}
 	
-	private final void select(float[] val, int[] selection, int n, int s) {
+	protected final void select(float[] val, int[] selection, int n, int s) {
 		
 		if(queue == null) {
 			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select);
@@ -112,8 +112,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 	}
 	
 	protected final float computeTreshold(float avg, float max) {
-		float tresh = pruneA*avg*(1.0f-(pruneB*(max-avg)));
-		tresh = tresh < cutoff ? cutoff : tresh;
+		float tresh = pruneA*avg*(1.0f-pruneB*(max-avg));
+		tresh = tresh < 1.0e-7f ? 1.0e-7f : tresh;
 		return tresh < max ? tresh : max;
 	}
 	
