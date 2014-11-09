@@ -203,6 +203,7 @@ public class ImageFileLoader extends AbstractUtil {
 				SequenceFile.Writer writer = createWriter(conf, file);
 				IntWritable frame = new IntWritable(0);
 				Pixel pixel = new Pixel();
+				int cnt = 0;
 				
 				for(int i = s; i < t; i++){
 					
@@ -217,10 +218,11 @@ public class ImageFileLoader extends AbstractUtil {
 						pixel.setX(x);
 						raster.getPixel(x, y, pixel.getF());						
 						writer.append(frame, pixel);
+						cnt++;
 					}		
 				}
 				
-				logger.info("{} items written");
+				logger.info("{} items written",cnt);
 				long bytes = writer.getLength();
 				writer.close();
 				return bytes;
