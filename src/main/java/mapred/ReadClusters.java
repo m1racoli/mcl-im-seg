@@ -4,19 +4,24 @@
 package mapred;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
+import math.ConnectedComponents;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -42,10 +47,10 @@ public class ReadClusters extends AbstractMCLJob {
 		System.exit(ToolRunner.run(new ReadClusters(), args));
 	}
 
-	private static final class ClusterMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId,M,LongWritable,LongWritable>{
+	private static final class ClusterMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId,M,IntWritable,IntWritable>{
 		
-		private final LongWritable attractor = new LongWritable();
-		private final LongWritable child = new LongWritable();		
+		private final IntWritable attractor = new IntWritable();
+		private final IntWritable child = new IntWritable();		
 		private int nsub;
 		private long[] attIdx;
 		private float[] attVal;
@@ -58,8 +63,7 @@ public class ReadClusters extends AbstractMCLJob {
 		}
 		
 		@Override
-		protected void map(SliceId key, M value,
-				Mapper<SliceId, M, LongWritable, LongWritable>.Context context)
+		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 			
 			Arrays.fill(attIdx, -1);
@@ -86,53 +90,112 @@ public class ReadClusters extends AbstractMCLJob {
 				} else {
 					context.getCounter(Counters.STRONG_ATTRACTORS).increment(1);
 				}
-				child.set(shift + (long) col);
-				attractor.set(att);
+				child.set((int) (shift + col));
+				attractor.set((int) att);
+				//TODO long
 				context.write(attractor, child);
 			}
 		}
 		
 	}
 	
-	private static final class ClusterReducer extends Reducer<LongWritable, LongWritable, Object, Object> {
+	private static final class ClusterReducer extends Reducer<IntWritable, IntWritable, Object, Object> {
 		
-		private final Set<Long> attractors = new HashSet<Long>();
-		private final Set<Long> children = new HashSet<Long>();
+		//TODO long
+		private final Set<Integer> attractors = new HashSet<Integer>();
+		private Map<Integer,List<Integer>> att_child_map = new LinkedHashMap<>();
 		
 		@Override
-		protected void reduce(
-				LongWritable key, Iterable<LongWritable> values, Context context)
+		protected void reduce(IntWritable key, Iterable<IntWritable> values, Context context)
 				throws IOException, InterruptedException {
 			
-			final Long attractor = key.get();
-			attractors.add(attractor);
-			StringBuilder builder = new StringBuilder();
-			builder.append(attractor);			
-			boolean has_children = false;
+			Integer att = key.get();
+			attractors.add(att);
+		
+			List<Integer> children = new ArrayList<>();
 			
-			for (LongWritable node : values) {
-				if(key.equals(node) || children.contains(node.get()))
-					continue;
+			for (IntWritable node : values) {
 				
-				has_children = true;
-				children.add(node.get());
-				builder.append('\t').append(node);
+				Integer child = node.get();
+				
+				if(att.equals(child)){
+					continue;
+				}
+				
+				children.add(child);
 			}
 			
-			if(!has_children) context.getCounter(Counters.SINGLE_NODE_CLUSTERS).increment(1);
-			context.getCounter(Counters.CLUSTERS).increment(1);
-			context.write(builder, null);
+			att_child_map.put(att, children);
 		}
 		
 		@Override
-		protected void cleanup(
-				Reducer<LongWritable, LongWritable, Object, Object>.Context context)
+		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
-			children.retainAll(attractors);
-			if(children.size() > 0){
-				context.getCounter(Counters.ATTRACTORS_AS_CHILDREN).increment(children.size());
-				logger.warn("attractors as children: {}",children.size());
+			
+			Map<Integer,Integer> attMap = attractorMapping(attractors, att_child_map);
+			
+			attractors.clear();
+			
+			Map<Integer,List<Integer>> new_att_child_map = new LinkedHashMap<>();
+			
+			for(Entry<Integer,List<Integer>> e : att_child_map.entrySet()){
+				
+				Integer att = attMap.containsKey(e.getKey()) ? attMap.get(e.getKey()) : e.getKey();
+				
+				List<Integer> list = new_att_child_map.get(att);
+				if(list == null){
+					new_att_child_map.put(att, e.getValue());
+				} else {
+					list.addAll(e.getValue());
+				}
+			}
+			
+			att_child_map.clear();
+			
+			context.getCounter(Counters.CLUSTERS).increment(new_att_child_map.size());
+			
+			for(Entry<Integer,List<Integer>> e : new_att_child_map.entrySet()){
+				StringBuilder builder = new StringBuilder(e.getKey().toString());
+				
+				for(Integer i : e.getValue()){
+					builder.append('\t').append(i);
+				}
+				
+				context.write(builder, null);
 			}			
+		}
+		
+		private Map<Integer,Integer> attractorMapping(Set<Integer> att, Map<Integer,List<Integer>> att_child_map){
+
+			Map<Integer,Integer> att_att_map = new LinkedHashMap<>(); //attractors mapping to their attractor
+			
+			for(Entry<Integer, List<Integer>> e : att_child_map.entrySet()){
+				for(Integer node : e.getValue()){
+					if(att.contains(node)){
+						att_att_map.put(node,e.getKey());
+					}
+				}
+			}
+			
+			if(att_att_map.isEmpty()){
+				logger.info("no inter attractor relations");
+				//no attractors mapping to others
+				return att_att_map;
+			}
+			
+			ConnectedComponents cc = new ConnectedComponents(att_att_map);
+			
+			Map<Integer,List<Integer>> cc_map = cc.compute();
+			
+			att_att_map.clear();
+			
+			for(Entry<Integer, List<Integer>> e : cc_map.entrySet()){
+				for(Integer node : e.getValue()){
+					att_att_map.put(node, e.getKey());
+				}
+			}			
+			
+			return att_att_map;
 		}
 	}
 	
@@ -156,8 +219,8 @@ public class ReadClusters extends AbstractMCLJob {
 		SequenceFileInputFormat.setInputPaths(job, inputs.get(0));
 		
 		job.setMapperClass(ClusterMapper.class);
-		job.setMapOutputKeyClass(LongWritable.class);
-		job.setMapOutputValueClass(LongWritable.class);
+		job.setMapOutputKeyClass(IntWritable.class);
+		job.setMapOutputValueClass(IntWritable.class);
 		job.setReducerClass(ClusterReducer.class);
 		job.setNumReduceTasks(1);
 		
