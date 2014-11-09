@@ -220,6 +220,7 @@ public class ImageFileLoader extends AbstractUtil {
 					}		
 				}
 				
+				logger.info("{} items written");
 				long bytes = writer.getLength();
 				writer.close();
 				return bytes;
