@@ -60,8 +60,7 @@ public class TransposeJob extends AbstractMCLJob {
 		MatrixMeta meta = MatrixMeta.load(conf, input);
 		meta.apply(getConf());
 
-		Job job = Job.getInstance(conf, "TransposeJob " + input.getName() + " "
-				+ output.getName());
+		Job job = Job.getInstance(conf, "TransposeJob");
 		job.setJarByClass(TransposeJob.class);
 
 		job.setInputFormatClass(SequenceFileInputFormat.class);
