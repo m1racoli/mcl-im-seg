@@ -23,13 +23,14 @@ import javax.imageio.ImageIO;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,25 +72,41 @@ public class ImageFileLoader extends AbstractUtil {
 	protected int run(Path input, Path output, boolean hdfsOutput)
 			throws Exception {
 
-		//TODO support multiple images
-		
+		List<WritableRaster> images = new ArrayList<>();
 		FileSystem inFS = input.getFileSystem(getConf());
-		BufferedImage image = ImageIO.read(inFS.open(input));
 		
-		if(cielab){
-			logger.info("transform to cielab space");
-			image = CIELab.from(image);
+		RemoteIterator<LocatedFileStatus> it = inFS.listFiles(input, true);
+		Dimension dim = null;
+		while(it.hasNext()){
+			LocatedFileStatus status = it.next();
+			BufferedImage image = ImageIO.read(inFS.open(status.getPath()));
+			
+			if(dim == null){
+				dim = new Dimension(image.getWidth(), image.getHeight());
+			} else {
+				if(dim.height != image.getHeight() || dim.width != image.getWidth()){
+					logger.error("dimension missmatch: {}",status.getPath());
+					return 1;
+				}
+			}
+			
+			if(cielab){
+				logger.info("transform to cielab space");
+				image = CIELab.from(image);
+			}
+			
+			images.add(image.getRaster());
 		}
 		
-		final Dimension dim = new Dimension(image.getWidth(), image.getHeight());
-		
-		logger.info("{} images with dim=[w={},h={}]",1,dim.getWidth(),dim.getHeight());
+		logger.info("{} images with dim=[w={},h={}] loaded",images.size(),dim.getWidth(),dim.getHeight());
 		
 		FileSystem fs = hdfsOutput ? output.getFileSystem(getConf()) : FileSystem.getLocal(getConf());		
 		fs.delete(output, true);
 		
-		int rows_per_thread = dim.height/te;
-		int rest = dim.height % te;
+		int total_rows = images.size() * dim.height;
+		
+		int rows_per_thread = total_rows/te;
+		int rest = total_rows % te;
 		
 		int[] off = new int[te+1];
 		off[0] = 0;
@@ -99,8 +116,8 @@ public class ImageFileLoader extends AbstractUtil {
 			off[i] = st;
 		}
 		
-		if(off[te] != dim.getHeight()){
-			logger.error("num rows {} != end of offset {}",dim.getHeight(),off[te]);
+		if(off[te] != total_rows){
+			logger.error("num total rows {} != end of offset {}",total_rows,off[te]);
 			fs.close();
 			return 1;
 		}
@@ -111,7 +128,7 @@ public class ImageFileLoader extends AbstractUtil {
 		for(int i = 0; i < te; i++){
 			String fileName = String.format("part-%05d", i);
 			Path file = fs.makeQualified(new Path(output,fileName));
-			FeatureWriter writer = new FeatureWriter(getConf(), file, image, off[i], off[i+1], dim);
+			FeatureWriter writer = new FeatureWriter(getConf(), file, images, off[i], off[i+1], dim);
 			futures.add(executorService.submit(writer));
 		}		
 			
@@ -155,14 +172,14 @@ public class ImageFileLoader extends AbstractUtil {
 		private final Dimension dim;		
 		private final Configuration conf;
 		private final Path file;
-		private final BufferedImage image;
+		private final List<WritableRaster> rasters;
 		private final int s;
 		private final int t;
 		
-		public FeatureWriter(Configuration conf, Path file, BufferedImage image, int s, int t, Dimension dim) {
+		public FeatureWriter(Configuration conf, Path file, List<WritableRaster> rasters, int s, int t, Dimension dim) {
 			this.conf = conf;
 			this.file = file;
-			this.image = image;
+			this.rasters = rasters;
 			this.s = s;
 			this.t = t;
 			this.dim = dim;
@@ -183,14 +200,18 @@ public class ImageFileLoader extends AbstractUtil {
 		public Long call() {
 			
 			try {
-				WritableRaster raster = image.getRaster();
 				SequenceFile.Writer writer = createWriter(conf, file);
 				IntWritable frame = new IntWritable(0);
 				Pixel pixel = new Pixel();
 				
-				for(int y = s; y < t; y++){
+				for(int i = s; i < t; i++){
+					
+					int f = i / dim.height;
+					int y = i % dim.height;
 					
 					pixel.setY(y);
+					
+					WritableRaster raster = rasters.get(f);
 					
 					for(int x = dim.width - 1; x >= 0; x--){						
 						pixel.setX(x);
