@@ -143,7 +143,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		outFS.mkdirs(output);
 		
-		if(dumpCounters()){
+		if(dump_counters){
 			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
 			MCLResult.prepareCounters(countersFile);
 		}
@@ -154,7 +154,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		if(rc != 0) return rc;
 		
-		if(dumpCounters()) {
+		if(dump_counters) {
 			System.out.println("counters written to "+countersFile.getAbsolutePath());
 		}
 		
@@ -203,12 +203,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		logger.info("{}",result);
 		
-		if(dumpCounters()){
+		if(dump_counters){
 			result.dumpCounters(++transposeIter, "transpose", countersFile);
-		}
-		
-		if(dumpCounters()){
-			result.dumpCounters(++stepIter, "step", countersFile);
 		}
 		
 		return result;
@@ -225,6 +221,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 		
 		logger.info("{}",result);
+		
+		if(dump_counters){
+			result.dumpCounters(++stepIter, "step", countersFile);
+		}
 		return result;
 	}
 	
@@ -242,10 +242,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final double getChangeLimit() {
 		return change_limit;
-	}
-	
-	public final boolean dumpCounters(){
-		return dump_counters;
 	}
 	
 	public final boolean abc(){
