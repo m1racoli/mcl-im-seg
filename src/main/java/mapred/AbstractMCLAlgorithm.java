@@ -3,7 +3,6 @@
  */
 package mapred;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -11,8 +10,6 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSOutputSummer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,7 +55,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "-dump-counters")
 	private Path counters = null;
-	private FSDataOutputStream countersOut = null;
 	
 	@Parameter(names = "--abc")
 	private boolean abc = false;
@@ -79,8 +75,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private Path transposePath = null;
 	
 	private TransposeJob transposeJob = new TransposeJob();
-	private int transposeIter = 0;
-	private int stepIter = 0;
 	private MCLStep stepJob = new MCLStep();
 	
 	/* (non-Javadoc)
@@ -139,6 +133,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			EmbeddedZkServer.init(getConf());
 		}
 		
+		if(counters != null){
+			logger.warn("counters not supported yet");
+		}
+		
 		FileSystem outFS = output.getFileSystem(getConf());
 		if (outFS.exists(output)) {
 			outFS.delete(output, true);
@@ -146,22 +144,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		outFS.mkdirs(output);
 		
-		if(counters != null){
-			FileSystem fs = counters.getFileSystem(getConf());
-			countersOut = fs.create(counters, true);
-			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
-			MCLResult.prepareCounters(countersFile);
-		}
-		
 		transposePath = new Path(output,"t");
 		
 		int rc = run(input, output);
 		
 		if(rc != 0) return rc;
-		
-		if(dump_counters) {
-			System.out.println("counters written to "+countersFile.getAbsolutePath());
-		}
 		
 		return rc;
 	}
@@ -208,10 +195,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		logger.info("{}",result);
 		
-		if(dump_counters){
-			result.dumpCounters(++transposeIter, "transpose", countersFile);
-		}
-		
 		return result;
 	}
 	
@@ -227,9 +210,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		logger.info("{}",result);
 		
-		if(dump_counters){
-			result.dumpCounters(++stepIter, "step", countersFile);
-		}
 		return result;
 	}
 	
