@@ -94,14 +94,6 @@ public class ImageTool extends Configured implements Tool {
 		
 		logger.info("input: {}",inFile);
 		
-		File outFile = new File(output);
-		
-		if(outFile.isDirectory()){
-			outFile = new File(outFile, "matrix.abc");
-		}
-		
-		logger.info("output: {}",outFile);
-		
 		BufferedImage image = ImageIO.read(inFile);
 		if(cielab) image = CIELab.from(image);
 		final int w = image.getWidth();
@@ -134,6 +126,12 @@ public class ImageTool extends Configured implements Tool {
 			
 			return 0;
 		}
+		
+		File outFile = new File(output);
+		if(outFile.isDirectory()){
+			outFile = new File(outFile, "matrix.abc");
+		}		
+		logger.info("output: {}",outFile);
 		
 		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
 		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
