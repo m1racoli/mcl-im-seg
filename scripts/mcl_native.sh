@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -o xtrace
 
 if [ $# = 0 ]; then
 	echo "need one argument for, ie. 'sample1'"
@@ -16,17 +17,25 @@ sigmaX="4.0"
 sigmaF="0.01"
 radius="5"
 te="4"
-inf="2.0"
 S="100"
 
 mkdir -p "$basedir/$sample"
 aws s3 sync "$bucket/$sample" "$basedir/$sample"
 
 #create abc from image
+mkdir -p "$basedir/$sample/abc"
 mr-mcl util.ImageTool -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -cielab -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" 
 #make abc
+mkdir -p "$basedir/$sample/clustering"
+rm -f "$basedir/$sample/clustering/*"
 
-mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -odir "$basedir/$sample/clustering" -o "clustering"
+for inf in "1.2" "1.4" "1.6" "1.8" "2.0"
+do
+	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -o "$basedir/$sample/clustering/file.$inf"
+done
+
+aws s3 sync "$basedir/$sample" "$bucket/$sample"
+
 #mvn package -DskipTests=true
 #mr-mcl io.mat.MatFileLoader -i /mnt/hgfs/aufnahmen/16112012_1.mat -o data -te 2 -hdfs -s 50 -t 55
 #mr-mcl mapred.SequenceInputJob -Dsigma.I=0.01 -Dsigma.X=2.0 -i data -o matrix -te 2 -r 4 -nsub 64 -cm -co -zk -fo 0
