@@ -83,7 +83,7 @@ public class ImageTool extends Configured implements Tool {
 				logger.warn("take only the first of {} files",list.length);
 			}
 			
-			inFile = new File(list[0]);
+			inFile = new File(inFile,list[0]);
 		}
 		
 		logger.info("input: {}",inFile);
