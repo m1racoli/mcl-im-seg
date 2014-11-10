@@ -50,11 +50,11 @@ public class ImageTool extends Configured implements Tool {
 	@Parameter(names = "-r")
 	private double radius = 3.0;
 	
-	@Parameter(names = "-a")
-	private double a = 1.0;
+	@Parameter(names = "-sX")
+	private double sigmaX = 1.0;
 	
-	@Parameter(names = "-b")
-	private double b = 1.0;
+	@Parameter(names = "-sF")
+	private double sigmaF = 1.0;
 	
 	@Parameter(names = "-cielab")
 	private boolean cielab = false;
@@ -71,15 +71,40 @@ public class ImageTool extends Configured implements Tool {
 		}
 		
 		logger.info("load image {}",input);
-		BufferedImage image = ImageIO.read(new File(input));
+		File inFile = new File(input);
+		if(inFile.isDirectory()){
+			String[] list = inFile.list();
+			if(list == null || list.length == 0){
+				logger.error("no files found in {}",input);
+				return 1;
+			}
+			
+			if(list.length > 1){
+				logger.warn("take only the first of {} files",list.length);
+			}
+			
+			inFile = new File(list[0]);
+		}
+		
+		logger.info("input: {}",inFile);
+		
+		File outFile = new File(output);
+		
+		if(outFile.isDirectory()){
+			outFile = new File(outFile, "matrix.abc");
+		}
+		
+		logger.info("output: {}",outFile);
+		
+		BufferedImage image = ImageIO.read(inFile);
 		if(cielab) image = CIELab.from(image);
 		final int w = image.getWidth();
 		final int h = image.getHeight();
 		logger.info("width: {}, height: {}",w,h);
 //		final Raster raster = image.getRaster();
 		
-		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), a, b, te);
-		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), a, b);
+		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
+		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
 //		final Configuration conf = getConf();
 //		final FileSystem fs = FileSystem.get(conf);
 //		final Path output = new Path(this.output);
@@ -119,7 +144,7 @@ public class ImageTool extends Configured implements Tool {
 	private static final double b1 = 0.5;
 	private static final double a1 = Math.sqrt(-(r*r)/Math.log(b1));
 	
-	public static void writeABC(File file, BufferedImage image, RadialPixelNeighborhood nb, double a, double b) throws IOException {
+	public static void writeABC(File file, BufferedImage image, RadialPixelNeighborhood nb, double sigmaX, double sigmaF) throws IOException {
 		
 		final Raster raster = image.getData();
 		final Dimension dim = new Dimension(image.getWidth(), image.getHeight());
@@ -135,7 +160,7 @@ public class ImageTool extends Configured implements Tool {
 		for(Point offset : nb){
 			
 			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
-			final double mds = -offset.distanceSq(0.0, 0.0)/a;
+			final double mds = -offset.distanceSq(0.0, 0.0)/sigmaX;
 			
 			for(int y1 = area.y; y1 < area.y + area.height; y1++){
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
@@ -144,7 +169,7 @@ public class ImageTool extends Configured implements Tool {
 					final long i = x1 + dim.width*y1;
 					final long j = x2 + dim.width*y2;
 					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
-					final double w = Math.exp(mds-(d_squared/b));
+					final double w = Math.exp(mds-(d_squared/sigmaF));
 					writer.write(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
 					edges++;
 				}
