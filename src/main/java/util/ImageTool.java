@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -47,6 +45,9 @@ public class ImageTool extends Configured implements Tool {
 	@Parameter(names = "-o")
 	private String output = null;
 	
+	@Parameter(names = "-a")
+	private boolean analyze = false;
+	
 	@Parameter(names = "-r")
 	private double radius = 3.0;
 	
@@ -65,8 +66,13 @@ public class ImageTool extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 
-		if(input == null || output == null){
-			logger.error("specify input and output! {} {}",input, output);
+		if(input == null){
+			logger.error("specify input! {}",input);
+			return 1;
+		}
+		
+		if(!analyze && output == null){
+			logger.error("specify output! {}",output);
 			return 1;
 		}
 		
@@ -102,6 +108,32 @@ public class ImageTool extends Configured implements Tool {
 		final int h = image.getHeight();
 		logger.info("width: {}, height: {}",w,h);
 //		final Raster raster = image.getRaster();
+		
+		if(analyze){
+			logger.info("analyze");
+			WritableRaster raster = image.getRaster();
+			double[] min = new double[3];
+			double[] max = new double[3];
+			double[] val = new double[3];
+			Arrays.fill(min, Double.MAX_VALUE);
+			
+			for(int y = 0; y < raster.getHeight(); y++){
+				for(int x = 0; x < raster.getWidth(); x++){
+					val = raster.getPixel(x, y, val);
+					
+					for(int i = 0; i<3; i++){
+						min[i] = Math.min(min[i], val[i]);
+						max[i] = Math.max(max[i], val[i]);
+					}
+					
+				}
+			}
+			
+			logger.info("max: {} {} {}",max[0],max[1],max[2]);
+			logger.info("min: {} {} {}",min[0],min[1],min[2]);
+			
+			return 0;
+		}
 		
 		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
 		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
@@ -152,8 +184,8 @@ public class ImageTool extends Configured implements Tool {
 		
 		if(file.exists())file.delete();
 		FileWriter writer = new FileWriter(file);
-		float[] p1 = new float[4];
-		float[] p2 = new float[4];
+		double[] p1 = new double[3];
+		double[] p2 = new double[3];
 		
 		int edges = 0;
 		
@@ -242,8 +274,8 @@ public class ImageTool extends Configured implements Tool {
 		public Iterable<String> call() throws Exception {
 			
 			final List<String> results = new ArrayList<String>(dim.height*dim.width);
-			final float[] p1 = new float[4];
-			final float[] p2 = new float[4];
+			final double[] p1 = new double[3];
+			final double[] p2 = new double[3];
 			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
 			final double mds = -offset.distanceSq(0.0, 0.0)/a;
 			
@@ -271,8 +303,8 @@ public class ImageTool extends Configured implements Tool {
 		
 		
 		FileWriter writer = new FileWriter(file);
-		float[] p1 = new float[4];
-		float[] p2 = new float[4];
+		double[] p1 = new double[3];
+		double[] p2 = new double[3];
 		
 		int edges = 0;
 		
@@ -301,7 +333,7 @@ public class ImageTool extends Configured implements Tool {
 		
 	}
 	
-	private static final double metric_squared(float[] v1, float[] v2){
+	private static final double metric_squared(double[] v1, double[] v2){
 		double sum = 0.0;
 		for(int i = 0; i < v1.length; i++){
 			double v = (v1[i]-v2[i]);
