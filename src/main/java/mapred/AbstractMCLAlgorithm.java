@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSOutputSummer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -57,8 +55,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private double change_limit = MCLDefaults.changeLimit;
 	
 	@Parameter(names = "-dump-counters")
-	private Path counters = null;
-	private FSDataOutputStream countersOut = null;
+	private boolean dump_counters = false;
 	
 	@Parameter(names = "--abc")
 	private boolean abc = false;
@@ -77,7 +74,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	private Path transposePath = null;
-	
+	private File countersFile = null;
 	private TransposeJob transposeJob = new TransposeJob();
 	private int transposeIter = 0;
 	private int stepIter = 0;
@@ -146,9 +143,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		outFS.mkdirs(output);
 		
-		if(counters != null){
-			FileSystem fs = counters.getFileSystem(getConf());
-			countersOut = fs.create(counters, true);
+		if(dump_counters){
 			countersFile = new File(System.getProperty("user.home")+"/counters.csv");
 			MCLResult.prepareCounters(countersFile);
 		}
