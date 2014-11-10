@@ -23,7 +23,7 @@ mkdir -p "$basedir/$sample"
 aws s3 sync "$bucket/$sample" "$basedir/$sample"
 
 #create abc from image
-mr-mcl util.ImageTool -sF "$sigmaF" -sX "$sigmaX" -r "$radius" i -cielab -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" 
+mr-mcl util.ImageTool -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -cielab -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" 
 #make abc
 
 mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -odir "$basedir/$sample/clustering" -o "clustering"
