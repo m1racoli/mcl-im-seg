@@ -14,13 +14,14 @@ nbucket="s3n://mcl-tests/samples"
 bucket="s3://mcl-tests/samples"
 basedir="/tmp/samples"
 sigmaX="4.0"
-sigmaF="0.01"
+sigmaF="1"
 radius="5"
 te="4"
 S="100"
+R="100"
 
-mkdir -p "$basedir/$sample"
-aws s3 sync "$bucket/$sample" "$basedir/$sample"
+mkdir -p "$basedir/$sample/src"
+aws s3 sync "$bucket/$sample/src" "$basedir/$sample/src"
 
 #create abc from image
 mkdir -p "$basedir/$sample/abc"
@@ -31,7 +32,7 @@ rm -f "$basedir/$sample/clustering/*"
 
 for inf in "1.2" "1.4" "1.6" "1.8" "2.0"
 do
-	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -o "$basedir/$sample/clustering/file.$inf"
+	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -R "$R" -o "$basedir/$sample/clustering/file.$inf"
 done
 
 aws s3 sync "$basedir/$sample" "$bucket/$sample"
