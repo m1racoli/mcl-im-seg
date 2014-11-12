@@ -7,11 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configured;
@@ -53,6 +50,9 @@ public class MatTool extends Configured implements Tool {
 	
 	@Parameter(names = "-te", description="ignored")
 	private int te = 1;
+	
+	@Parameter(names ="-cielab", description="ignored")
+	private boolean cielab= false;
 	
 	@Parameter(names ="--debug")
 	private boolean debug = false;
@@ -153,54 +153,27 @@ public class MatTool extends Configured implements Tool {
 		
 		for(Point offset : nb){
 			
-			OffsetProcessor offsetProcessor = new OffsetProcessor(offset, frame, dim, a, b);
-			for(String str : offsetProcessor.call()){
-				writer.write(str);
-				edges++;
+			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
+			
+			for(int x1 = area.x; x1 < area.x + area.width; x1++){
+				
+				for(int y1 = area.y; y1 < area.y + area.height; y1++){
+				
+					final int x2 = x1+offset.x;
+					final int y2 = y1+offset.y;
+					final int i1 = y1 + dim.height*x1;
+					final int i2 = y2 + dim.height*x2;
+					
+					final double w = frame.dist(i1, i2, a, b);
+					writer.write(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i1,i2,w));
+					edges++;					
+				}
 			}
 		}
 		
 		writer.close();
 		
 		System.out.printf("%d edges written to %s\n",edges,file);
-		
-	}
-
-	public static class OffsetProcessor implements Callable<Iterable<String>> {
-
-		private final Point offset;
-		private final Frame frame;
-		private final Dimension dim;
-		private final double sigmaX;
-		private final double sigmaF;
-		
-		public OffsetProcessor(Point offset, Frame frame, Dimension dim, double sigmaX, double sigmaF) {
-			this.offset = new Point(offset);
-			this.frame = frame;
-			this.dim = dim;
-			this.sigmaX = sigmaX;
-			this.sigmaF = sigmaF;
-		}
-		
-		@Override
-		public Iterable<String> call() throws Exception {
-			
-			final List<String> results = new ArrayList<String>(dim.height*dim.width);
-			final Rectangle area = RadialPixelNeighborhood.getValidRect(offset, dim);
-			
-			for(int y1 = area.y; y1 < area.y + area.height; y1++){
-				for(int x1 = area.x; x1 < area.x + area.width; x1++){
-					final int x2 = x1+offset.x;
-					final int y2 = y1+offset.y;
-					final int i1 = y1 + dim.height*x1;
-					final int i2 = y2 + dim.height*x2;
-					
-					final double w = frame.dist(i1, i2, sigmaX, sigmaF);
-					results.add(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i1,i2,w));
-				}
-			}
-			return results;
-		}
 		
 	}
 	
