@@ -253,8 +253,8 @@ public class MatTool extends Configured implements Tool {
 		}
 		
 		double dist(int i1, int i2, double sX, double sF){
-			double dX = distSq(X.get(i1),X.get(i2),Y.get(i1),Y.get(i2),Z.get(i1),Z.get(i2))/sX;
-			double dI = distSq(I.get(i1),I.get(i2))/(I_scale_squared*sF);
+			double dX = distSq(X.getReal(i1),X.getReal(i2),Y.getReal(i1),Y.getReal(i2),Z.getReal(i1),Z.getReal(i2))/sX;
+			double dI = distSq(I.getReal(i1),I.getReal(i2))/(I_scale_squared*sF);
 			return Math.exp(-dX-dI);
 		}
 		
