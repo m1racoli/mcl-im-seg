@@ -8,15 +8,10 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configured;
@@ -56,7 +51,7 @@ public class MatTool extends Configured implements Tool {
 	@Parameter(names = "-sF")
 	private double sigmaF = 1.0;
 	
-	@Parameter(names = "-te")
+	@Parameter(names = "-te", description="ignored")
 	private int te = 1;
 	
 	@Parameter(names ="--debug")
@@ -134,7 +129,7 @@ public class MatTool extends Configured implements Tool {
 		}		
 		logger.info("output: {}",outFile);
 		
-		writeABC(new File(output), frame, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
+		writeABC(new File(output), frame, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
 		
 		return 0;
 	}
@@ -146,10 +141,7 @@ public class MatTool extends Configured implements Tool {
 		System.exit(ToolRunner.run(tool, args));
 	}
 
-	public static void writeABC(File file, Frame frame, RadialPixelNeighborhood nb, double a, double b, int te) throws Exception {
-		
-		ExecutorService executor = Executors.newFixedThreadPool(te);
-		List<Future<Iterable<String>>> futures = new ArrayList<Future<Iterable<String>>>(nb.size());
+	public static void writeABC(File file, Frame frame, RadialPixelNeighborhood nb, double a, double b) throws Exception {
 		
 		final Dimension dim = new Dimension(frame.w, frame.h);
 		System.out.printf("width: %d, height: %d, total: %d, nb: %d\n",dim.width,dim.height, dim.width * dim.height, nb.size());	
@@ -162,21 +154,10 @@ public class MatTool extends Configured implements Tool {
 		for(Point offset : nb){
 			
 			OffsetProcessor offsetProcessor = new OffsetProcessor(offset, frame, dim, a, b);
-			futures.add(executor.submit(offsetProcessor));
-		}
-		
-		executor.shutdown();
-		
-		Iterator<Future<Iterable<String>>> iter = futures.iterator();
-		
-		
-		
-		while(iter.hasNext()){
-			for(String str : iter.next().get()){
+			for(String str : offsetProcessor.call()){
 				writer.write(str);
 				edges++;
 			}
-			iter.remove();
 		}
 		
 		writer.close();
@@ -211,11 +192,11 @@ public class MatTool extends Configured implements Tool {
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
 					final int x2 = x1+offset.x;
 					final int y2 = y1+offset.y;
-					final int i = y1 + dim.height*x1;
-					final int j = y2 + dim.height*x2;
+					final int i1 = y1 + dim.height*x1;
+					final int i2 = y2 + dim.height*x2;
 					
-					final double w = frame.dist(i, j, sigmaX, sigmaF);
-					results.add(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
+					final double w = frame.dist(i1, i2, sigmaX, sigmaF);
+					results.add(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i1,i2,w));
 				}
 			}
 			return results;
@@ -260,10 +241,15 @@ public class MatTool extends Configured implements Tool {
 		}
 		
 		double dist(int i1, int i2, double sX, double sF){
-			logger.debug("dist at i1: {}, i2: {}",i1,i2);
-			double dX = distSq(X.getReal(i1),X.getReal(i2),Y.getReal(i1),Y.getReal(i2),Z.getReal(i1),Z.getReal(i2))/sX;
-			double dI = distSq(I.getReal(i1),I.getReal(i2))/(I_scale_squared*sF);
-			return Math.exp(-dX-dI);
+			
+			try{
+				double dX = distSq(X.getReal(i1),X.getReal(i2),Y.getReal(i1),Y.getReal(i2),Z.getReal(i1),Z.getReal(i2))/sX;
+				double dI = distSq(I.getReal(i1),I.getReal(i2))/(I_scale_squared*sF);
+				return Math.exp(-dX-dI);
+			} catch (Exception e) {
+				logger.error("error at i1: {}, i2: {}");
+				throw e;
+			}
 		}
 		
 		private static double distSq(double ... v){
