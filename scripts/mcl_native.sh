@@ -1,38 +1,51 @@
 #!/usr/bin/env bash
 
-set -e
-set -o xtrace
-
-if [ $# = 0 ]; then
-	echo "need one argument for, ie. 'sample1'"
+if [ $# -ne 4 ]; then
+	echo "usage: script.sh <sample> <sigmaX> <sigmaF> <format>"
 	exit 1
 fi
+
+set -e
+set -o xtrace
 
 sample=$1
 shift
 nbucket="s3n://mcl-tests/samples"
 bucket="s3://mcl-tests/samples"
 basedir="/tmp/samples"
-sigmaX="4.0"
-sigmaF="1"
+sigmaX=$1
+shift
+sigmaF=$1
+shift
+format=$1
+shift
 radius="5"
 te="4"
 S="100"
 R="100"
+
+if [ $format = "jpg"]; then
+	class="util.ImageTool"
+elif [ $format = "mat"]; then
+	class="util.MatTool"
+else
+	echo "invalid format $format"
+	exit 1
+fi
 
 mkdir -p "$basedir/$sample/src"
 aws s3 sync "$bucket/$sample/src" "$basedir/$sample/src"
 
 #create abc from image
 mkdir -p "$basedir/$sample/abc"
-mr-mcl util.ImageTool -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -cielab -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" 
+mr-mcl $format -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -cielab -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" 
 #make abc
 mkdir -p "$basedir/$sample/clustering"
 rm -f "$basedir/$sample/clustering/*"
 
 for inf in "1.2" "1.4" "1.6" "1.8" "2.0"
 do
-	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -R "$R" -o "$basedir/$sample/clustering/file.$inf"
+	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -R "$R" -o "$basedir/$sample/clustering/mcl.$inf"
 done
 
 aws s3 sync "$basedir/$sample" "$bucket/$sample"
