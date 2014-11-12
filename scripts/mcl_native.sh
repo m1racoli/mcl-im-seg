@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 4 ]; then
+if [ $# -lt 4 ]; then
 	echo "usage: script.sh <sample> <sigmaX> <sigmaF> <format>"
 	exit 1
 fi
