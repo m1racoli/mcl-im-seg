@@ -22,6 +22,7 @@ import model.nb.RadialPixelNeighborhood;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,9 +59,15 @@ public class MatTool extends Configured implements Tool {
 	@Parameter(names = "-te")
 	private int te = 1;
 	
+	@Parameter(names ="--debug")
+	private boolean debug = false;
+	
 	@Override
 	public int run(String[] args) throws Exception {
 
+		if(debug){
+			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);		}
+		
 		if(input == null){
 			logger.error("specify input! {}",input);
 			return 1;
@@ -253,6 +260,7 @@ public class MatTool extends Configured implements Tool {
 		}
 		
 		double dist(int i1, int i2, double sX, double sF){
+			logger.debug("dist at i1: {}, i2: {}",i1,i2);
 			double dX = distSq(X.getReal(i1),X.getReal(i2),Y.getReal(i1),Y.getReal(i2),Z.getReal(i1),Z.getReal(i2))/sX;
 			double dI = distSq(I.getReal(i1),I.getReal(i2))/(I_scale_squared*sF);
 			return Math.exp(-dX-dI);
