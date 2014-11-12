@@ -26,10 +26,8 @@ R="100"
 
 if [ "$format" = "jpg" ]; then
 	class="util.ImageTool"
-	cielab="-cielab"
 elif [ "$format" = "mat" ]; then
 	class="util.MatTool"
-	cielab=""
 else
 	echo "invalid format $format"
 	exit 1
@@ -40,7 +38,7 @@ aws s3 sync "$bucket/$sample/src" "$basedir/$sample/src"
 
 #create abc from image
 mkdir -p "$basedir/$sample/abc"
-mr-mcl $class -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" $cielab "$@"
+mr-mcl $class -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" -cielab "$@"
 #make abc
 mkdir -p "$basedir/$sample/clustering"
 rm -f "$basedir/$sample/clustering/*"
