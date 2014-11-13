@@ -8,6 +8,7 @@ lines = textscan(fileID,'%s', 'delimiter','\n');
 fclose(fileID);
 lines = lines{1};
 l = length(lines);
+fprintf("%s: %d\n",filename,l);
 C = cell(l,1);
 for i = 1:l
     r = textscan(lines{i},'%d');

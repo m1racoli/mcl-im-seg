@@ -1,7 +1,7 @@
 function CL = cl_viz(I,M)
 
 [h w] = size(M);
-CL = zeros(h,w);
+CL = ones(size(I));
 
 for x = 1:w
 	for y = 1:h
@@ -17,7 +17,7 @@ for x = 1:w
 			continue
 		endif
 		
-		CL(y,x) = I(y,x);
+		CL(y,x,:) = I(y,x,:);
 	end	
 end
 	
