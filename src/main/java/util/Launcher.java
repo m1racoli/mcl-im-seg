@@ -41,6 +41,8 @@ public class Launcher {
 			System.exit(ToolRunner.run(new MCLJob(), args));
 		case "rmcl":
 			System.exit(ToolRunner.run(new RMCLJob(), args));
+		case "test":
+			TestRunner.main(args);
 		default:
 			break;
 		}
