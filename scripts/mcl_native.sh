@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 4 ]; then
-	echo "usage: script.sh <sample> <sigmaX> <sigmaF> <format>"
+if [ $# -ne 5 ]; then
+	echo "usage: script.sh <mode> <sample> <sigmaX> <sigmaF> <format>"
 	exit 1
 fi
 
 set -e
 set -o xtrace
 
+mode=$1
+shift
 sample=$1
 shift
-nbucket="s3n://mcl-tests/samples"
-bucket="s3://mcl-tests/samples"
-basedir="/tmp/samples"
+
+if [ "$mode" = "local" ]; then
+	basedir="/mnt/hgfs/mcl-im-seg/results"
+elif [ "$mode" = "s3" ]; then
+	nbucket="s3n://mcl-tests/samples"
+	bucket="s3://mcl-tests/samples"
+	basedir="/tmp/samples"
+else
+	echo "invalid mode $mode"
+	exit 1
+fi
+
 sigmaX=$1
 shift
 sigmaF=$1
@@ -36,13 +47,17 @@ else
 fi
 
 mkdir -p "$basedir/$sample/src"
-aws s3 sync "$bucket/$sample/src" "$basedir/$sample/src"
+mkdir -p "$basedir/$sample/abc"
+mkdir -p "$basedir/$sample/clustering"
+
+if [ "$mode" = "s3" ]; then
+	aws s3 sync "$bucket/$sample/src" "$basedir/$sample/src"
+fi
 
 #create abc from image
-mkdir -p "$basedir/$sample/abc"
 mr-mcl $class -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" $cielab
+
 #make abc
-mkdir -p "$basedir/$sample/clustering"
 rm -f "$basedir/$sample/clustering/*"
 
 for inf in "1.2" "1.4" "1.6" "1.8" "2.0"
@@ -50,7 +65,9 @@ do
 	mcl "$basedir/$sample/abc/matrix.abc" --abc -te "$te" -I "$inf" -S "$S" -R "$R" -o "$basedir/$sample/clustering/mcl.$inf"
 done
 
-aws s3 sync "$basedir/$sample" "$bucket/$sample"
+if [ "$mode" = "s3" ]; then
+	aws s3 sync "$basedir/$sample" "$bucket/$sample"
+fi
 
 #mvn package -DskipTests=true
 #mr-mcl io.mat.MatFileLoader -i /mnt/hgfs/aufnahmen/16112012_1.mat -o data -te 2 -hdfs -s 50 -t 55

@@ -12,10 +12,16 @@ ismat = regexp(imfile,'.*(.mat)$');
 if (ismat)
 	disp('mat file');
 	data = load(imfile);
-	I = data.I;
-	[range] = [min(min(I)) max(max(I))];
-	I = I .- range(1);
-	I = I ./ (range(2)-range(1));
+	
+	%I = data.I;
+	%I = I ./ 4000;%(range(2)-range(1));
+	
+	I = -data.Z;
+	%[range] = [min(min(I)) max(max(I))];
+	% I = I .- range(1);
+	% I = I ./ (range(2)-range(1));
+	I = I ./ 2.3;%(range(2)-range(1));
+	I = I .+ 1;
 else
 	disp('image file');
 	I = imread (imfile);
@@ -52,7 +58,14 @@ for ii = 1:numel(filelist)
 	imshow(CL)
 	pngfile = clfile;
 	pngfile(pngfile==".") = "";
-	imwrite(CL,[pngdir pngfile ".png"])
+	
+	if(ismat)
+		imwrite(CL,[pngdir pngfile ".png"]);
+	else
+		imwrite(CL,[pngdir pngfile ".jpg"]);
+	endif
+	
+	drawnow();
 end
 
 end

@@ -89,6 +89,12 @@ public class TestRunner extends Configured implements Tool {
 	@Parameter(names = {"-v","-verbose"})
 	private boolean verbose = false;
 	
+	@Parameter(names = {"-b","--base-path"})
+	private String base_path = null;
+	
+	@Parameter(names = {"-l","--logfile"})
+	private String logfile = null;
+	
 	private boolean ismat = false;
 	
 	/* (non-Javadoc)
@@ -105,7 +111,9 @@ public class TestRunner extends Configured implements Tool {
 			System.exit(1);
 		}
 		
-		File baseDir = new File(String.format(LOCAL_BASE_PATH, sample));
+		File baseDir = base_path == null
+				? new File(String.format(LOCAL_BASE_PATH, sample))
+				: new File(String.format(base_path+"/s%d/", sample));
 		
 		if(!baseDir.isDirectory()){
 			//TODO			
@@ -245,7 +253,10 @@ public class TestRunner extends Configured implements Tool {
 		final int w = image.getWidth();
 		final int h = image.getHeight();
 		
-		File logFile = new File(baseDir, "logfile.csv");
+		File logFile = logfile == null
+				? new File(baseDir, "logfile.csv")
+				: new File(logfile);
+		
 		TextFormatWriter out = new CSVWriter(new FileWriter(logFile, true));
 		
 		for(ResultSet resultSet : resultSets){
