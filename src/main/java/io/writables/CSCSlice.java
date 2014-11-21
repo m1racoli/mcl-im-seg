@@ -35,9 +35,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private long[] rowInd = null;
 	private int[] colPtr = null;
 	
-	//TODO private boolean hasColStats = false;
-	//private MCLColumnStats colStats = null;
-	
 	private boolean top_aligned = true;
 	private SubBlockView view = null;
 	private SubBlockIterator subBlockIterator = null;
@@ -80,11 +77,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			val[i] = in.readFloat();
 			rowInd[i] = readLong(in);
 		}
-		
-//TODO		hasColStats = in.readBoolean();
-//		if(hasColStats){
-//			colStats.readFields(in);
-//		}
 	}
 
 	/* (non-Javadoc)
@@ -113,12 +105,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 					writeLong(out, rowInd[i] + row_shift);
 				}
 			}
-			
-//			out.writeBoolean(hasColStats);
-//			if(hasColStats){
-//				hasColStats = false;
-//				colStats.write(out);
-//			}
 
 			return;
 		}
@@ -132,8 +118,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			writeLong(out, rowInd[i]);
 		}
 		
-		//TODO out.writeBoolean(true);
-		// colStats.write(out);		
 	}
 	
 	@Override
@@ -182,12 +166,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		kmax = Math.max(kmax, l-cs);
 		
-//		if(logger.isDebugEnabled()){
-//			logger.debug("colPtr: {}",Arrays.toString(colPtr));
-//			logger.debug("rowInd: {}",Arrays.toString(Arrays.copyOf(rowInd, l)));
-//			logger.debug("   val: {}",Arrays.toString(Arrays.copyOf(val, l)));
-//		} 
-		//assertOrder();
 		return kmax;
 	}
 	
@@ -198,14 +176,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 
 	@Override
 	public void add(CSCSlice m) {
-		
-//TODO		if(m.hasColStats){
-//			m.hasColStats = hasColStats;
-//			hasColStats = true;
-//			MCLColumnStats tmp_stats = m.colStats;
-//			m.colStats = colStats;
-//			colStats = tmp_stats;
-//		}		
 		
 		if(top_aligned) {
 			
@@ -402,7 +372,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
 		final double inf = inflation;
-		final int S = select;
 		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
@@ -427,8 +396,11 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				break;
 			}
 			
-			//old pruning ------------------------
-			final int selected = prune(val, cs, ct, selection, context);
+			for(int i = ct-1; i >= cs; --i) {
+				val[i] = (float) Math.pow(val[i], inf);
+			}
+			
+			final int selected = prune(val, cs, ct, selection, context, true);
 			if(stats.kmax < selected) stats.kmax = selected;
 			
 			if(selected == 1){
@@ -452,84 +424,16 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			
 			normalize(val, cs, ct, context);
 			
-			//TODO chaos, homogen seperate
 			double max = 0.0;
 			double new_center = 0.0;
-			//double sqv_inf = 0.0;
-			//double sqv_inf2 = 0.0;
+
 			for(int i = cs; i < ct; i++){
 				if(max < val[i]) max = val[i];
 				new_center += val[i]*val[i];
-				//final double val_inf = Math.pow(val[i], inflation);
-				//sqv_inf += val_inf;
-				//sqv_inf2 += val_inf*val_inf;
 			}			
+			
 			double chaos = ((double) max - new_center) * (ct-cs);
-			//double homogen = (colStats.center[col_start]*sqv_inf*sqv_inf)/sqv_inf2;
-			//colStats.center[col_start] = new_center;
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
-			
-			inflate(val, cs, ct);
-			
-			/* // new pruning ---------------------
-			float sum = 0.0f;
-			float max = 0.0f;
-			for(int i = ct - 1; i >= cs; --i){
-				float v = (float) Math.pow(val[i], inf);
-				val[i] = v;
-				sum += v;
-				if(max < v) max = v;
-			}
-			
-			final float tresh = computeTreshold(sum/(ct-cs), max);
-			int selected = 0;			
-			
-			for(int i = cs; i < ct; ++i){
-				if(val[i] >= tresh){
-					selection[selected++] = i;
-				} else {
-					if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
-				}
-			}
-			
-			if(selected == 0){
-				logger.error("BAD! all values pruned away. nothing left");
-				throw new RuntimeException("pruned empty column");
-			}
-			
-			if(selected > S){
-				select(val, selection, selected, S);
-				if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
-				selected = S;
-			}
-			
-			sum = 0.0f;
-			int new_pos = valPtr;
-			
-			for(int idx = 0; idx < selected; idx++){
-				float v = val[selection[idx]];
-				val[new_pos++] = v;
-				sum += v;
-			}
-			
-			double new_center = 0.0;
-			
-			for(int i = new_pos - 1; i >= valPtr; --i){
-				float v = val[i]/sum;
-				val[i] = v;
-				if(max < v) max = v;
-				new_center += v*v;
-				if(context != null && v > 0.5f){
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-				}
-			}
-			
-			int k = new_pos - valPtr;
-			valPtr = new_pos;
-			if(stats.kmax < k) stats.kmax = k;
-			double chaos = ((double) max - new_center) * k;
-			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
-			*/
 		}
 		
 		colPtr[nsub] = valPtr;

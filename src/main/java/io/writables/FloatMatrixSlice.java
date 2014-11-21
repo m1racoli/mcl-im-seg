@@ -10,7 +10,6 @@ import java.util.Queue;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import mapred.Counters;
-import mapred.MCLStats;
 
 /**
  * @author Cedrik
@@ -35,7 +34,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		}
 	}
 	
-	protected final int prune(float[] val, int s, int t, int[] selection, TaskAttemptContext context) {
+	protected final int prune(float[] val, int s, int t, int[] selection, TaskAttemptContext context, boolean auto) {
 		
 		final int k = t-s;
 		float sum = 0.0f;
@@ -49,9 +48,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 				max = v;
 		}
 		
-		final float tresh = cutoff;// * max;
-		//final float tresh = computeTreshold(sum/k, max);
-		int selected = 0;		
+		final float tresh = auto ? computeTreshold(sum/k, max) : cutoff;
+		int selected = 0;
 		
 		for(int i = s; i < t; i++){
 			if(val[i] >= tresh){
