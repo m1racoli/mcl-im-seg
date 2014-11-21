@@ -92,8 +92,8 @@ public class TestRunner extends Configured implements Tool {
 	@Parameter(names = {"-b","--base-path"})
 	private String base_path = null;
 	
-	@Parameter(names = {"-l","--logfile"})
-	private String logfile = null;
+	@Parameter(names = {"-o","--output"})
+	private String output = null;
 	
 	private boolean ismat = false;
 	
@@ -129,7 +129,7 @@ public class TestRunner extends Configured implements Tool {
 		
 		File abcDir = new File(baseDir, "abc");
 		File clusteringDir = new File(baseDir, "clustering");
-		File resultDir = new File(baseDir,"result");
+		File resultDir = new File(baseDir,output == null ? String.valueOf(System.currentTimeMillis()) : output);
 		abcDir.mkdir();
 		clusteringDir.mkdir();
 		resultDir.mkdir();
@@ -253,9 +253,7 @@ public class TestRunner extends Configured implements Tool {
 		final int w = image.getWidth();
 		final int h = image.getHeight();
 		
-		File logFile = logfile == null
-				? new File(baseDir, "logfile.csv")
-				: new File(logfile);
+		File logFile = new File(resultDir, "logfile.csv");
 		
 		TextFormatWriter out = new CSVWriter(new FileWriter(logFile, true));
 		
