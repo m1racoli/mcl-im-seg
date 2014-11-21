@@ -30,6 +30,9 @@ public class MCLParams {
 	@Parameter(names = "-print-matrix")
 	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
 	
+	@Parameter(names = "--auto-prune")
+	private boolean auto_prune = MCLDefaults.autoPrune;
+	
 	public void apply(Configuration conf) {
 		MCLConfigHelper.setInflation(conf, inflation);		
 		
@@ -42,5 +45,6 @@ public class MCLParams {
 		MCLConfigHelper.setSelection(conf, selection);
 		MCLConfigHelper.setSelectorClass(conf, selectorClass);
 		MCLConfigHelper.setPrintMatrix(conf, printMatrix);
+		MCLConfigHelper.setAutoPrune(conf, auto_prune);
 	}
 }

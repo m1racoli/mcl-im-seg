@@ -27,6 +27,7 @@ public class MCLConfigHelper {
 	private static final String PRINT_MATRIX_CONF =	"mcl.print.matrix";
 	private static final String DEBUG_CONF =		"mcl.debug";
 	private static final String ZK_HOSTS_CONF =		"mcl.zk.hosts";
+	private static final String AUTO_PRUNE =		"mcl.auto.prune";
 	
 	public static final void setKMax(Configuration conf, int kmax) {
 		conf.setInt(KMAX_CONF, kmax);
@@ -136,5 +137,13 @@ public class MCLConfigHelper {
 	
 	public static final String getZkHosts(Configuration conf){
 		return conf.get(ZK_HOSTS_CONF, "localhost:2181");
+	}
+	
+	public static final void setAutoPrune(Configuration conf, boolean auto_prune){
+		conf.setBoolean(AUTO_PRUNE, auto_prune);
+	}
+	
+	public static final boolean getAutoPrune(Configuration conf){
+		return conf.getBoolean(AUTO_PRUNE, MCLDefaults.autoPrune);
 	}
 }
