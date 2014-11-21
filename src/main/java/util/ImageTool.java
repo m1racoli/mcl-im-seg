@@ -196,8 +196,8 @@ public class ImageTool extends Configured implements Tool {
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
 					final int x2 = x1 + offset.x;
 					final int y2 = y1 + offset.y;					
-					final long i = x1 + dim.width*y1;
-					final long j = x2 + dim.width*y2;
+					final long i = y1 + dim.height*x1;
+					final long j = y2 + dim.height*x2;
 					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
 					final double w = Math.exp(mds-(d_squared/sigmaF));
 					writer.write(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
@@ -281,8 +281,8 @@ public class ImageTool extends Configured implements Tool {
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
 					final int x2 = x1+offset.x;
 					final int y2 = y1+offset.y;					
-					final long i = x1 + dim.width*y1;
-					final long j = x2 + dim.width*y2;
+					final long i = y1 + dim.height*x1;
+					final long j = y2 + dim.height*x2;
 					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
 					final double w = Math.exp(mds-(d_squared/b));
 					results.add(String.format(Locale.ENGLISH,"%d\t%d\t%f\n", i,j,w));
