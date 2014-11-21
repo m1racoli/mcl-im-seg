@@ -1,4 +1,4 @@
-imfunction rc = myImplay(filename)
+function rc = myImplay(filename)
 
 data = load(filename)
 l = length(data.ss0);

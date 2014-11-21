@@ -9,7 +9,7 @@ for i = 1:l
 	max_ind = max(max_ind,max(C{i}));
 end
 
-disp(max_ind);
+%disp(max_ind);
 
 if (max_ind + 1 != prod(dims))
 	error('clustering indecies dont match dimonsions');

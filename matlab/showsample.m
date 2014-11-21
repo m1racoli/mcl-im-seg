@@ -11,12 +11,16 @@ p = ns+1;
 
 colormap('gray');
 
-for i = 1:n;
-  for j = 1:n;
-    val = i + (j-1)*n;
-    index = max(1,min(l,int32(val*l/p)));
-    subplot(n,n,val);    
+for j = 1:n;
+  for i = 1:n;
+	frame = i + (j-1)*n;
+    val = i*2-1 + (j-1)*n*2;
+    index = max(1,min(l,int32(frame*l/p)));
+    subplot(n,2*n,val);    
     imagesc(-data.ss0(index).Z, [-2.5,0]);
+	title(index);
+	subplot(n,2*n,val+1);
+    imagesc(data.ss0(index).intenSR, [0,4000]);
 	title(index);
   end
 end

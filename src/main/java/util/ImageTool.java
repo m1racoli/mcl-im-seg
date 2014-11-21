@@ -194,8 +194,8 @@ public class ImageTool extends Configured implements Tool {
 			
 			for(int y1 = area.y; y1 < area.y + area.height; y1++){
 				for(int x1 = area.x; x1 < area.x + area.width; x1++){
-					final int x2 = x1+offset.x;
-					final int y2 = y1+offset.y;					
+					final int x2 = x1 + offset.x;
+					final int y2 = y1 + offset.y;					
 					final long i = x1 + dim.width*y1;
 					final long j = x2 + dim.width*y2;
 					final double d_squared = metric_squared(raster.getPixel(x1, y1, p1), raster.getPixel(x2, y2, p2));
