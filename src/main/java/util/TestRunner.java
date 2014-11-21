@@ -128,11 +128,12 @@ public class TestRunner extends Configured implements Tool {
 		}
 		
 		File abcDir = new File(baseDir, "abc");
-		File clusteringDir = new File(baseDir, "clustering");
-		File resultDir = new File(baseDir,output == null ? String.valueOf(System.currentTimeMillis()) : output);
+		File outputDir = new File(baseDir,output == null ? String.valueOf(System.currentTimeMillis()) : output);
+		File resultDir = new File(outputDir,"jpg");
+		File clusteringDir = new File(outputDir, "clustering");
 		abcDir.mkdir();
-		clusteringDir.mkdir();
-		resultDir.mkdir();
+		clusteringDir.mkdirs();
+		resultDir.mkdirs();
 		File abcFile = new File(abcDir,"matrix.abc");
 		File srcFile = new File(srcDir,srcDir.list()[0]);
 		
@@ -253,7 +254,7 @@ public class TestRunner extends Configured implements Tool {
 		final int w = image.getWidth();
 		final int h = image.getHeight();
 		
-		File logFile = new File(resultDir, "logfile.csv");
+		File logFile = new File(outputDir, "logfile.csv");
 		
 		TextFormatWriter out = new CSVWriter(new FileWriter(logFile, true));
 		
