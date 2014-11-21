@@ -396,11 +396,14 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				break;
 			}
 			
-			for(int i = ct-1; i >= cs; --i) {
-				val[i] = (float) Math.pow(val[i], inf);
+			if(auto_prune){
+				for(int i = ct-1; i >= cs; --i) {
+					val[i] = (float) Math.pow(val[i], inf);
+				}
 			}
 			
-			final int selected = prune(val, cs, ct, selection, context, true);
+			
+			final int selected = prune(val, cs, ct, selection, context, auto_prune);
 			if(stats.kmax < selected) stats.kmax = selected;
 			
 			if(selected == 1){
@@ -434,6 +437,10 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			
 			double chaos = ((double) max - new_center) * (ct-cs);
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
+			
+			if(!auto_prune){
+				inflate(val, cs, ct);
+			}
 		}
 		
 		colPtr[nsub] = valPtr;
