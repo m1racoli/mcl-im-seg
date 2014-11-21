@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 5 ]; then
-	echo "usage: script.sh <mode> <sample> <sigmaX> <sigmaF> <format>"
+if [ $# -lt 4 ]; then
+	echo "usage: script.sh <sample> <sigmaX> <sigmaF> <format>"
 	exit 1
 fi
 
@@ -37,10 +37,8 @@ R="100"
 
 if [ "$format" = "jpg" ]; then
 	class="util.ImageTool"
-	cielab="-cielab"
 elif [ "$format" = "mat" ]; then
 	class="util.MatTool"
-	cielab=""
 else
 	echo "invalid format $format"
 	exit 1
@@ -55,7 +53,8 @@ if [ "$mode" = "s3" ]; then
 fi
 
 #create abc from image
-mr-mcl $class -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" $cielab
+mkdir -p "$basedir/$sample/abc"
+mr-mcl $class -sF "$sigmaF" -sX "$sigmaX" -r "$radius" -i "$basedir/$sample/src" -o "$basedir/$sample/abc/matrix.abc" -te "$te" -cielab "$@"
 
 #make abc
 rm -f "$basedir/$sample/clustering/*"
