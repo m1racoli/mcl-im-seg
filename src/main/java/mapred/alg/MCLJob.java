@@ -1,9 +1,14 @@
 /**
  * 
  */
-package mapred;
+package mapred.alg;
 
 import java.util.Arrays;
+
+import mapred.MCLConfigHelper;
+import mapred.MCLOut;
+import mapred.MCLResult;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
@@ -14,47 +19,46 @@ import org.slf4j.LoggerFactory;
  * @author Cedrik
  *
  */
-public class RMCLJob extends AbstractMCLAlgorithm {
+public class MCLJob extends AbstractMCLAlgorithm {
 
-	private static final Logger logger = LoggerFactory.getLogger(RMCLJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(MCLJob.class);
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
-		
+
 		int i = 0;
-		Path m_i_2 = new Path(output,"tmp_0");
-		Path m_i_1 = new Path(output,"tmp_1");
-		Path m_i   = new Path(output,"tmp_2");		
+		Path m_i_1 = new Path(output,"tmp_0");
+		Path m_i   = new Path(output,"tmp_1");
 		
 		MCLResult result = inputJob(input, m_i_1);
 		
 		logger.info("{}",result);
 		long n = result.n;
-		double changeInNorm = Double.POSITIVE_INFINITY;
-		Long init_nnz = null;
+		double chaos = Double.MAX_VALUE;
+		Long init_nnz = null; //result.out_nnz;
 		
-		System.out.printf("n: %d, nsub: %d, paralellism: %d, nnz: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.out_nnz,result.kmax);
+		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		MCLOut.init();
 		
 		long total_tic = System.currentTimeMillis();
-		result = transposeJob(m_i_1);
-
-		while(changeInNorm >= getChangeLimit() && ++i <= getMaxIterations()){
+		
+		
+		while(chaos >= getChaosLimit() && ++i <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",i);
+			MCLOut.startIteration(i);
 			
-			MCLOut.startIteration(i);			
-			long step_tic = System.currentTimeMillis();		
+			long step_tic = System.currentTimeMillis();
 			
-			result = stepJob(i == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
-			
+			result = transposeJob(m_i_1);
+			result = stepJob(Arrays.asList(m_i_1, transposedPath()), m_i);
+
 			long step_toc = System.currentTimeMillis() - step_tic;
-			changeInNorm = result.changeInNorm;
+			chaos = result.chaos;
 			
-			Path tmp = m_i_2;
-			m_i_2 = m_i_1;
+			Path tmp = m_i_1;
 			m_i_1 = m_i;
 			m_i = tmp;
-			
+
 			MCLOut.progress(0.0f, 1.0f);
 			
 			if(init_nnz == null) init_nnz = result.in_nnz;
@@ -62,7 +66,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 			final long nnz_final = result.out_nnz;
 			final long nnz_expand = nnz_final + result.cutoff + result.prune;
 			
-			MCLOut.stats(result.chaos
+			MCLOut.stats(chaos
 					, step_toc/1000.0
 					, 0.0
 					, 0.0
@@ -71,7 +75,6 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L));
 
-			System.out.printf("\t%f",changeInNorm); //TODO not quick and dirty
 			MCLOut.finishIteration();
 		}
 		
@@ -90,7 +93,7 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new RMCLJob(), args));
+		System.exit(ToolRunner.run(new MCLJob(), args));
 	}
 
 }

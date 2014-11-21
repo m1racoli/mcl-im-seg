@@ -1,4 +1,4 @@
-package mapred;
+package mapred.job;
 
 import java.io.IOException;
 import java.util.List;
@@ -8,6 +8,12 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
+import mapred.Counters;
+import mapred.MCLConfigHelper;
+import mapred.MCLContext;
+import mapred.MCLResult;
+import mapred.MCLStats;
+import mapred.SlicePartitioner;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

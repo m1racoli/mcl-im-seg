@@ -1,13 +1,26 @@
 /**
  * 
  */
-package mapred;
+package mapred.alg;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+
+import mapred.Applyable;
+import mapred.MCLCompressionParams;
+import mapred.MCLConfigHelper;
+import mapred.MCLDefaults;
+import mapred.MCLInitParams;
+import mapred.MCLParams;
+import mapred.MCLResult;
+import mapred.job.InputAbcJob;
+import mapred.job.MCLStep;
+import mapred.job.NativeInputJob;
+import mapred.job.SequenceInputJob;
+import mapred.job.TransposeJob;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;

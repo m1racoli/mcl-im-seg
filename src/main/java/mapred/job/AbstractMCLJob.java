@@ -1,13 +1,19 @@
 /**
  * 
  */
-package mapred;
+package mapred.job;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+
+import mapred.Applyable;
+import mapred.MCLCompressionParams;
+import mapred.MCLConfigHelper;
+import mapred.MCLParams;
+import mapred.MCLResult;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;

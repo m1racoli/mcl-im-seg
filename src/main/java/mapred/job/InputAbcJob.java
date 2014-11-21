@@ -1,7 +1,7 @@
 /**
  * 
  */
-package mapred;
+package mapred.job;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -16,6 +16,13 @@ import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
 import iterators.ReadOnlyIterator;
+import mapred.Applyable;
+import mapred.Counters;
+import mapred.MCLConfigHelper;
+import mapred.MCLContext;
+import mapred.MCLInitParams;
+import mapred.MCLResult;
+import mapred.SlicePartitioner;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;

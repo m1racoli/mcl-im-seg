@@ -6,10 +6,10 @@ package util;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import mapred.InputJob;
-import mapred.MCLJob;
-import mapred.RMCLJob;
-import mapred.TransposeJob;
+import mapred.alg.MCLJob;
+import mapred.alg.RMCLJob;
+import mapred.job.InputJob;
+import mapred.job.TransposeJob;
 
 import org.apache.hadoop.util.ToolRunner;
 
