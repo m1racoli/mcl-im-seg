@@ -14,6 +14,7 @@ import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLParams;
 import mapred.MCLResult;
+import mapred.alg.MCLOperation;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -35,7 +36,7 @@ import com.beust.jcommander.Parameter;
  * @author Cedrik
  *
  */
-public abstract class AbstractMCLJob extends Configured implements Tool {
+public abstract class AbstractMCLJob extends Configured implements Tool, MCLOperation {
 	
 	private static final Logger logger = LoggerFactory.getLogger(AbstractMCLJob.class);
 	

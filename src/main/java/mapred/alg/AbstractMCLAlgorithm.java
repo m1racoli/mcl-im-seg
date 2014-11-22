@@ -100,8 +100,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private Path transposePath = null;
 	
-	private AbstractMCLJob transposeJob = new TransposeJob();
-	private AbstractMCLJob stepJob = new MCLStep();
+	private MCLOperation transposeJob = new TransposeJob();
+	private MCLOperation stepJob = new MCLStep();
 	
 	private int iteration = 1;
 	
