@@ -20,6 +20,7 @@ import mapred.MCLDefaults;
 import mapred.MCLInitParams;
 import mapred.MCLParams;
 import mapred.MCLResult;
+import mapred.job.AbstractMCLJob;
 import mapred.job.InputAbcJob;
 import mapred.job.MCLStep;
 import mapred.job.NativeInputJob;
@@ -87,6 +88,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "local")
 	private boolean local = false;
 	
+	@Parameter(names = "--in-memory")
+	private boolean in_memory;
+	
 	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
 	private boolean native_input = false;
 	
@@ -96,8 +100,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private Path transposePath = null;
 	
-	private TransposeJob transposeJob = new TransposeJob();
-	private MCLStep stepJob = new MCLStep();
+	private AbstractMCLJob transposeJob = new TransposeJob();
+	private AbstractMCLJob stepJob = new MCLStep();
 	
 	private int iteration = 1;
 	
@@ -269,6 +273,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 		
 		countersFS = counters.getFileSystem(getConf());
+		counters = countersFS.makeQualified(counters);
 		countersWriter = new CSVWriter(countersFS.create(counters, true));
 		logger.info("log counters to {}",counters);
 	}

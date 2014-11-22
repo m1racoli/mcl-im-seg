@@ -103,7 +103,7 @@ public class MCLStep extends AbstractMCLJob {
 				ZkMetric.set(context.getConfiguration(), SSD, ssd);
 				ZkMetric.close();
 			}
-			context.getCounter(Counters.MAP_CPU_TIME).increment(cpu_nanos/1000000L);
+			context.getCounter(Counters.MAP_CPU_MICROS).increment(cpu_nanos/1000L);
 		}
 	}
 	
@@ -141,7 +141,7 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<SliceId, M, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			context.getCounter(Counters.COMBINE_CPU_TIME).increment(cpu_nanos/1000000L);
+			context.getCounter(Counters.COMBINE_CPU_MICROS).increment(cpu_nanos/1000L);
 		}
 	}
 	
@@ -189,7 +189,7 @@ public class MCLStep extends AbstractMCLJob {
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
 			ZkMetric.close();
-			context.getCounter(Counters.REDUCE_CPU_TIME).increment(cpu_nanos/1000000L);
+			context.getCounter(Counters.REDUCE_CPU_MICROS).increment(cpu_nanos/1000L);
 		}
 	}
 	
@@ -260,7 +260,7 @@ public class MCLStep extends AbstractMCLJob {
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
 		result.chaos = ZkMetric.<DistributedDouble>get(conf, CHAOS).get();
-		result.changeInNorm = computeChange ? Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN() : Double.POSITIVE_INFINITY; 
+		result.changeInNorm = computeChange ? Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN() : Double.POSITIVE_INFINITY;
 		return result;
 	}
 	
