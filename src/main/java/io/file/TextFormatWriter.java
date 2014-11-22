@@ -5,8 +5,10 @@ package io.file;
 
 import java.io.BufferedWriter;
 import java.io.Closeable;
+import java.io.DataOutputStream;
 import java.io.Flushable;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -29,6 +31,10 @@ public abstract class TextFormatWriter implements Flushable, Closeable {
 	 */
 	public TextFormatWriter(Writer out) {
 		this.writer = new BufferedWriter(out);
+	}
+	
+	public TextFormatWriter(DataOutputStream stream){
+		this.writer = new BufferedWriter(new OutputStreamWriter(stream));
 	}
 
 	/**

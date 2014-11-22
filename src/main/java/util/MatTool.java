@@ -57,11 +57,15 @@ public class MatTool extends Configured implements Tool {
 	@Parameter(names ="--debug")
 	private boolean debug = false;
 	
+	@Parameter(names = {"-h","--help"}, help = true)
+	private boolean help = false;
+	
 	@Override
 	public int run(String[] args) throws Exception {
 
 		if(debug){
-			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);		}
+			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);
+		}
 		
 		if(input == null){
 			logger.error("specify input! {}",input);
@@ -138,6 +142,12 @@ public class MatTool extends Configured implements Tool {
 		MatTool tool = new MatTool();
 		JCommander cmd = new JCommander(tool);
 		cmd.parse(args);
+		
+		if(tool.help){
+			cmd.usage();
+			System.exit(1);
+		}
+		
 		System.exit(ToolRunner.run(tool, args));
 	}
 

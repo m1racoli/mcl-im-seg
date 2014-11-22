@@ -10,6 +10,7 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
+import mapred.Counters;
 import mapred.MCLConfigHelper;
 import mapred.MCLResult;
 import mapred.SlicePartitioner;
@@ -33,23 +34,35 @@ public class TransposeJob extends AbstractMCLJob {
 
 		private final SliceId id = new SliceId();
 		private SubBlock<M> subBlock = new SubBlock<M>();
+		private long cpu_nanos = 0;
 		
 		@Override
 		protected void setup(
 				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
 				throws IOException, InterruptedException {
 			subBlock.setConf(context.getConfiguration(), false);
+			cpu_nanos = 0;
 		}
 		
 		@Override
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
-
+			long start = System.nanoTime();
 			subBlock.id = key.get();
 			for (M m : value.getSubBlocks(id)) {
 				subBlock.subBlock = m;
+				cpu_nanos += System.nanoTime() - start;
 				context.write(id, subBlock);
+				start = System.nanoTime();
 			}
+			cpu_nanos += System.nanoTime() - start;
+		}
+		
+		@Override
+		protected void cleanup(
+				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
+				throws IOException, InterruptedException {
+			context.getCounter(Counters.MAP_CPU_MICROS).increment(cpu_nanos/1000L);
 		}
 	}
 

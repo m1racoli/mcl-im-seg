@@ -40,6 +40,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import zookeeper.DistributedInt;
+import zookeeper.DistributedIntMaximum;
+import zookeeper.ZkMetric;
+
 import com.beust.jcommander.Parameter;
 
 /**
@@ -53,6 +57,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	private static final String NB_RADIUS_CONF = "nb.radius";
 	private static final String DIM_WIDTH_CONF = "dim.width";
 	private static final String DIM_HEIGHT_CONF = "dim.height";
+	private static final String KMAX = "/kmax";
 	
 	@Parameter(names = "-r")
 	private Float radius = 3.0f;
@@ -63,7 +68,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	@Parameter(names = "-h")
 	private int h = 300;
 	
-	private Applyable initParams = null;
+	private volatile MCLInitParams initParams = null;
 	
 	private static final class AbcMapper extends Mapper<LongWritable, Text, Index, FloatWritable> {
 		
@@ -99,7 +104,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	
 	private static final class AbcReducer<M extends MCLMatrixSlice<M>> extends Reducer<Index, FloatWritable, SliceId, M>{
 		private M col = null;
-		private int kmax = 0;
+		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
 		
 		@Override
 		protected void setup(Context context)
@@ -123,17 +128,17 @@ public class InputAbcJob extends AbstractMCLJob {
 			col.addLoops(idx);
 			col.makeStochastic(context);
 			
-			if(kmax < kmax_tmp) kmax = kmax_tmp;
+			kmax.set(kmax_tmp);
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
-			context.getCounter(Counters.OUTPUT_NNZ).increment(col.size());
+			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(col.size());
 			context.write(idx.id, col);
 		}
 		
 		@Override
 		protected void cleanup(Reducer<Index, FloatWritable, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			MatrixMeta.writeKmax(context, kmax);
-			//TODO multiple otput or correct path
+			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
+			ZkMetric.close();
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<SliceEntry> {
@@ -201,18 +206,15 @@ public class InputAbcJob extends AbstractMCLJob {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
+		ZkMetric.init(conf, KMAX, true);
+		
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
 		if(!result.success) return result;
-		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
 		
-//		while(job.cleanupProgress() < 1) {
-//			logger.debug("wait for cleanup");
-//			Thread.sleep(200);
-//		}
-		
-		meta.mergeKmax(conf, output);
+		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
 		result.kmax = meta.getKmax();
 		result.n = n;
 		
@@ -221,12 +223,21 @@ public class InputAbcJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Collection<Applyable> getParams() {
+	protected Collection<? extends Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}
 		
 		return Arrays.asList(initParams);
+	}
+	
+	@Override
+	protected void setCommander(List<Object> list) {
+		if (initParams == null) {
+			initParams = new MCLInitParams();
+		}
+		
+		list.add(initParams);
 	}
 	
 	/**

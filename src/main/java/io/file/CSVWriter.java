@@ -4,6 +4,7 @@
 package io.file;
 
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
@@ -24,6 +25,10 @@ public class CSVWriter extends TextFormatWriter {
 		super(out);
 	}
 
+	public CSVWriter(DataOutputStream stream) {
+		super(stream);
+	}
+	
 	/**
 	 * @param out
 	 * @param sz

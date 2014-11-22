@@ -3,6 +3,10 @@
  */
 package mapred.alg;
 
+import io.file.CSVWriter;
+import io.file.TextFormatWriter;
+
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -16,6 +20,7 @@ import mapred.MCLDefaults;
 import mapred.MCLInitParams;
 import mapred.MCLParams;
 import mapred.MCLResult;
+import mapred.job.AbstractMCLJob;
 import mapred.job.InputAbcJob;
 import mapred.job.MCLStep;
 import mapred.job.NativeInputJob;
@@ -25,6 +30,9 @@ import mapred.job.TransposeJob;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.CounterGroup;
+import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.log4j.Level;
@@ -68,9 +76,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "-dump-counters")
 	private Path counters = null;
+	private FileSystem countersFS = null;
+	private TextFormatWriter countersWriter = null;
 	
 	@Parameter(names = "--abc")
-	private boolean abc = false;
+	private boolean is_abc = false;
 	
 	@Parameter(names = "-zk")
 	private boolean embeddedZkServer = false;
@@ -78,7 +88,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "local")
 	private boolean local = false;
 	
-	@Parameter(names = {"-native-input","-n"}, description= "input matrix is matrix slice") //TODO default
+	@Parameter(names = "--in-memory")
+	private boolean in_memory;
+	
+	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
 	private boolean native_input = false;
 	
 	private final MCLParams params = new MCLParams();
@@ -87,8 +100,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private Path transposePath = null;
 	
-	private TransposeJob transposeJob = new TransposeJob();
-	private MCLStep stepJob = new MCLStep();
+	private AbstractMCLJob transposeJob = new TransposeJob();
+	private AbstractMCLJob stepJob = new MCLStep();
+	
+	private int iteration = 1;
 	
 	/* (non-Javadoc)
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
@@ -146,9 +161,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			EmbeddedZkServer.init(getConf());
 		}
 		
-		if(counters != null){
-			logger.warn("counters not supported yet");
-		}
+
+		
 		
 		FileSystem outFS = output.getFileSystem(getConf());
 		if (outFS.exists(output)) {
@@ -159,7 +173,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		transposePath = new Path(output,"t");
 		
+		initCounters();
+		
 		int rc = run(input, output);
+		
+		closeCounters();
 		
 		if(rc != 0) return rc;
 		
@@ -179,9 +197,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	protected final MCLResult inputJob(Path input, Path output) throws Exception {
 		MCLResult result = null;
 		
-		if(!isNativeInput()){
+		if(!native_input){
 			logger.debug("run InputJob on {} => {}",input,output);
-			result = abc() 
+			result = is_abc 
 					? new InputAbcJob().run(getConf(), input, output)
 					: new SequenceInputJob().run(getConf(), input, output);
 			
@@ -201,6 +219,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		logger.debug("run TransposeJob on {} => {}",input,transposePath);
 		MCLResult result = transposeJob.run(getConf(), input, transposePath);
+		writeCounters(result.counters,"transpose");
+		
 		if (result == null || !result.success) {
 			logger.error("failure! result = {}",result);
 			System.exit(1);
@@ -214,7 +234,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	protected final MCLResult stepJob(List<Path> paths, Path output) throws Exception{
 		
 		logger.debug("run MCLStep on {}  => {}",paths,output);		
-		MCLResult result = stepJob.run(getConf(), paths, output);
+		MCLResult result = stepJob.run(getConf(), paths, output);		
+		writeCounters(result.counters,"step");
 		
 		if (result == null || !result.success) {
 			logger.error("failure! result = {}",result);
@@ -222,7 +243,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 		
 		logger.info("{}",result);
-		
+		++iteration;
 		return result;
 	}
 	
@@ -241,17 +262,53 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	public final double getChangeLimit() {
 		return change_limit;
 	}
-	
-	public final boolean abc(){
-		return abc;
-	}
-	
-	public final boolean isNativeInput(){
-		return native_input;
-	}
 
 	public final Path transposedPath(){
 		return transposePath;
+	}
+	
+	private final void initCounters() throws IOException {
+		if(counters == null){
+			return;
+		}
+		
+		countersFS = counters.getFileSystem(getConf());
+		counters = countersFS.makeQualified(counters);
+		countersWriter = new CSVWriter(countersFS.create(counters, true));
+		logger.info("log counters to {}",counters);
+	}
+	
+	private final void writeCounters(Counters counters, String job) throws IOException {
+		if(counters == null){
+			return;
+		}
+		
+		for (CounterGroup group : counters) {
+			for (Counter counter : group) {
+				countersWriter.write("iteration", iteration);
+				countersWriter.write("job", job);
+				countersWriter.write("group", group.getDisplayName());
+				countersWriter.write("counter", counter.getDisplayName());
+				countersWriter.write("value", counter.getValue());
+				countersWriter.writeLine();
+			}
+		}
+	}
+	
+	private final void closeCounters() throws IOException {
+		if(counters == null){
+			return;
+		}
+		
+		countersWriter.close();
+		countersFS.close();
+	}
+	
+	/**
+	 * current iteration >= 1
+	 */
+	protected final int iter(){
+		return iteration;
 	}
 	
 }
