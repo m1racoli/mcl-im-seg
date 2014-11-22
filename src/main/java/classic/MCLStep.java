@@ -1,0 +1,291 @@
+package classic;
+
+import java.io.IOException;
+import java.util.List;
+
+import io.writables.CSCSlice;
+import io.writables.MCLMatrixSlice;
+import io.writables.MatrixMeta;
+import io.writables.SliceId;
+import io.writables.SubBlock;
+import mapred.Counters;
+import mapred.MCLConfigHelper;
+import mapred.MCLContext;
+import mapred.MCLResult;
+import mapred.MCLStats;
+import mapred.SlicePartitioner;
+import mapred.job.AbstractMCLJob;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.Reader;
+import org.apache.hadoop.io.SequenceFile.Writer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.join.CompositeInputFormat;
+import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.ToolRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import zookeeper.DistributedDouble;
+import zookeeper.DistributedDoubleMaximum;
+import zookeeper.DistributedDoubleSum;
+import zookeeper.DistributedInt;
+import zookeeper.DistributedIntMaximum;
+import zookeeper.ZkMetric;
+
+public class MCLStep extends AbstractMCLJob {
+	
+	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
+	private static final String CHAOS = "/chaos";
+	private static final String SSD = "/ssd";
+	private static final String KMAX = "/kmax";	
+	
+	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
+		
+		private final SliceId id = new SliceId();
+		private DistributedDouble ssd = null; //sum squared differences
+		private int last_id = -1;
+		private long cpu_nanos = 0;
+		
+		@Override
+		protected void setup(Context context)
+				throws IOException, InterruptedException {
+			cpu_nanos = 0;
+		}
+		
+		@SuppressWarnings("unchecked")
+		@Override
+		protected void map(SliceId key, TupleWritable tuple, Context context)
+				throws IOException, InterruptedException {
+			
+			long start = System.nanoTime();
+			
+			M m = (M) tuple.get(0);
+			
+			if(last_id != key.get())
+			{
+				last_id = key.get();
+				context.getCounter(Counters.MAP_INPUT_VALUES).increment(m.size());
+				
+				if(tuple.size() > 2)
+				{					
+					ssd = ssd == null ? new DistributedDoubleSum() : ssd;
+					//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
+						ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
+					//}				
+				}
+			}
+			
+			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
+			id.set(subBlock.id);
+			
+			context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
+			M product = subBlock.subBlock.multipliedBy(m, context);
+			
+			//count output records on diagonal and off diagonal
+			if(id.get() == key.get()){
+				context.getCounter(Counters.DIAG_MASS).increment(m.size());
+			} else {
+				context.getCounter(Counters.NON_DIAG_MASS).increment(m.size());
+			}
+			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
+			cpu_nanos += System.nanoTime() - start;
+			context.write(id, product);
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			if(ssd != null){
+				ZkMetric.set(context.getConfiguration(), SSD, ssd);
+				ZkMetric.close();
+			}
+			context.getCounter(Counters.MAP_CPU_MICROS).increment(cpu_nanos/1000L);
+		}
+	}
+	
+	private static final class MCLCombiner<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {
+		
+		private M vec = null;
+		private long cpu_nanos = 0;
+		
+		@Override
+		protected void setup(Context context)
+				throws IOException, InterruptedException {
+			if(vec == null){
+				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
+			}
+			cpu_nanos = 0;
+		}
+		
+		@Override
+		protected void reduce(SliceId col, Iterable<M> values, Context context)
+				throws IOException, InterruptedException {
+			long start; // = System.nanoTime();
+			vec.clear();
+			
+			for(M m : values){
+				start = System.nanoTime();
+				context.getCounter(Counters.COMBINE_INPUT_VALUES).increment(m.size());
+				vec.add(m);
+				cpu_nanos += System.nanoTime() - start;
+			}
+			
+			context.getCounter(Counters.COMBINE_OUTPUT_VALUES).increment(vec.size());
+			context.write(col, vec);
+		}
+		
+		@Override
+		protected void cleanup(Reducer<SliceId, M, SliceId, M>.Context context)
+				throws IOException, InterruptedException {
+			context.getCounter(Counters.COMBINE_CPU_MICROS).increment(cpu_nanos/1000L);
+		}
+	}
+	
+	private static final class MCLReducer<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {		
+		
+		private M vec = null;
+		private final DistributedInt k_max = new DistributedIntMaximum();
+		private final DistributedDouble chaos = new DistributedDoubleMaximum();
+		private final MCLStats stats = new MCLStats();
+		private long cpu_nanos = 0;
+		
+		@Override
+		protected void setup(Context context)
+				throws IOException, InterruptedException {
+			if(vec == null){
+				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
+			}
+			cpu_nanos = 0;
+		}
+		
+		@Override
+		protected void reduce(SliceId col, Iterable<M> values, Context context)
+				throws IOException, InterruptedException {
+			long start; // = System.nanoTime();
+			vec.clear();
+			for(M m : values){
+				start = System.nanoTime();
+				context.getCounter(Counters.REDUCE_INPUT_VALUES).increment(m.size());
+				vec.add(m);
+				cpu_nanos += System.nanoTime() - start;
+			}
+			start = System.nanoTime();
+			vec.inflateAndPrune(stats, context);
+			k_max.set(stats.kmax);
+			chaos.set(stats.maxChaos);
+			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
+			cpu_nanos += System.nanoTime() - start;
+			context.write(col, vec);
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			logger.debug("stats: {}",stats);
+			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
+			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
+			ZkMetric.close();
+			context.getCounter(Counters.REDUCE_CPU_MICROS).increment(cpu_nanos/1000L);
+		}
+	}
+	
+	
+	
+	private final class StepRunner<M extends MCLMatrixSlice<M>> {
+		
+		private void load(Path left, Path right, Path prev) throws IOException {
+			
+			Reader lReader = new Reader(getConf(), Reader.file(left));
+			Reader rReader = new Reader(getConf(), Reader.file(right));
+			Reader pReader = new Reader(getConf(), Reader.file(prev));
+			
+			Writer writer = SequenceFile.createWriter(getConf(), 
+					Writer.file(output),
+					Writer.keyClass(SliceId.class), 
+					Writer.valueClass(SubBlock.class));
+			
+			SliceId key = new SliceId();
+			M m = MCLContext.getMatrixSliceInstance(getConf());
+			SliceId id = new SliceId();
+			SubBlock<M> subBlock = new SubBlock<M>();
+			subBlock.setConf(getConf(), false);
+			
+		}
+		
+	}
+	
+	@Override
+	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
+		
+		boolean computeChange = inputs.size() > 2;//TODO clean
+		
+		if(inputs == null || inputs.size() < 2 || output == null){
+			throw new RuntimeException(String.format("invalid input/output: in=%s, out=%s",inputs,output));
+		}
+		//TODO calculate change
+		final Configuration conf = getConf();
+		
+		MatrixMeta meta = MatrixMeta.load(conf, inputs.get(0));
+		MatrixMeta meta1 = MatrixMeta.load(conf, inputs.get(1));
+		
+		if(inputs.size() == 2){
+			logger.debug("num inputs = 2. mcl step without comparison of iterants");
+			MatrixMeta.check(meta,meta1);
+			meta.setKmax(meta.getKmax() * meta1.getKmax());
+		} else {
+			logger.debug("num inputs > 2. mcl step with comparison of iterants");
+			MatrixMeta meta2 = MatrixMeta.load(conf, inputs.get(2));
+			MatrixMeta.check(meta,meta1,meta2);
+			meta.setKmax(Math.max(meta.getKmax() * meta1.getKmax(),meta2.getKmax()));
+		}
+		
+		meta.apply(conf);
+		
+		Path left = inputs.get(0);
+		Path right = inputs.get(1);
+		Path prev = inputs.size() == 2 ? null : inputs.get(2);		
+		
+		@SuppressWarnings("rawtypes")
+		StepRunner runner = new StepRunner();
+		
+		FileSystem fs = left.getFileSystem(getConf());
+		RemoteIterator<LocatedFileStatus> it = fs.listFiles(left, false);
+		
+		while(it.hasNext()){
+			LocatedFileStatus status = it.next();
+			String filename = status.getPath().getName();
+			runner.run(status.getPath(), new Path(right,filename), prev == null ? null : new Path(prev, filename), new Path(output,filename));
+		}
+
+		MCLResult result = new MCLResult();
+		
+		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
+		MatrixMeta.save(conf, output, meta);
+		
+//		result.kmax = meta.getKmax();
+//		result.in_nnz = job.getCounters().findCounter(Counters.MAP_INPUT_VALUES).getValue();
+//		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
+//		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
+//		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
+//		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
+//		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
+//		result.chaos = ZkMetric.<DistributedDouble>get(conf, CHAOS).get();
+//		result.changeInNorm = computeChange ? Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN() : Double.POSITIVE_INFINITY;
+		return result;
+	}
+	
+	public static void main(String[] args) throws Exception {
+		System.exit(ToolRunner.run(new MCLStep(), args));
+	}
+}
