@@ -61,7 +61,8 @@ public class MatTool extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 
 		if(debug){
-			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);		}
+			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);
+		}
 		
 		if(input == null){
 			logger.error("specify input! {}",input);
