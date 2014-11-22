@@ -444,7 +444,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		colPtr[nsub] = valPtr;
-		if(context != null) context.getCounter(Counters.OUTPUT_NNZ).increment(size());
 	}
 	
 	@Override

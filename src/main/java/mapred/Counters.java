@@ -1,7 +1,6 @@
 package mapred;
 
 public enum Counters {
-	OUTPUT_NNZ,
 	HOMOGENEOUS_COLUMNS,
 	CUTOFF,
 	PRUNE,

@@ -173,7 +173,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			kmax.set(kmax_tmp);
 			
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
-			context.getCounter(Counters.OUTPUT_NNZ).increment(col.size());
+			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(col.size());
 			context.write(idx.id, col);
 		}
 		
@@ -303,7 +303,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		result.run(job);
 		
 		if(!result.success) return result;
-		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
 		
 		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
 		//meta.mergeKmax(conf, output);

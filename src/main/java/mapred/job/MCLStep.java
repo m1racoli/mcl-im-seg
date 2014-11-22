@@ -228,7 +228,7 @@ public class MCLStep extends AbstractMCLJob {
 		
 		result.kmax = meta.getKmax();
 		result.in_nnz = job.getCounters().findCounter(Counters.MAP_INPUT_VALUES).getValue();
-		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
 		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();

@@ -139,7 +139,7 @@ public class InputJob extends AbstractMCLJob {
 			
 			if(kmax < kmax_tmp) kmax = kmax_tmp;
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
-			context.getCounter(Counters.OUTPUT_NNZ).increment(col.size());
+			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(col.size());
 			context.write(idx.id, col);
 		}
 		
@@ -221,7 +221,7 @@ public class InputJob extends AbstractMCLJob {
 		result.run(job);
 		
 		if(!result.success) return result;
-		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
+		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
 		
 //		while(job.cleanupProgress() < 1) {
 //			logger.debug("wait for cleanup");
