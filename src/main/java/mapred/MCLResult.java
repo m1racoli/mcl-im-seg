@@ -7,8 +7,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.TaskCounter;
 
@@ -52,21 +50,6 @@ public class MCLResult {
 		writer.write("iteration\tjob\tgroup\tcounter\tvalue");
 		writer.newLine();
 		writer.close();
-		fileWriter.close();
-	}
-	
-	public void dumpCounters(int iteration, String name ,File file) throws IOException {
-		FileWriter fileWriter = new FileWriter(file,true);
-		BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-		
-		for (CounterGroup group : counters) {
-			for (Counter counter : group) {
-				bufferedWriter.write(String.format("%d\t%s\t%s\t%s\t%d", iteration, name, group.getDisplayName(),counter.getDisplayName(),counter.getValue()));
-				bufferedWriter.newLine();
-			}
-		}
-		
-		bufferedWriter.close();
 		fileWriter.close();
 	}
 	

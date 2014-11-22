@@ -26,7 +26,6 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 	@Override
 	public int run(Path input, Path output) throws Exception {
 		
-		int i = 0;
 		Path m_i_2 = new Path(output,"tmp_0");
 		Path m_i_1 = new Path(output,"tmp_1");
 		Path m_i   = new Path(output,"tmp_2");		
@@ -44,13 +43,13 @@ public class RMCLJob extends AbstractMCLAlgorithm {
 		long total_tic = System.currentTimeMillis();
 		result = transposeJob(m_i_1);
 
-		while(changeInNorm >= getChangeLimit() && ++i <= getMaxIterations()){
-			logger.debug("iteration i = {}",i);
+		while(changeInNorm >= getChangeLimit() && iter() <= getMaxIterations()){
+			logger.debug("iteration i = {}",iter());
 			
-			MCLOut.startIteration(i);			
+			MCLOut.startIteration(iter());			
 			long step_tic = System.currentTimeMillis();		
 			
-			result = stepJob(i == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
+			result = stepJob(iter() == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
 			
 			long step_toc = System.currentTimeMillis() - step_tic;
 			changeInNorm = result.changeInNorm;

@@ -26,7 +26,6 @@ public class MCLJob extends AbstractMCLAlgorithm {
 	@Override
 	public int run(Path input, Path output) throws Exception {
 
-		int i = 0;
 		Path m_i_1 = new Path(output,"tmp_0");
 		Path m_i   = new Path(output,"tmp_1");
 		
@@ -43,9 +42,9 @@ public class MCLJob extends AbstractMCLAlgorithm {
 		long total_tic = System.currentTimeMillis();
 		
 		
-		while(chaos >= getChaosLimit() && ++i <= getMaxIterations()){ //TODO chaos
-			logger.debug("iteration i = {}",i);
-			MCLOut.startIteration(i);
+		while(chaos >= getChaosLimit() && iter() <= getMaxIterations()){ //TODO chaos
+			logger.debug("iteration i = {}",iter());
+			MCLOut.startIteration(iter());
 			
 			long step_tic = System.currentTimeMillis();
 			
