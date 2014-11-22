@@ -48,16 +48,20 @@ public class MCLStep extends AbstractMCLJob {
 		private final SliceId id = new SliceId();
 		private DistributedDouble ssd = null; //sum squared differences
 		private int last_id = -1;
+		private long cpu_nanos = 0;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
+			cpu_nanos = 0;
 		}
 		
 		@SuppressWarnings("unchecked")
 		@Override
 		protected void map(SliceId key, TupleWritable tuple, Context context)
 				throws IOException, InterruptedException {
+			
+			long start = System.nanoTime();
 			
 			M m = (M) tuple.get(0);
 			
@@ -88,6 +92,7 @@ public class MCLStep extends AbstractMCLJob {
 				context.getCounter(Counters.NON_DIAG_MASS).increment(m.size());
 			}
 			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
+			cpu_nanos += System.nanoTime() - start;
 			context.write(id, product);
 		}
 		
@@ -98,12 +103,14 @@ public class MCLStep extends AbstractMCLJob {
 				ZkMetric.set(context.getConfiguration(), SSD, ssd);
 				ZkMetric.close();
 			}
+			context.getCounter(Counters.MAP_CPU_TIME).increment(cpu_nanos/1000000L);
 		}
 	}
 	
 	private static final class MCLCombiner<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {
 		
 		private M vec = null;
+		private long cpu_nanos = 0;
 		
 		@Override
 		protected void setup(Context context)
@@ -111,27 +118,40 @@ public class MCLStep extends AbstractMCLJob {
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
+			cpu_nanos = 0;
 		}
 		
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+			long start; // = System.nanoTime();
 			vec.clear();
+			
 			for(M m : values){
+				start = System.nanoTime();
 				context.getCounter(Counters.COMBINE_INPUT_VALUES).increment(m.size());
 				vec.add(m);
+				cpu_nanos += System.nanoTime() - start;
 			}
+			
 			context.getCounter(Counters.COMBINE_OUTPUT_VALUES).increment(vec.size());
 			context.write(col, vec);
 		}
+		
+		@Override
+		protected void cleanup(Reducer<SliceId, M, SliceId, M>.Context context)
+				throws IOException, InterruptedException {
+			context.getCounter(Counters.COMBINE_CPU_TIME).increment(cpu_nanos/1000000L);
+		}
 	}
 	
-	public static final class MCLReducer<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {		
+	private static final class MCLReducer<M extends MCLMatrixSlice<M>> extends Reducer<SliceId, M, SliceId, M> {		
 		
 		private M vec = null;
 		private final DistributedInt k_max = new DistributedIntMaximum();
 		private final DistributedDouble chaos = new DistributedDoubleMaximum();
 		private final MCLStats stats = new MCLStats();
+		private long cpu_nanos = 0;
 		
 		@Override
 		protected void setup(Context context)
@@ -139,21 +159,26 @@ public class MCLStep extends AbstractMCLJob {
 			if(vec == null){
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
+			cpu_nanos = 0;
 		}
 		
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+			long start; // = System.nanoTime();
 			vec.clear();
 			for(M m : values){
+				start = System.nanoTime();
 				context.getCounter(Counters.REDUCE_INPUT_VALUES).increment(m.size());
 				vec.add(m);
+				cpu_nanos += System.nanoTime() - start;
 			}
-			
+			start = System.nanoTime();
 			vec.inflateAndPrune(stats, context);
 			k_max.set(stats.kmax);
 			chaos.set(stats.maxChaos);
 			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
+			cpu_nanos += System.nanoTime() - start;
 			context.write(col, vec);
 		}
 		
@@ -164,6 +189,7 @@ public class MCLStep extends AbstractMCLJob {
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
 			ZkMetric.close();
+			context.getCounter(Counters.REDUCE_CPU_TIME).increment(cpu_nanos/1000000L);
 		}
 	}
 	
