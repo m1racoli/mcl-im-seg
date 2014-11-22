@@ -401,7 +401,6 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 		}
 		
 		colPtr[nsub] = valPtr;
-		if(context != null) context.getCounter(Counters.OUTPUT_NNZ).increment(size());
 	}
 	
 	@Override

@@ -70,7 +70,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private Path counters = null;
 	
 	@Parameter(names = "--abc")
-	private boolean abc = false;
+	private boolean is_abc = false;
 	
 	@Parameter(names = "-zk")
 	private boolean embeddedZkServer = false;
@@ -179,9 +179,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	protected final MCLResult inputJob(Path input, Path output) throws Exception {
 		MCLResult result = null;
 		
-		if(!isNativeInput()){
+		if(!native_input){
 			logger.debug("run InputJob on {} => {}",input,output);
-			result = abc() 
+			result = is_abc 
 					? new InputAbcJob().run(getConf(), input, output)
 					: new SequenceInputJob().run(getConf(), input, output);
 			
@@ -240,14 +240,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final double getChangeLimit() {
 		return change_limit;
-	}
-	
-	public final boolean abc(){
-		return abc;
-	}
-	
-	public final boolean isNativeInput(){
-		return native_input;
 	}
 
 	public final Path transposedPath(){
