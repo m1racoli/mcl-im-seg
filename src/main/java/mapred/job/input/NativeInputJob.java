@@ -1,12 +1,13 @@
 /**
  * 
  */
-package mapred.job;
+package mapred.job.input;
 
 import java.util.List;
 
 import io.writables.MatrixMeta;
 import mapred.MCLResult;
+import mapred.job.AbstractMCLJob;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;

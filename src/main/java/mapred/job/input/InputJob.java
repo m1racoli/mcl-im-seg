@@ -1,18 +1,21 @@
 /**
  * 
  */
-package mapred.job;
+package mapred.job.input;
 
+import java.awt.Point;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Pattern;
 
+import io.writables.FeatureWritable;
 import io.writables.Index;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
+import io.writables.Pixel;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
 import iterators.ReadOnlyIterator;
@@ -23,26 +26,21 @@ import mapred.MCLContext;
 import mapred.MCLInitParams;
 import mapred.MCLResult;
 import mapred.SlicePartitioner;
+import mapred.job.AbstractMCLJob;
 import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import zookeeper.DistributedInt;
-import zookeeper.DistributedIntMaximum;
-import zookeeper.ZkMetric;
 
 import com.beust.jcommander.Parameter;
 
@@ -50,14 +48,13 @@ import com.beust.jcommander.Parameter;
  * @author Cedrik
  *
  */
-public class InputAbcJob extends AbstractMCLJob {
+public class InputJob extends AbstractMCLJob {
 
-	private static final Logger logger = LoggerFactory.getLogger(InputAbcJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(InputJob.class);
 	
 	private static final String NB_RADIUS_CONF = "nb.radius";
 	private static final String DIM_WIDTH_CONF = "dim.width";
 	private static final String DIM_HEIGHT_CONF = "dim.height";
-	private static final String KMAX = "/kmax";
 	
 	@Parameter(names = "-r")
 	private Float radius = 3.0f;
@@ -68,103 +65,118 @@ public class InputAbcJob extends AbstractMCLJob {
 	@Parameter(names = "-h")
 	private int h = 300;
 	
-	private volatile MCLInitParams initParams = null;
+	private Applyable initParams = null;
 	
-	private static final class AbcMapper extends Mapper<LongWritable, Text, Index, FloatWritable> {
-		
-		private final Pattern PATTERN = Pattern.compile("\t");
-		private final Index idx = new Index();
-		private final FloatWritable val = new FloatWritable();
+	private static final class InputMapper extends Mapper<LongWritable, Pixel, Index, Pixel> {
+		private final ArrayList<Point> list = new ArrayList<Point>();
+		private int w = 480;
+		private int h = 300;
 		private int nsub;
+		private final Index idx1 = new Index();
+		private final Index idx2 = new Index();
+		private static RadialPixelNeighborhood nb = null;
 		
 		@Override
-		protected void setup(
-				Mapper<LongWritable, Text, Index, FloatWritable>.Context context)
+		protected void setup(Context context)
 				throws IOException, InterruptedException {
+			if(nb == null){
+				synchronized (InputMapper.class) {
+					if(nb == null){
+						nb = new RadialPixelNeighborhood(context.getConfiguration().getFloat(NB_RADIUS_CONF, 3));
+					}
+				}
+			}
+			w = context.getConfiguration().getInt(DIM_WIDTH_CONF, w);
+			h = context.getConfiguration().getInt(DIM_HEIGHT_CONF, h);
 			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
 		}
 		
-		protected void map(LongWritable key, Text value, Context context)
+		@Override
+		protected void map(LongWritable key, Pixel value, Context context)
 				throws IOException, InterruptedException {
+			final long k1 = key.get();
+			idx1.id.set(MCLContext.getIdFromIndex(k1,nsub));
+			idx1.col.set(MCLContext.getSubIndexFromIndex(k1,nsub));
+			idx2.row.set(k1);
 			
-			final String[] split = PATTERN.split(value.toString());
-			final float v = Float.parseFloat(split[2]);
-			
-			if (v <= 0.0f) return;
-						
-			final long col = Long.parseLong(split[0]);
-			final long row = Long.parseLong(split[1]);
-			val.set(v);
-			idx.set(col, row, nsub);
-			context.write(idx, val);
-			//idx.set(row, col, nsub);
-			//context.write(idx, val);
+			for(Point p : nb.local(value.getPosition().x, value.getPosition().y, w, h, list)){
+				final long k2 = (long) p.x + (long) w * (long) p.y;
+				idx1.row.set(k2);
+				idx2.id.set(MCLContext.getIdFromIndex(k2,nsub));
+				idx2.col.set(MCLContext.getSubIndexFromIndex(k2,nsub));
+
+				context.write(idx1, value);				
+				context.write(idx2, value);
+			}
 		}
 	}
 	
-	private static final class AbcReducer<M extends MCLMatrixSlice<M>> extends Reducer<Index, FloatWritable, SliceId, M>{
+	private static final class InputReducer<M extends MCLMatrixSlice<M>,V extends FeatureWritable<V>> extends Reducer<Index, V, SliceId, M>{
+		
 		private M col = null;
-		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
+		private int kmax = 0;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
-			}
+			}			
 		}
 		
 		@Override
-		protected void reduce(final Index idx, final Iterable<FloatWritable> vals, Context context)
+		protected void reduce(final Index idx, final Iterable<V> pixels, Context context)
 				throws IOException, InterruptedException {
 			int kmax_tmp = col.fill(new Iterable<SliceEntry>() {
 				
 				@Override
 				public Iterator<SliceEntry> iterator() {
-					return new ValueIterator(idx, vals.iterator());
+					return new ValueIterator(idx, pixels.iterator());
 				}
 				
 			});
 			col.addLoops(idx);
 			col.makeStochastic(context);
 			
-			kmax.set(kmax_tmp);
+			if(kmax < kmax_tmp) kmax = kmax_tmp;
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
 			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(col.size());
 			context.write(idx.id, col);
 		}
 		
 		@Override
-		protected void cleanup(Reducer<Index, FloatWritable, SliceId, M>.Context context)
+		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
-			ZkMetric.close();
+			MatrixMeta.writeKmax(context, kmax);
+			//TODO multiple otput or correct path
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<SliceEntry> {
 
+			private final SliceEntry entry = new SliceEntry();
 			private final Index idx;
-			private final Iterator<FloatWritable> val;
-			private final SliceEntry e = new SliceEntry();
+			private final Iterator<V> iter;
 			
-			public ValueIterator(Index idx, Iterator<FloatWritable> val) {
+			private ValueIterator(Index idx, Iterator<V> iter){
 				this.idx = idx;
-				this.val = val;
+				this.iter = iter;
 			}
 			
 			@Override
 			public boolean hasNext() {
-				return val.hasNext();
+				return iter.hasNext();
 			}
-
+			
 			@Override
 			public SliceEntry next() {
-				e.val = val.next().get();
-				e.col = idx.col.get();
-				e.row = idx.row.get();
-				return e;
-			}			
-		}
+				final V f1 = iter.next();
+				
+				entry.col = idx.col.get();
+				entry.row = idx.row.get();				
+				entry.val = f1.dist(iter.next()); //TODO fix self comparison or leave it completely
+				return entry;
+			}
+		}		
 	}
 	
 	/* (non-Javadoc)
@@ -190,14 +202,14 @@ public class InputAbcJob extends AbstractMCLJob {
 		Job job = Job.getInstance(conf, "Input to "+output.getName());
 		job.setJarByClass(getClass());
 		
-		job.setInputFormatClass(TextInputFormat.class);
-		TextInputFormat.setInputPaths(job, inputs.get(0));
+		job.setInputFormatClass(SequenceFileInputFormat.class);
+		SequenceFileInputFormat.setInputPaths(job, inputs.get(0));		
 
-		job.setMapperClass(AbcMapper.class);
+		job.setMapperClass(InputMapper.class);
 		job.setMapOutputKeyClass(Index.class);
-		job.setReducerClass(AbcReducer.class);
+		job.setReducerClass(InputReducer.class);
 
-		job.setMapOutputValueClass(FloatWritable.class);
+		job.setMapOutputValueClass(Pixel.class);
 		job.setOutputKeyClass(SliceId.class);
 		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
@@ -206,15 +218,18 @@ public class InputAbcJob extends AbstractMCLJob {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		SequenceFileOutputFormat.setOutputPath(job, output);
 		
-		ZkMetric.init(conf, KMAX, true);
-		
 		MCLResult result = new MCLResult();
 		result.run(job);
 		
 		if(!result.success) return result;
 		result.out_nnz = job.getCounters().findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue();
 		
-		meta.setKmax(ZkMetric.<DistributedInt>get(conf, KMAX).get());
+//		while(job.cleanupProgress() < 1) {
+//			logger.debug("wait for cleanup");
+//			Thread.sleep(200);
+//		}
+		
+		meta.mergeKmax(conf, output);
 		result.kmax = meta.getKmax();
 		result.n = n;
 		
@@ -223,7 +238,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	}
 
 	@Override
-	protected Collection<? extends Applyable> getParams() {
+	protected Collection<Applyable> getParams() {
 		if (initParams == null) {
 			initParams = new MCLInitParams();
 		}
@@ -231,21 +246,12 @@ public class InputAbcJob extends AbstractMCLJob {
 		return Arrays.asList(initParams);
 	}
 	
-	@Override
-	protected void setCommander(List<Object> list) {
-		if (initParams == null) {
-			initParams = new MCLInitParams();
-		}
-		
-		list.add(initParams);
-	}
-	
 	/**
 	 * @param args
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new InputAbcJob(), args));
+		System.exit(ToolRunner.run(new InputJob(), args));
 	}
 
 }

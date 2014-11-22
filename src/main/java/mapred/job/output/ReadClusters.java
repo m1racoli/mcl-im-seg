@@ -1,7 +1,7 @@
 /**
  * 
  */
-package mapred.job;
+package mapred.job.output;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,6 +19,7 @@ import io.writables.SliceEntry;
 import io.writables.SliceId;
 import mapred.MCLConfigHelper;
 import mapred.MCLResult;
+import mapred.job.AbstractMCLJob;
 import math.ConnectedComponents;
 
 import org.apache.hadoop.fs.FileSystem;

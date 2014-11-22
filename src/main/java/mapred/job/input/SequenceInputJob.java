@@ -1,7 +1,7 @@
 /**
  * 
  */
-package mapred.job;
+package mapred.job.input;
 
 import java.awt.Point;
 import java.io.IOException;
@@ -26,6 +26,7 @@ import mapred.MCLContext;
 import mapred.MCLInitParams;
 import mapred.MCLResult;
 import mapred.SlicePartitioner;
+import mapred.job.AbstractMCLJob;
 import mapred.util.FileUtil;
 import model.nb.RadialPixelNeighborhood;
 

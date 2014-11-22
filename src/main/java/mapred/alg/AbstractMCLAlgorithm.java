@@ -21,11 +21,11 @@ import mapred.MCLInitParams;
 import mapred.MCLParams;
 import mapred.MCLResult;
 import mapred.job.AbstractMCLJob;
-import mapred.job.InputAbcJob;
 import mapred.job.MCLStep;
-import mapred.job.NativeInputJob;
-import mapred.job.SequenceInputJob;
 import mapred.job.TransposeJob;
+import mapred.job.input.InputAbcJob;
+import mapred.job.input.NativeInputJob;
+import mapred.job.input.SequenceInputJob;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;

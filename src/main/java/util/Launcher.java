@@ -8,8 +8,8 @@ import java.util.Arrays;
 
 import mapred.alg.MCLJob;
 import mapred.alg.RMCLJob;
-import mapred.job.InputJob;
 import mapred.job.TransposeJob;
+import mapred.job.input.InputJob;
 
 import org.apache.hadoop.util.ToolRunner;
 
