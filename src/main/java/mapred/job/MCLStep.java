@@ -64,7 +64,7 @@ public class MCLStep extends AbstractMCLJob {
 			if(last_id != key.get())
 			{
 				last_id = key.get();
-				context.getCounter(Counters.INPUT_NNZ).increment(m.size());
+				context.getCounter(Counters.MAP_INPUT_VALUES).increment(m.size());
 				
 				if(tuple.size() > 2)
 				{					
@@ -78,6 +78,7 @@ public class MCLStep extends AbstractMCLJob {
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
 			id.set(subBlock.id);
 			
+			context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
 			M product = subBlock.subBlock.multipliedBy(m, context);
 			
 			//count output records on diagonal and off diagonal
@@ -86,7 +87,7 @@ public class MCLStep extends AbstractMCLJob {
 			} else {
 				context.getCounter(Counters.NON_DIAG_MASS).increment(m.size());
 			}
-			
+			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
 			context.write(id, product);
 		}
 		
@@ -117,8 +118,10 @@ public class MCLStep extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			vec.clear();
 			for(M m : values){
+				context.getCounter(Counters.COMBINE_INPUT_VALUES).increment(m.size());
 				vec.add(m);
 			}
+			context.getCounter(Counters.COMBINE_OUTPUT_VALUES).increment(vec.size());
 			context.write(col, vec);
 		}
 	}
@@ -143,12 +146,14 @@ public class MCLStep extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			vec.clear();
 			for(M m : values){
+				context.getCounter(Counters.REDUCE_INPUT_VALUES).increment(m.size());
 				vec.add(m);
 			}
 			
 			vec.inflateAndPrune(stats, context);
 			k_max.set(stats.kmax);
 			chaos.set(stats.maxChaos);
+			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
 			context.write(col, vec);
 		}
 		
@@ -222,7 +227,7 @@ public class MCLStep extends AbstractMCLJob {
 		MatrixMeta.save(conf, output, meta);
 		
 		result.kmax = meta.getKmax();
-		result.in_nnz = job.getCounters().findCounter(Counters.INPUT_NNZ).getValue();
+		result.in_nnz = job.getCounters().findCounter(Counters.MAP_INPUT_VALUES).getValue();
 		result.out_nnz = job.getCounters().findCounter(Counters.OUTPUT_NNZ).getValue();
 		result.attractors = job.getCounters().findCounter(Counters.ATTRACTORS).getValue();
 		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
