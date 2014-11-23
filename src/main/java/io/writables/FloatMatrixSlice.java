@@ -10,6 +10,7 @@ import java.util.Queue;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import mapred.Counters;
+import mapred.MCLStats;
 
 /**
  * @author Cedrik
@@ -34,7 +35,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		}
 	}
 	
-	protected final int prune(float[] val, int s, int t, int[] selection, TaskAttemptContext context, boolean auto) {
+	protected final int prune(float[] val, int s, int t, int[] selection, MCLStats stats, boolean auto) {
 		
 		final int k = t-s;
 		float sum = 0.0f;
@@ -55,12 +56,14 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 			if(val[i] >= tresh){
 				selection[selected++] = i;
 			} else {
-				if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
+				stats.cutoff++;
+				//if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
 			}
 		}
 		
 		if(selected > S){
-			if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
+			stats.prune += selected - S;
+			//if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
 			select(val, selection, selected, S);
 			selected = S;
 		}

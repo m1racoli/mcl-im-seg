@@ -160,6 +160,7 @@ public class MCLStep extends AbstractMCLJob {
 				vec = MCLContext.<M>getMatrixSliceInstance(context.getConfiguration());
 			}
 			cpu_nanos = 0;
+			stats.reset();
 		}
 		
 		@Override
@@ -190,6 +191,8 @@ public class MCLStep extends AbstractMCLJob {
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
 			ZkMetric.close();
 			context.getCounter(Counters.REDUCE_CPU_MICROS).increment(cpu_nanos/1000L);
+			context.getCounter(Counters.PRUNE).increment(stats.prune);
+			context.getCounter(Counters.CUTOFF).increment(stats.cutoff);
 		}
 	}
 	

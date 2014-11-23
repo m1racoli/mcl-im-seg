@@ -35,10 +35,9 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 	private final class StepRunner<M extends MCLMatrixSlice<M>> {
 		
 		private double sqd = 0.0;
-		private int kmax = 0;
-		private double chaos = 0.0;
 		private int in_nnz = 0;
 		private int out_nnz = 0;
+		MCLStats stats = new MCLStats();
 		
 		TreeMap<Integer, M> map = new TreeMap<Integer, M>();
 		
@@ -88,15 +87,12 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 			
 			Iterator<Entry<Integer,M>> it = map.entrySet().iterator();
 			SliceId id = new SliceId();
-			MCLStats stats = new MCLStats();
 			
 			while(it.hasNext()){
 				Entry<Integer,M> e = it.next();
 				id.set(e.getKey());
 				M m = e.getValue();
 				m.inflateAndPrune(stats, null);
-				if(chaos < stats.maxChaos) chaos = stats.maxChaos;
-				if(kmax < stats.kmax) kmax = stats.kmax;
 				out_nnz += m.size();
 				writer.append(id, m);
 				it.remove();
@@ -165,8 +161,10 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 		result.counters = new Counters();
 		result.in_nnz = runner.in_nnz;
 		result.out_nnz = runner.out_nnz;
+		result.cutoff = runner.stats.cutoff;
+		result.prune = runner.stats.prune;
 		
-		meta.setKmax(runner.kmax);
+		meta.setKmax(runner.stats.kmax);
 		MatrixMeta.save(conf, output, meta);
 		
 //		result.kmax = meta.getKmax();
@@ -176,7 +174,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 //		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 //		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 //		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
-		result.chaos = runner.chaos;
+		result.chaos = runner.stats.maxChaos;
 		result.changeInNorm = prev != null ? Math.sqrt(runner.sqd)/meta.getN() : Double.POSITIVE_INFINITY;
 		return result;
 	}
