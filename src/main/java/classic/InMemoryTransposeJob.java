@@ -21,13 +21,14 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.SequenceFile.Writer;
+import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
  * @author Cedrik
  *
  */
-public class TransposeJob extends AbstractMCLJob {
+public class InMemoryTransposeJob extends AbstractMCLJob {
 
 	private final class TransposeRunner<M extends MCLMatrixSlice<M>> {
 		
@@ -35,7 +36,7 @@ public class TransposeJob extends AbstractMCLJob {
 			Reader reader = new Reader(getConf(), Reader.file(input));
 			Writer writer = SequenceFile.createWriter(getConf(), 
 					Writer.file(output), 
-					Writer.keyClass(SliceId.class), 
+					Writer.keyClass(SliceId.class),
 					Writer.valueClass(SubBlock.class));
 			
 			SliceId key = new SliceId();
@@ -75,10 +76,14 @@ public class TransposeJob extends AbstractMCLJob {
 		while(it.hasNext()){
 			LocatedFileStatus status = it.next();
 			String filename = status.getPath().getName();
+			if(filename.startsWith(".") || filename.startsWith("_"))
+				continue;
 			runner.run(status.getPath(), new Path(output, filename));
 		}
 
 		MCLResult result = new MCLResult();
+		result.success = true;
+		result.counters = new Counters();
 		
 		MatrixMeta.save(getConf(), output, meta);
 		return result;
@@ -89,7 +94,7 @@ public class TransposeJob extends AbstractMCLJob {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new TransposeJob(), args));
+		System.exit(ToolRunner.run(new InMemoryTransposeJob(), args));
 	}
 
 }
