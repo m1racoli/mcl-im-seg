@@ -21,12 +21,12 @@ import com.beust.jcommander.Parameter;
  * @author Cedrik
  *
  */
-public class IMCLJob extends AbstractMCLAlgorithm {
+public class BMCLJob extends AbstractMCLAlgorithm {
 
-	private static final Logger logger = LoggerFactory.getLogger(IMCLJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(BMCLJob.class);
 	
-	@Parameter(names = "--factor")
-	private double factor = 1.0;
+	@Parameter(names = {"-b","--balance"})
+	private double balance = 1.0;
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
@@ -44,10 +44,9 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 		Long init_nnz = null; //result.out_nnz;
 		
 		
-		factor = Math.min(1.0, Math.max(0.0, factor));
-		final int increment = factor == 0.0 ? 0 : (int) (1.0/factor);
+		balance = Math.min(1.0, Math.max(0.0, balance));
+		final int increment = balance == 0.0 ? 0 : (int) (1.0/balance);
 		int weigth = 0;
-		//System.out.printf("");
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		MCLOut.init();
@@ -63,7 +62,8 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 			final boolean do_transpose = weigth <= 0;
 			if(do_transpose){
 				result = transposeJob(m_i_1);
-				weigth += 1;
+				if(increment == 0) weigth = Integer.MAX_VALUE;
+				else weigth += increment;
 			}
 			
 			result = stepJob(iter() == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
@@ -93,7 +93,7 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 			System.out.printf("\t%f",changeInNorm); //TODO not quick and dirty
 			if(do_transpose) System.out.printf("   transpose");
 			MCLOut.finishIteration();
-			weigth -= increment;
+			weigth--;
 		}
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
@@ -117,7 +117,7 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new IMCLJob(), args));
+		System.exit(ToolRunner.run(new BMCLJob(), args));
 	}
 
 }
