@@ -45,7 +45,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 			
 			{
 				Reader lReader = new Reader(getConf(), Reader.file(left));
-				SliceId lkey = new SliceId();
+				SliceId lkey = new SliceId(-1);
 				M lm = MCLContext.getMatrixSliceInstance(getConf());
 				
 				Reader rReader = new Reader(getConf(), Reader.file(right));
@@ -57,22 +57,45 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 				SliceId pkey = prev == null ? null : new SliceId();
 				M pm = prev == null ? null : MCLContext.<M>getMatrixSliceInstance(getConf());
 				
-				int last = -1;
-				
 				while(rReader.next(rkey,subBlock)){
-					if(last != rkey.get()){
-						last = rkey.get();
-						lReader.next(lkey, lm);
+					
+					while(lkey.get() < rkey.get()){
+						if(!lReader.next(lkey, lm)){
+							rReader.close();
+							lReader.close();
+							if(prev != null) pReader.close();
+							throw new RuntimeException("out of matrix slices. sub blocks left");
+						}
+						
 						in_nnz += lm.size();
 						
 						if(prev != null){
-							pReader.next(pkey, pm);
+							if(!pReader.next(pkey, pm)){
+								rReader.close();
+								lReader.close();
+								if(prev != null) pReader.close();
+								throw new RuntimeException("missing previous matrix slice");
+							}
 							sqd += lm.sumSquaredDifferences(pm);
 						}
 					}
 					
 					M m = subBlock.subBlock.multipliedBy(lm, null);
 					add(subBlock.id,m);
+				}
+				
+				while(lReader.next(lkey, lm)){
+					in_nnz += lm.size();
+					
+					if(prev != null){
+						if(!pReader.next(pkey, pm)){
+							rReader.close();
+							lReader.close();
+							if(prev != null) pReader.close();
+							throw new RuntimeException("missing previous matrix slice");
+						}
+						sqd += lm.sumSquaredDifferences(pm);
+					}
 				}
 				
 				rReader.close();

@@ -10,6 +10,7 @@ import mapred.MCLOut;
 import mapred.MCLResult;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 		double weigth = 0.0;
 		
 		factor = Math.min(1.0, Math.max(0.0, factor));
+		//System.out.printf("");
 		
 		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		MCLOut.init();
@@ -57,7 +59,8 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 			
 			long step_tic = System.currentTimeMillis();
 			
-			if(weigth <= 0.0){
+			final boolean do_transpose = weigth <= 0.0;
+			if(do_transpose){
 				result = transposeJob(m_i_1);
 				weigth += 1.0;
 			}			
@@ -82,16 +85,14 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 			
 			MCLOut.stats(chaos
 					, step_toc/1000.0
-					, 0.0
-					, 0.0
-					, 0.0
 					, (double) nnz_expand / (last_nnz + 1L)
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L));
 
 			System.out.printf("\t%f",changeInNorm); //TODO not quick and dirty
+			if(do_transpose) System.out.printf("\ttranspose");
 			MCLOut.finishIteration();
-			weigth += factor;
+			weigth -= factor;
 		}
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
@@ -99,7 +100,8 @@ public class IMCLJob extends AbstractMCLAlgorithm {
 		
 		FileSystem fs = output.getFileSystem(getConf());
 		Path res = new Path(output,"result");
-		fs.rename(m_i_1, res);
+		//fs.rename(m_i_1, res);
+		FileUtil.copy(fs, m_i_1, fs, res, true, true, getConf());
 		fs.delete(m_i, true);
 		fs.delete(transposedPath(), true);
 		
