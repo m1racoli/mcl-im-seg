@@ -37,6 +37,8 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 		private double sqd = 0.0;
 		private int kmax = 0;
 		private double chaos = 0.0;
+		private int in_nnz = 0;
+		private int out_nnz = 0;
 		
 		TreeMap<Integer, M> map = new TreeMap<Integer, M>();
 		
@@ -62,6 +64,8 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 					if(last != rkey.get()){
 						last = rkey.get();
 						lReader.next(lkey, lm);
+						in_nnz += lm.size();
+						
 						if(prev != null){
 							pReader.next(pkey, pm);
 							sqd += lm.sumSquaredDifferences(pm);
@@ -93,6 +97,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 				m.inflateAndPrune(stats, null);
 				if(chaos < stats.maxChaos) chaos = stats.maxChaos;
 				if(kmax < stats.kmax) kmax = stats.kmax;
+				out_nnz += m.size();
 				writer.append(id, m);
 				it.remove();
 			}
@@ -158,6 +163,8 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 		MCLResult result = new MCLResult();
 		result.success = true;
 		result.counters = new Counters();
+		result.in_nnz = runner.in_nnz;
+		result.out_nnz = runner.out_nnz;
 		
 		meta.setKmax(runner.kmax);
 		MatrixMeta.save(conf, output, meta);
