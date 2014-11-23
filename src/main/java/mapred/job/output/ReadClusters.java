@@ -17,6 +17,7 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
+import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLResult;
 import mapred.job.AbstractMCLJob;
@@ -209,6 +210,9 @@ public class ReadClusters extends AbstractMCLJob {
 	@Override
 	protected MCLResult run(List<Path> inputs, Path output) throws Exception {
 		
+		MCLCompressionParams compressionParams = new MCLCompressionParams(true, false);
+		compressionParams.apply(getConf());
+		
 		MatrixMeta meta = MatrixMeta.load(getConf(), inputs.get(0));
 		meta.apply(getConf());
 		
@@ -231,7 +235,10 @@ public class ReadClusters extends AbstractMCLJob {
 		TextOutputFormat.setOutputPath(job, output);
 		
 		MCLResult result = new MCLResult();
-		result.run(job);		
+		result.run(job);
+		result.clusters = job.getCounters().findCounter(Counters.CLUSTERS).getValue();
+		logger.debug("clusters found: {}",result.clusters);
+		
 		return result;
 	}
 }

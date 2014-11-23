@@ -403,7 +403,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			}
 			
 			
-			final int selected = prune(val, cs, ct, selection, context, auto_prune);
+			final int selected = prune(val, cs, ct, selection, stats, auto_prune);
 			if(stats.kmax < selected) stats.kmax = selected;
 			
 			if(selected == 1){

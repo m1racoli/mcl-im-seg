@@ -20,12 +20,12 @@ import mapred.MCLDefaults;
 import mapred.MCLInitParams;
 import mapred.MCLParams;
 import mapred.MCLResult;
-import mapred.job.AbstractMCLJob;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
 import mapred.job.input.InputAbcJob;
 import mapred.job.input.NativeInputJob;
 import mapred.job.input.SequenceInputJob;
+import mapred.job.output.ReadClusters;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
 import zookeeper.server.EmbeddedZkServer;
+import classic.InMemoryMCLStep;
+import classic.InMemoryTransposeJob;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -100,8 +102,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private Path transposePath = null;
 	
-	private MCLOperation transposeJob = new TransposeJob();
-	private MCLOperation stepJob = new MCLStep();
+	private MCLOperation transposeJob = null;
+	private MCLOperation stepJob = null;
 	
 	private int iteration = 1;
 	
@@ -161,8 +163,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			EmbeddedZkServer.init(getConf());
 		}
 		
-
-		
+		if(in_memory){
+			transposeJob = new InMemoryTransposeJob();
+			stepJob = new InMemoryMCLStep();
+		} else {
+			transposeJob = new TransposeJob();
+			stepJob = new MCLStep();
+		}
 		
 		FileSystem outFS = output.getFileSystem(getConf());
 		if (outFS.exists(output)) {
@@ -247,6 +254,23 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
+	protected final MCLResult outputJob(Path src, Path dest) throws Exception {
+		
+		logger.debug("run ReadClusters: {} => {}",src,dest);
+		ReadClusters readClusters = new ReadClusters();
+		
+		MCLResult result = readClusters.run(getConf(), src, dest);
+		writeCounters(result.counters, "output");
+		
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			System.exit(1);
+		}
+		
+		logger.info("{}",result);
+		return result;
+	}
+	
 	public static final Path suffix(Path path, Object suffix){
 		return new Path(path.getParent(),String.format("%s_%s", path.getName(),suffix));
 	}
@@ -279,7 +303,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	}
 	
 	private final void writeCounters(Counters counters, String job) throws IOException {
-		if(counters == null){
+		if(this.counters == null){
 			return;
 		}
 		

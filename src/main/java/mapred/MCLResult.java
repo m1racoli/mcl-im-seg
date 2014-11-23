@@ -30,6 +30,7 @@ public class MCLResult {
 	public org.apache.hadoop.mapreduce.Counters counters = null;
 	public double chaos = 1.0f;
 	public double changeInNorm = Double.NaN;
+	public long clusters = -1;
 	
 	public void run(Job job) throws Exception {
 		success = job.waitForCompletion(true);

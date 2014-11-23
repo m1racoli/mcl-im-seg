@@ -9,7 +9,7 @@ package mapred;
  */
 public final class MCLOut {
 
-	private static final String HEADER = " ite --------------------  chaos  time hom(avg,lo,hi) expa expb expc";
+	private static final String HEADER = " ite --------------------  chaos  time expa expb expc";
 	
 	private MCLOut(){};
 	
@@ -35,7 +35,7 @@ public final class MCLOut {
 	 * @param vals
 	 */
 	public static void stats(Object ... vals) {
-		System.out.printf("%7.2f %5.2f %4.2f/%4.2f/%4.2f %4.2f %4.2f %4.2f", vals);
+		System.out.printf("%7.2f %5.2f %4.2f %4.2f %4.2f", vals);
 	}
 	
 	public static void finishIteration() {

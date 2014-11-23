@@ -6,6 +6,7 @@ package util;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import mapred.alg.BMCLJob;
 import mapred.alg.MCLJob;
 import mapred.alg.RMCLJob;
 import mapred.job.TransposeJob;
@@ -41,6 +42,8 @@ public class Launcher {
 			System.exit(ToolRunner.run(new MCLJob(), args));
 		case "rmcl":
 			System.exit(ToolRunner.run(new RMCLJob(), args));
+		case "bmcl":
+			System.exit(ToolRunner.run(new BMCLJob(), args));
 		case "test":
 			TestRunner.main(args);
 		default:
