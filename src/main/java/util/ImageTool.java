@@ -63,6 +63,9 @@ public class ImageTool extends Configured implements Tool {
 	@Parameter(names = "-te")
 	private int te = 1;
 	
+	@Parameter(names = {"-h","--help"}, help = true)
+	private boolean help = false;
+	
 	@Override
 	public int run(String[] args) throws Exception {
 
