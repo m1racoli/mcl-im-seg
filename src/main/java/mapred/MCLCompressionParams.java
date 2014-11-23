@@ -39,6 +39,12 @@ public class MCLCompressionParams implements Applyable {
 		this(new Lz4Codec(), CompressionType.BLOCK);
 	}
 	
+	public MCLCompressionParams(boolean compress_map, boolean compress_output){
+		this();
+		this.compress_map_output = compress_map;
+		this.compress_output = compress_output;
+	}
+	
 	public MCLCompressionParams(CompressionCodec codec, CompressionType type){
 		this.codec = codec;
 		this.type = type;

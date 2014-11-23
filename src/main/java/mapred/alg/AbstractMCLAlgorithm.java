@@ -25,6 +25,7 @@ import mapred.job.TransposeJob;
 import mapred.job.input.InputAbcJob;
 import mapred.job.input.NativeInputJob;
 import mapred.job.input.SequenceInputJob;
+import mapred.job.output.ReadClusters;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -253,6 +254,23 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
+	protected final MCLResult outputJob(Path src, Path dest) throws Exception {
+		
+		logger.debug("run ReadClusters: {} => {}",src,dest);
+		ReadClusters readClusters = new ReadClusters();
+		
+		MCLResult result = readClusters.run(getConf(), src, dest);
+		writeCounters(result.counters, "output");
+		
+		if (result == null || !result.success) {
+			logger.error("failure! result = {}",result);
+			System.exit(1);
+		}
+		
+		logger.info("{}",result);
+		return result;
+	}
+	
 	public static final Path suffix(Path path, Object suffix){
 		return new Path(path.getParent(),String.format("%s_%s", path.getName(),suffix));
 	}
@@ -285,7 +303,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	}
 	
 	private final void writeCounters(Counters counters, String job) throws IOException {
-		if(counters == null){
+		if(this.counters == null){
 			return;
 		}
 		
