@@ -170,6 +170,12 @@ public class ImageTool extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
 		ImageTool tool = new ImageTool();
 		JCommander cmd = new JCommander(tool, args);
+		
+		if(tool.help){
+			cmd.usage();
+			System.exit(1);
+		}
+		
 		System.exit(ToolRunner.run(tool, args));
 	}
 	
