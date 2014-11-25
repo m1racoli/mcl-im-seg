@@ -39,7 +39,7 @@ public class StreamedNcut extends AbstractUtil {
 	private int te = 1;
 	
 	@Parameter()
-	private List<String> inputs;
+	private List<String> inputList;
 		
 	/* (non-Javadoc)
 	 * @see util.AbstractUtil#run(org.apache.hadoop.fs.Path, org.apache.hadoop.fs.Path, boolean)
@@ -48,29 +48,52 @@ public class StreamedNcut extends AbstractUtil {
 	protected int run(Path input, Path output, boolean hdfsOutput)
 			throws Exception {
 
-		if(inputs == null){
+		if(inputList == null){
 			logger.error("no clusterings specified");
 			System.exit(1);
 		}
 		
 		//final String outputPath = output.toString();
-		final List<Clustering<Integer>> list = new ArrayList<Clustering<Integer>>(inputs.size());
-		final List<Map<Cluster<Integer>,Double>> a1 = new ArrayList<Map<Cluster<Integer>,Double>>(inputs.size()); //assoc(A,A)
-		final List<Map<Cluster<Integer>,Double>> a2 = new ArrayList<Map<Cluster<Integer>,Double>>(inputs.size()); //assoc(A,V)
+		final List<Clustering<Integer>> list = new ArrayList<Clustering<Integer>>(inputList.size());
+		final List<Map<Cluster<Integer>,Double>> a1 = new ArrayList<Map<Cluster<Integer>,Double>>(inputList.size()); //assoc(A,A)
+		final List<Map<Cluster<Integer>,Double>> a2 = new ArrayList<Map<Cluster<Integer>,Double>>(inputList.size()); //assoc(A,V)
 		
-		for(String in : inputs){
+		List<String> inputs = new ArrayList<String>();
+		
+		for(String in : inputList){
 			logger.info("load {}",in);
 			File clusteringFile = new File(in);
-			Clustering<Integer> clustering = new ArrayClustering(clusteringFile);
-			list.add(clustering);
-			Map<Cluster<Integer>, Double> m1 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
-			Map<Cluster<Integer>, Double> m2 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
-			for(Cluster<Integer> cl : clustering){
-				m1.put(cl, 0.0);
-				m2.put(cl, 0.0);
+			
+			if(clusteringFile.isDirectory()){
+				for(String fname : clusteringFile.list()){
+					File clFile = new File(clusteringFile,fname);
+					inputs.add(clFile.toString());
+					Clustering<Integer> clustering = new ArrayClustering(clFile);
+					list.add(clustering);
+					Map<Cluster<Integer>, Double> m1 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
+					Map<Cluster<Integer>, Double> m2 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
+					for(Cluster<Integer> cl : clustering){
+						m1.put(cl, 0.0);
+						m2.put(cl, 0.0);
+					}
+					a1.add(m1);
+					a2.add(m2);
+				}
+			} else {
+				inputs.add(in);
+				Clustering<Integer> clustering = new ArrayClustering(clusteringFile);
+				list.add(clustering);
+				Map<Cluster<Integer>, Double> m1 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
+				Map<Cluster<Integer>, Double> m2 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
+				for(Cluster<Integer> cl : clustering){
+					m1.put(cl, 0.0);
+					m2.put(cl, 0.0);
+				}
+				a1.add(m1);
+				a2.add(m2);
 			}
-			a1.add(m1);
-			a2.add(m2);
+			
+			
 		}
 		
 		final Pattern pattern = Pattern.compile("\t");
