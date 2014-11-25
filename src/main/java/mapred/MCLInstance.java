@@ -6,6 +6,7 @@ package mapred;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
@@ -21,16 +22,6 @@ public class MCLInstance extends MCLContext implements Configurable {
 	protected long n = MCLDefaults.n;
 	protected int nsub = MCLDefaults.nsub;
 	protected int te = MCLDefaults.te;
-	
-	@Override
-	public void setConf(Configuration conf) {
-		vint = MCLConfigHelper.getUseVarints(conf);
-		kmax = MCLConfigHelper.getKMax(conf);
-		n = MCLConfigHelper.getN(conf);
-		nsub = MCLConfigHelper.getNSub(conf);
-		te = MCLConfigHelper.getNumThreads(conf);
-		MCLContext.setLogging(conf);
-	}
 	
 	protected final void writeLong(DataOutput out, long val) throws IOException {
 		if(vint) WritableUtils.writeVLong(out, val);
@@ -58,6 +49,16 @@ public class MCLInstance extends MCLContext implements Configurable {
 	
 	protected final int getSubIndexFromIndex(long idx){
 		return getSubIndexFromIndex(idx, nsub);
+	}
+
+	@Override
+	public void setConf(Configuration conf) {
+		vint = MCLConfigHelper.getUseVarints(conf);
+		kmax = MCLConfigHelper.getKMax(conf);
+		n = MCLConfigHelper.getN(conf);
+		nsub = MCLConfigHelper.getNSub(conf);
+		te = MCLConfigHelper.getNumThreads(conf);
+		MCLContext.setLogging(conf);
 	}
 
 	@Override

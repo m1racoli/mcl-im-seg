@@ -166,6 +166,17 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	}
 	
 	@Override
+	public Configuration getConf() {
+		Configuration conf = super.getConf();
+		MCLConfigHelper.setInflation(conf, inflation);
+		MCLConfigHelper.setCutoff(conf, cutoff);
+		MCLConfigHelper.setSelection(conf, select);
+		MCLConfigHelper.setPrintMatrix(conf, print_matrix);
+		MCLConfigHelper.setAutoPrune(conf, auto_prune);		
+		return conf;
+	}
+	
+	@Override
 	public String toString() {
 		
 		switch (print_matrix) {

@@ -51,7 +51,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		val = new float[max_nnz];
 		rowInd = new long[max_nnz];
 		colPtr = new int[nsub+1];
-		//colStats = new MCLColumnStats(nsub);
 	}
 
 	@Override
@@ -208,7 +207,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		top_aligned = !top_aligned;
-		//assertOrder();
 	}
 
 	@Override
@@ -267,8 +265,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		colPtr[0] = tmp_end;		
 		top_aligned = false;
-		
-		//assertOrder();
 		
 		return this;
 	}
@@ -371,8 +367,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
-		final double inf = inflation;
-		
+		final double I = inflation;
+				
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
 			int cs = colPtr[col_start];
@@ -398,7 +394,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			
 			if(auto_prune){
 				for(int i = ct-1; i >= cs; --i) {
-					val[i] = (float) Math.pow(val[i], inf);
+					val[i] = (float) Math.pow(val[i], I);
 				}
 			}
 			

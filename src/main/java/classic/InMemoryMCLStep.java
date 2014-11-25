@@ -10,6 +10,7 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
+import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLResult;
 import mapred.MCLStats;
@@ -43,7 +44,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 		
 		private void run(Path left, Path right, Path prev, Path output) throws IOException {
 			
-			{
+			{				
 				Reader lReader = new Reader(getConf(), Reader.file(left));
 				SliceId lkey = new SliceId(-1);
 				M lm = MCLContext.getMatrixSliceInstance(getConf());
@@ -115,6 +116,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 				Entry<Integer,M> e = it.next();
 				id.set(e.getKey());
 				M m = e.getValue();
+				
 				m.inflateAndPrune(stats, null);
 				out_nnz += m.size();
 				writer.append(id, m);
