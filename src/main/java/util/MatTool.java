@@ -136,7 +136,7 @@ public class MatTool extends Configured implements Tool {
 		}	
 		logger.info("output: {}",outFile);
 		
-		writeABC(new File(output), frame, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
+		writeABC(outFile, frame, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
 		
 		return 0;
 	}

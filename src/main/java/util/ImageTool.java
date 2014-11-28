@@ -141,33 +141,8 @@ public class ImageTool extends Configured implements Tool {
 	
 		logger.info("output: {}",outFile);
 		
-		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
-		else writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
-//		final Configuration conf = getConf();
-//		final FileSystem fs = FileSystem.get(conf);
-//		final Path output = new Path(this.output);
-//		final Path data = new Path(output,"img.data");
-//		//final Path meta = new Path(output,"img.meta");
-//		final LongWritable id = new LongWritable();
-//		final Pixel p = new Pixel();
-//		
-//		logger.info("data to {}",fs.makeQualified(data));
-//		
-//		SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, data, LongWritable.class, Pixel.class);
-//		
-//		try {			
-//			for(p.y = 0; p.y < h; p.y++){
-//				for(p.x = 0; p.x < w; p.x++){
-//					id.set( (long) p.x + (long) w* (long)p.y);
-//					raster.getPixel(p.x, p.y, p.v);
-//					writer.append(id, p);
-//				}
-//			}
-//		} finally {
-//			if(writer != null) writer.close();
-//		}
-//		
-//		logger.info("success");
+		if(te > 1) writeABC(outFile, image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
+		else writeABC(outFile, image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF);
 		
 		return 0;
 	}
