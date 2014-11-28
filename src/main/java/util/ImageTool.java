@@ -131,9 +131,14 @@ public class ImageTool extends Configured implements Tool {
 		}
 		
 		File outFile = new File(output);
-		if(outFile.isDirectory()){
+		
+		if(!output.endsWith(".abc")){
+			outFile.mkdirs();
 			outFile = new File(outFile, "matrix.abc");
-		}		
+		} else {
+			outFile.getParentFile().mkdirs();
+		}
+	
 		logger.info("output: {}",outFile);
 		
 		if(te > 1) writeABC(new File(output), image, new RadialPixelNeighborhood(radius), sigmaX, sigmaF, te);
