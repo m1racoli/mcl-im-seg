@@ -3,22 +3,47 @@
  */
 package mapred;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
+
+import org.apache.commons.io.output.TeeOutputStream;
+import org.apache.hadoop.fs.Path;
+
 /**
  * @author Cedrik
  *
  */
 public final class MCLOut {
 
-	private static final String HEADER = " ite --------------------  chaos  time expa expb expc";
+	private static final String HEADER = " ite --------------------  chaos  time expa expb expc  change";
+	
+	private static PrintStream out;
 	
 	private MCLOut(){};
 	
 	public static void init() {
-		System.out.println(HEADER);
+		init(null);
+	}
+	
+	public static void init(OutputStream o) {
+		if(out != null){
+			throw new IllegalStateException("output already initialized");
+		}
+		
+		if(o == null){
+			out = System.out;
+		} else {
+			out = new PrintStream(new TeeOutputStream(System.out, o));
+		}
+	}
+	
+	public static void start(long n, int nsub, int te, int kmax){
+		out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,nsub,te,kmax);
+		out.println(HEADER);
 	}
 	
 	public static void startIteration(int i) {
-		System.out.printf("%3d  ",i);
+		out.printf("%3d  ",i);
 	}
 	
 	public static void progress(float last, float current) {
@@ -27,7 +52,7 @@ public final class MCLOut {
 		
 		int diff = ((int) (100.0f * current)/5) - ((int) (100.0f * last)/5);
 		//print diff times a '.'
-		System.out.print(new String(new char[diff]).replace('\0', '.'));
+		out.print(new String(new char[diff]).replace('\0', '.'));
 	}
 	
 	/**
@@ -35,10 +60,30 @@ public final class MCLOut {
 	 * @param vals
 	 */
 	public static void stats(Object ... vals) {
-		System.out.printf("%7.2f %5.2f %4.2f %4.2f %4.2f", vals);
+		out.printf("%7.2f %5.2f %4.2f %4.2f %4.2f", vals);
+	}
+	
+	public static void change(double change) {
+		out.printf("  %f",change);
+	}
+	
+	public static void transpose(){
+		out.printf("  transpose");
 	}
 	
 	public static void finishIteration() {
-		System.out.println();
+		out.println();
+	}
+	
+	public static void runningTime(long millis){
+		out.printf("total runtime: %f seconds\n",millis/1000L);
+	}
+	
+	public static void clusters(long num){
+		out.printf("clusters found: %d\n",num);
+	}
+	
+	public static void result(Path path){
+		out.printf("Output written to: %s\n",path);
 	}
 }

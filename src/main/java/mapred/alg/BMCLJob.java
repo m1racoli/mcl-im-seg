@@ -48,8 +48,9 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		final int increment = balance == 0.0 ? 0 : (int) (1.0/balance);
 		int weigth = 0;
 		
-		System.out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
+		
 		MCLOut.init();
+		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		
 		long total_tic = System.currentTimeMillis();
 		
@@ -90,20 +91,21 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L));
 
-			System.out.printf("\t%f",changeInNorm); //TODO not quick and dirty
-			if(do_transpose) System.out.printf("   transpose");
+			MCLOut.change(changeInNorm);
+			if(do_transpose) MCLOut.transpose();
 			MCLOut.finishIteration();
 			weigth--;
 		}
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
-		System.out.printf("total runtime: %d seconds\n",total_toc/1000L);
+		MCLOut.runningTime(total_toc);
 		
 		FileSystem fs = output.getFileSystem(getConf());
 		Path res = new Path(output,"clustering");
 		
 		result = outputJob(m_i_1, res);
-		System.out.printf("clusters found: %d\n",result.clusters);
+		
+		MCLOut.clusters(result.clusters);
 		
 		//FileUtil.copy(fs, m_i_1, fs, res, true, true, getConf());
 		fs.delete(m_i, true);
@@ -111,7 +113,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		fs.delete(m_i_2, true);
 		fs.delete(transposedPath(), true);
 		
-		System.out.printf("Output written to: %s\n",res);
+		MCLOut.result(res);
 		
 		return 0;
 	}
