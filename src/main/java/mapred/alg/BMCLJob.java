@@ -43,13 +43,11 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		double changeInNorm = Double.POSITIVE_INFINITY;
 		Long init_nnz = null; //result.out_nnz;
 		
-		
 		balance = Math.min(1.0, Math.max(0.0, balance));
 		final int increment = balance == 0.0 ? 0 : (int) (1.0/balance);
 		int weigth = 0;
 		
-		
-		MCLOut.init();
+		MCLOut.init(getLogStream());
 		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		
 		long total_tic = System.currentTimeMillis();

@@ -28,6 +28,7 @@ import mapred.job.input.SequenceInputJob;
 import mapred.job.output.ReadClusters;
 
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Counter;
@@ -76,10 +77,15 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "--change-limit", description = "convergence treshold (R-MCL)")
 	private double change_limit = MCLDefaults.changeLimit;
 	
-	@Parameter(names = "-dump-counters")
+	@Parameter(names = {"-c","--counters"}, description = "write counters to file")
 	private Path counters = null;
 	private FileSystem countersFS = null;
 	private TextFormatWriter countersWriter = null;
+	
+	@Parameter(names = {"-l","--logfile"}, description = "write output to logifle")
+	private Path log = null;
+	private FileSystem logFS = null;
+	private FSDataOutputStream logStream = null;
 	
 	@Parameter(names = "--abc")
 	private boolean is_abc = false;
@@ -182,9 +188,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		initCounters();
 		
+		initLog();
+		
 		int rc = run(input, output);
 		
 		closeCounters();
+		
+		closeLog();
 		
 		if(rc != 0) return rc;
 		
@@ -302,6 +312,21 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		logger.info("log counters to {}",counters);
 	}
 	
+	private void initLog() throws IOException {
+		if(log == null){
+			return;
+		}
+		
+		logFS = log.getFileSystem(getConf());
+		log = logFS.makeQualified(log);
+		logStream = logFS.create(log, true);
+		logger.info("log output to {}",log);		
+	}
+
+	protected FSDataOutputStream getLogStream(){
+		return logStream;
+	}
+	
 	private final void writeCounters(Counters counters, String job) throws IOException {
 		if(this.counters == null){
 			return;
@@ -328,6 +353,15 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		countersFS.close();
 	}
 	
+	private void closeLog() throws IOException {
+		if(log == null){
+			return;
+		}
+		
+		logStream.close();
+		logFS.close();
+	}
+
 	/**
 	 * current iteration >= 1
 	 */
