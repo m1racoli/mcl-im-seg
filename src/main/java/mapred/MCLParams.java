@@ -30,7 +30,7 @@ public class MCLParams {
 	@Parameter(names = "-print-matrix")
 	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
 	
-	@Parameter(names = "--auto-prune")
+	@Parameter(names = {"-a","--auto-prune"})
 	private boolean auto_prune = MCLDefaults.autoPrune;
 	
 	public void apply(Configuration conf) {
