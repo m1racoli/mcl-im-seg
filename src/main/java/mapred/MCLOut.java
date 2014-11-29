@@ -76,7 +76,7 @@ public final class MCLOut {
 	}
 	
 	public static void runningTime(long millis){
-		out.printf("total runtime: %f seconds\n",millis/1000L);
+		out.printf("total runtime: %f seconds\n",(double) millis/1000.0);
 	}
 	
 	public static void clusters(long num){
