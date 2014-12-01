@@ -54,6 +54,7 @@ public class MCLStep extends AbstractMCLJob {
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			cpu_nanos = 0;
+			if(ssd != null) ssd.clear();
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -103,7 +104,7 @@ public class MCLStep extends AbstractMCLJob {
 				ZkMetric.set(context.getConfiguration(), SSD, ssd);
 				ZkMetric.close();
 			}
-			context.getCounter(Counters.MAP_CPU_MICROS).increment(cpu_nanos/1000L);
+			context.getCounter(Counters.MAP_CPU_MILLIS).increment(cpu_nanos/1000000L);
 		}
 	}
 	
@@ -141,7 +142,7 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<SliceId, M, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			context.getCounter(Counters.COMBINE_CPU_MICROS).increment(cpu_nanos/1000L);
+			context.getCounter(Counters.COMBINE_CPU_MILLIS).increment(cpu_nanos/1000000L);
 		}
 	}
 	
@@ -190,7 +191,7 @@ public class MCLStep extends AbstractMCLJob {
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
 			ZkMetric.close();
-			context.getCounter(Counters.REDUCE_CPU_MICROS).increment(cpu_nanos/1000L);
+			context.getCounter(Counters.REDUCE_CPU_MILLIS).increment(cpu_nanos/1000000L);
 			context.getCounter(Counters.PRUNE).increment(stats.prune);
 			context.getCounter(Counters.CUTOFF).increment(stats.cutoff);
 		}

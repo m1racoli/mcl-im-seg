@@ -58,6 +58,9 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 	@Parameter(names = "-local")
 	private boolean local = false;
 	
+	@Parameter(names = {"--help"}, help = true)
+	private boolean help = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
@@ -77,6 +80,11 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
+		
+		if(help){
+			cmd.usage();
+			return 1;
+		}
 		
 		this.params.apply(getConf());
 		this.compressionParams.apply(getConf());

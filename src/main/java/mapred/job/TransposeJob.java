@@ -62,7 +62,7 @@ public class TransposeJob extends AbstractMCLJob {
 		protected void cleanup(
 				Mapper<SliceId, M, SliceId, SubBlock<M>>.Context context)
 				throws IOException, InterruptedException {
-			context.getCounter(Counters.MAP_CPU_MICROS).increment(cpu_nanos/1000L);
+			context.getCounter(Counters.MAP_CPU_MILLIS).increment(cpu_nanos/1000000L);
 		}
 	}
 
