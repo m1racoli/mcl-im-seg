@@ -48,9 +48,11 @@ public class TransposeJob extends AbstractMCLJob {
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 			long start = System.nanoTime();
+//			context.getCounter(Counters.MAP_INPUT_VALUES).increment(value.size());
 			subBlock.id = key.get();
 			for (M m : value.getSubBlocks(id)) {
 				subBlock.subBlock = m;
+				context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(m.size());
 				cpu_nanos += System.nanoTime() - start;
 				context.write(id, subBlock);
 				start = System.nanoTime();

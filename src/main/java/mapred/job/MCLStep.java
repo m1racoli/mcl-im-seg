@@ -70,6 +70,7 @@ public class MCLStep extends AbstractMCLJob {
 			{
 				last_id = key.get();
 				context.getCounter(Counters.MAP_INPUT_VALUES).increment(m.size());
+				context.getCounter(Counters.MAP_INPUT_SLICES).increment(1);
 				
 				if(tuple.size() > 2)
 				{					
@@ -83,7 +84,10 @@ public class MCLStep extends AbstractMCLJob {
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
 			id.set(subBlock.id);
 			
-			context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
+			context.getCounter(Counters.MAP_INPUT_BLOCKS).increment(1);
+			context.getCounter(Counters.MAP_INPUT_BLOCK_VALUES).increment(subBlock.subBlock.size());
+			
+			//context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
 			M product = subBlock.subBlock.multipliedBy(m, context);
 			
 			//count output records on diagonal and off diagonal

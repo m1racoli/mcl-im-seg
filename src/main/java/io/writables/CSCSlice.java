@@ -464,6 +464,15 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 
 	@Override
 	public int size() {
+		
+		if(view != null){
+			int s = 0;
+			for(int i = nsub; i>0;){
+				s += view.size[--i];
+			}
+			return s;
+		}
+		
 		return colPtr[nsub] - colPtr[0];
 	}
 

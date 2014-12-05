@@ -9,6 +9,7 @@ import java.util.Arrays;
 import mapred.alg.BMCLJob;
 import mapred.alg.MCLJob;
 import mapred.alg.RMCLJob;
+import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
 import mapred.job.input.InputJob;
 
@@ -38,6 +39,8 @@ public class Launcher {
 			InputJob.main(args);
 		case "transpose":
 			TransposeJob.main(args);
+		case "step":
+			MCLStep.main(args);
 		case "mcl":
 			System.exit(ToolRunner.run(new MCLJob(), args));
 		case "rmcl":
