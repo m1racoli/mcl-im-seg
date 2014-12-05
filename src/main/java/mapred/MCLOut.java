@@ -15,7 +15,7 @@ import org.apache.hadoop.fs.Path;
  */
 public final class MCLOut {
 
-	private static final String HEADER = " ite --------------------  chaos  time expa expb expc  change";
+	private static final String HEADER = " ite --------------------  chaos   time expa expb expc   kmax change";
 	
 	private static PrintStream out;
 	
@@ -60,11 +60,11 @@ public final class MCLOut {
 	 * @param vals
 	 */
 	public static void stats(Object ... vals) {
-		out.printf("%7.2f %5.2f %4.2f %4.2f %4.2f", vals);
+		out.printf("%7.2f %6.2f %4.2f %4.2f %4.2f %6d", vals);
 	}
 	
 	public static void change(double change) {
-		out.printf("  %f",change);
+		out.printf(" %f",change);
 	}
 	
 	public static void transpose(){
@@ -85,5 +85,9 @@ public final class MCLOut {
 	
 	public static void result(Path path){
 		out.printf("Output written to: %s\n",path);
+	}
+	
+	public static void println(String str){
+		out.println(str);
 	}
 }

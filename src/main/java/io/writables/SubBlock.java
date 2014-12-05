@@ -14,6 +14,8 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implement
 	public int id = 0;
 	public M subBlock = null;
 	
+	private boolean new_data = false;
+	
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
@@ -35,6 +37,15 @@ public class SubBlock<M extends MCLMatrixSlice<M>> extends MCLInstance implement
 	public void readFields(DataInput in) throws IOException {
 		id = readInt(in);
 		subBlock.readFields(in);
+		new_data = true;
+	}
+	
+	public boolean newData(){
+		if(new_data){
+			new_data = false;
+			return true;
+		}
+		return false;		
 	}
 	
 	@Override

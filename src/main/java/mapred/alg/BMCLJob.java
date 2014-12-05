@@ -87,7 +87,8 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 					, step_toc/1000.0
 					, (double) nnz_expand / (last_nnz + 1L)
 					, (double) nnz_final  / (last_nnz + 1L)
-					, (double) nnz_final  / (init_nnz + 1L));
+					, (double) nnz_final  / (init_nnz + 1L)
+					, (int) result.kmax);
 
 			MCLOut.change(changeInNorm);
 			if(do_transpose) MCLOut.transpose();

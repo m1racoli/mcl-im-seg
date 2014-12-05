@@ -18,6 +18,7 @@ import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
 import mapred.MCLInitParams;
+import mapred.MCLOut;
 import mapred.MCLParams;
 import mapred.MCLResult;
 import mapred.job.MCLStep;
@@ -225,6 +226,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 		
 		if (result == null || !result.success) {
+			MCLOut.println("input failed");
 			logger.error("failure! result = {}",result);
 			System.exit(1);
 		}
@@ -239,6 +241,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		writeCounters(result.counters,"transpose");
 		
 		if (result == null || !result.success) {
+			MCLOut.println("transpose failed");
 			logger.error("failure! result = {}",result);
 			System.exit(1);
 		}
@@ -255,6 +258,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		writeCounters(result.counters,"step");
 		
 		if (result == null || !result.success) {
+			MCLOut.println("step failed");
 			logger.error("failure! result = {}",result);
 			System.exit(1);
 		}
@@ -273,6 +277,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		writeCounters(result.counters, "output");
 		
 		if (result == null || !result.success) {
+			MCLOut.println("output failed");
 			logger.error("failure! result = {}",result);
 			System.exit(1);
 		}

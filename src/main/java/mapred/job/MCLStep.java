@@ -82,6 +82,11 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
+			if(!subBlock.newData()){
+				context.getCounter(Counters.SLICE_WITHOUT_BLOCKS).increment(1);
+				return;
+			}
+			
 			id.set(subBlock.id);
 			
 			context.getCounter(Counters.MAP_INPUT_BLOCKS).increment(1);
@@ -235,8 +240,8 @@ public class MCLStep extends AbstractMCLJob {
 		job.getConfiguration().set(
 				CompositeInputFormat.JOIN_EXPR,
 				computeChange 
-				? CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1),inputs.get(2))
-						: CompositeInputFormat.compose("inner", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
+				? CompositeInputFormat.compose("outer", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1),inputs.get(2))
+						: CompositeInputFormat.compose("outer", SequenceFileInputFormat.class, inputs.get(0), inputs.get(1)));
 		
 		job.setMapperClass(MCLMapper.class);
 		job.setMapOutputKeyClass(SliceId.class);
