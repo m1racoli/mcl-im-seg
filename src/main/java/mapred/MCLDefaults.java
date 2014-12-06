@@ -30,7 +30,7 @@ public class MCLDefaults {
 	//algorithm
 	public static final int max_iterations = 100;
 	public static final double chaosLimit = 0.0001;
-	public static final double changeLimit = 0.00001;
+	public static final double changeLimit = 0.0001;
 	public static final boolean autoPrune = false;
 	
 }
