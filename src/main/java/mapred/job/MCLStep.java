@@ -18,6 +18,8 @@ import mapred.SlicePartitioner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -75,10 +77,15 @@ public class MCLStep extends AbstractMCLJob {
 				if(tuple.size() > 2)
 				{					
 					ssd = ssd == null ? new DistributedDoubleSum() : ssd;
-					//if(ssd.get() < 1e-4f){ //break if treshold is already reached?
-						ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
-					//}				
+					ssd.set(m.sumSquaredDifferences((M) tuple.get(2)));
 				}
+			}
+			
+			Writable mw = tuple.get(1);
+			
+			if(mw instanceof NullWritable){
+				context.getCounter(Counters.NULL_BLOCKS).increment(1);
+				return;
 			}
 			
 			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
