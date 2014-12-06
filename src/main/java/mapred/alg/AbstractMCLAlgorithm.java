@@ -197,6 +197,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		closeLog();
 		
+		//TODO cleanup
+		
 		if(rc != 0) return rc;
 		
 		return rc;
@@ -228,7 +230,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (result == null || !result.success) {
 			MCLOut.println("input failed");
 			logger.error("failure! result = {}",result);
-			System.exit(1);
+			return null;
 		}
 		
 		return result;
@@ -243,7 +245,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (result == null || !result.success) {
 			MCLOut.println("transpose failed");
 			logger.error("failure! result = {}",result);
-			System.exit(1);
+			return null;
 		}
 		
 		logger.info("{}",result);
@@ -260,7 +262,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (result == null || !result.success) {
 			MCLOut.println("step failed");
 			logger.error("failure! result = {}",result);
-			System.exit(1);
+			return null;
 		}
 		
 		logger.info("{}",result);
@@ -279,7 +281,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		if (result == null || !result.success) {
 			MCLOut.println("output failed");
 			logger.error("failure! result = {}",result);
-			System.exit(1);
+			return null;
 		}
 		
 		logger.info("{}",result);

@@ -36,6 +36,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		Path m_i   = new Path(output,"tmp_2");
 		
 		MCLResult result = inputJob(input, m_i_1);
+		if(result == null) return 1;
 		
 		logger.info("{}",result);
 		long n = result.n;
@@ -62,12 +63,15 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 			final boolean do_transpose = weigth <= 0;
 			if(do_transpose){
 				result = transposeJob(m_i_1);
+				if(result == null) return 1;
+				
 				if(increment == 0) weigth = Integer.MAX_VALUE;
 				else weigth += increment;
 			}
 			
 			result = stepJob(iter() == 1 || pure_mcl ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);
-
+			if(result == null) return 1;
+			
 			long step_toc = System.currentTimeMillis() - step_tic;
 			chaos = result.chaos;
 			changeInNorm = result.changeInNorm;
@@ -104,6 +108,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		Path res = new Path(output,"clustering");
 		
 		result = outputJob(m_i_1, res);
+		if(result == null) return 1;
 		
 		MCLOut.clusters(result.clusters);
 		
