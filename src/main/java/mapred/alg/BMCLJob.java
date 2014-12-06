@@ -46,13 +46,14 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		balance = Math.min(1.0, Math.max(0.0, balance));
 		final int increment = balance == 0.0 ? 0 : (int) (1.0/balance);
 		int weigth = 0;
+		final boolean pure_mcl = balance == 1.0;
 		
 		MCLOut.init(getLogStream());
 		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
 		
 		long total_tic = System.currentTimeMillis();
 		
-		while(chaos >= getChaosLimit() && changeInNorm >= getChangeLimit() && iter() <= getMaxIterations()){ //TODO chaos
+		while(chaos >= getChaosLimit() && (pure_mcl || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",iter());
 			MCLOut.startIteration(iter());
 			
@@ -65,7 +66,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 				else weigth += increment;
 			}
 			
-			result = stepJob(iter() == 1 ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);	
+			result = stepJob(iter() == 1 || pure_mcl ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);
 
 			long step_toc = System.currentTimeMillis() - step_tic;
 			chaos = result.chaos;
