@@ -9,8 +9,10 @@ import io.file.TextFormatWriter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import mapred.Applyable;
@@ -185,7 +187,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		outFS.mkdirs(output);
 		
-		transposePath = new Path(output,"t");
+		transposePath = getTmp("t");
 		
 		initCounters();
 		
@@ -194,12 +196,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		int rc = run(input, output);
 		
 		closeCounters();
-		
 		closeLog();
-		
-		//TODO cleanup
-		
-		if(rc != 0) return rc;
+		closeTmps();
 		
 		return rc;
 	}
@@ -374,6 +372,38 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 */
 	protected final int iter(){
 		return iteration;
+	}
+	
+	private transient Map<String,Path> tmps = null;
+	private transient FileSystem tmpFS = null;
+	
+	protected Path getTmp(String name) throws IOException{
+		if(tmps == null){
+			tmps = new LinkedHashMap<String, Path>();
+			tmpFS = FileSystem.get(getConf());
+		}
+		
+		Path tmp = tmps.get(name);
+		
+		if(tmp == null){
+			tmp = new Path(tmpFS.getWorkingDirectory(),name);
+			tmps.put(name, tmp);
+			tmpFS.deleteOnExit(tmp);
+			logger.info("tmp dir {} created",tmp);
+		}
+		
+		return tmp;
+	}
+	
+	private void closeTmps() throws IOException{
+		if(tmps == null){
+			return;
+		}
+		
+		tmpFS.close();
+		tmps.clear();
+		tmpFS = null;
+		tmps = null;
 	}
 	
 }

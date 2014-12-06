@@ -9,7 +9,6 @@ import mapred.MCLConfigHelper;
 import mapred.MCLOut;
 import mapred.MCLResult;
 
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -31,9 +30,9 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 	@Override
 	public int run(Path input, Path output) throws Exception {
 
-		Path m_i_2 = new Path(output,"tmp_0");
-		Path m_i_1 = new Path(output,"tmp_1");
-		Path m_i   = new Path(output,"tmp_2");
+		Path m_i_2 = getTmp("tmp_0");
+		Path m_i_1 = getTmp("tmp_1");
+		Path m_i   = getTmp("tmp_2");
 		
 		MCLResult result = inputJob(input, m_i_1);
 		if(result == null) return 1;
@@ -103,21 +102,13 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		
 		long total_toc = System.currentTimeMillis() - total_tic;
 		MCLOut.runningTime(total_toc);
-		
-		FileSystem fs = output.getFileSystem(getConf());
+
 		Path res = new Path(output,"clustering");
 		
 		result = outputJob(m_i_1, res);
 		if(result == null) return 1;
 		
 		MCLOut.clusters(result.clusters);
-		
-		//FileUtil.copy(fs, m_i_1, fs, res, true, true, getConf());
-		fs.delete(m_i, true);
-		fs.delete(m_i_1, true);
-		fs.delete(m_i_2, true);
-		fs.delete(transposedPath(), true);
-		
 		MCLOut.result(res);
 		
 		return 0;
