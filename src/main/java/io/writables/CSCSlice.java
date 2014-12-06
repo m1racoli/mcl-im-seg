@@ -682,30 +682,35 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		}
 		
 		double sum = 0.0;
-		int i1 = colPtr[0],i2 = o.colPtr[0], t1 = colPtr[nsub], t2 = o.colPtr[nsub];
 		
-		while(i1 < t1 && i2 < t2){
-			long r1 = rowInd[i1];
-			long r2 = o.rowInd[i2];
+		for(int col = nsub; col > 0;){
 			
-			if (r1 == r2) {
-				sum += (val[i1] - o.val[i2]) * (val[i1] - o.val[i2]);
-				i1++; i2++;
-			} else {
-				if (r1 < r2) {
-					sum += val[i1] * val[i1]; i1++;
+			int t1 = colPtr[col], t2 = o.colPtr[col], i1 = colPtr[--col], i2 = o.colPtr[col];
+			
+			while(i1 < t1 && i2 < t2){
+				long r1 = rowInd[i1];
+				long r2 = o.rowInd[i2];
+				
+				if (r1 == r2) {
+					sum += (val[i1] - o.val[i2]) * (val[i1] - o.val[i2]);
+					i1++; i2++;
 				} else {
-					sum += o.val[i2] * o.val[i2]; i2++;
+					if (r1 < r2) {
+						sum += val[i1] * val[i1]; i1++;
+					} else {
+						sum += o.val[i2] * o.val[i2]; i2++;
+					}
 				}
 			}
-		}
+			
+			while(i1 < t1){
+				sum += val[i1] * val[i1]; i1++;
+			}
+			
+			while(i2 < t2){
+				sum += o.val[i2] * o.val[i2]; i2++;
+			}
 		
-		while(i1 < t1){
-			sum += val[i1] * val[i1]; i1++;
-		}
-		
-		while(i2 < t2){
-			sum += o.val[i2] * o.val[i2]; i2++;
 		}
 		
 		return sum;
