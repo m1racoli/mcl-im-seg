@@ -53,7 +53,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		
 		long total_tic = System.currentTimeMillis();
 		
-		while(chaos >= getChaosLimit() && (pure_mcl || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations()){ //TODO chaos
+		while(chaos >= getChaosLimit() && (pure_mcl || iter() <= getMinIterations() || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations()){ //TODO chaos
 			logger.debug("iteration i = {}",iter());
 			MCLOut.startIteration(iter());
 			
@@ -113,7 +113,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		
 		return 0;
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		System.exit(ToolRunner.run(new BMCLJob(), args));
 	}

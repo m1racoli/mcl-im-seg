@@ -80,6 +80,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "--change-limit", description = "convergence treshold (R-MCL)")
 	private double change_limit = MCLDefaults.changeLimit;
 	
+	private int min_iterations = MCLDefaults.min_iterations;
+	
 	@Parameter(names = {"-c","--counters"}, description = "write counters to file")
 	private Path counters = null;
 	private FileSystem countersFS = null;
@@ -292,6 +294,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	public final int getMaxIterations() {
 		return max_iterations;
+	}
+	
+	public final int getMinIterations() {
+		return min_iterations;
 	}
 	
 	public final double getChaosLimit() {
