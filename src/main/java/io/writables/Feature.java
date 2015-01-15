@@ -7,8 +7,9 @@ package io.writables;
  * @author Cedrik
  *
  */
-public interface Feature<V> {
+public interface Feature<V extends Feature<V>> {
 
-	public float dist(V o);
+	public float dist(V feature);
 	
+	public V copy(V instance);
 }

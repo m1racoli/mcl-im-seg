@@ -1,2 +1,8 @@
 /target/
 /.settings/
+/examples/
+Thumbs.db
+dump/
+results/
+*.m~
+~$*

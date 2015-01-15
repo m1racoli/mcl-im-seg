@@ -11,9 +11,10 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 
 	private final int[] x_off;
 	private final int[] y_off;
+	private final double radius;
 	
 	public RadialPixelNeighborhood(double radius){
-		
+		this.radius = radius;
 		final int ceil_r = (int) Math.ceil(radius);
 		
 		List<Point> points = new ArrayList<Point>(ceil_r*ceil_r);
@@ -36,6 +37,10 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 		}
 	}
 	
+	public double getRadius() {
+		return radius;
+	}
+	
 	public List<Point> local(int x, int y, int w, int h, List<Point> list){
 		
 		list.clear();
@@ -48,6 +53,10 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 		}
 		
 		return list;
+	}
+	
+	public List<Point> local(Point p, int w, int h, List<Point> list){
+		return local(p.x, p.y, w, h, list);
 	}
 	
 	@Override
@@ -85,6 +94,23 @@ public class RadialPixelNeighborhood implements Iterable<Point> {
 				Math.max(0, - off.y),
 				dim.width - Math.abs(off.x),
 				dim.height - Math.abs(off.y));
+	}
+	
+	public static int size(double r) {
+		
+		double RS = r*r; 	
+		int cnt = 0;
+		
+		for(int R = (int) Math.floor(r), x = -R; x <= R; x++){
+			double XS = x*x;
+			for(int y = -R; y <= R; y++){
+				if(y*y + XS <= RS){
+					cnt++;
+				}
+			}
+		}
+		
+		return cnt;
 	}
 	
 }
