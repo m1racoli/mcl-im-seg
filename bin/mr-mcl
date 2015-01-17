@@ -5,6 +5,7 @@
 # Cedrik Neumann
 #
 
+
 bin=`which $0`
 bin=`dirname ${bin}`
 bin=`cd "$bin"; pwd`
