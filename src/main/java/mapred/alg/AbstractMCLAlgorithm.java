@@ -107,6 +107,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
 	private boolean native_input = false;
 	
+	@Parameter(names = {"-h","--help"}, help = true)
+	private boolean help = false;
+	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
@@ -133,6 +136,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
+		
+		if(help){
+			cmd.usage();
+			return 1;
+		}
 		
 		this.params.apply(getConf());
 		initParams.apply(getConf());
