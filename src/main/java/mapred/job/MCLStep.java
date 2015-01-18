@@ -51,12 +51,14 @@ public class MCLStep extends AbstractMCLJob {
 		private DistributedDouble ssd = null; //sum squared differences
 		private int last_id = -1;
 		private long cpu_nanos = 0;
+		private boolean local;
 		
 		@Override
 		protected void setup(Context context)
 				throws IOException, InterruptedException {
 			cpu_nanos = 0;
 			if(ssd != null) ssd.clear();
+			local = MCLConfigHelper.getLocal(context.getConfiguration());
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -118,7 +120,7 @@ public class MCLStep extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			if(ssd != null){
 				ZkMetric.set(context.getConfiguration(), SSD, ssd);
-				ZkMetric.close();
+				if(!local) ZkMetric.close();
 			}
 			context.getCounter(Counters.MAP_CPU_MILLIS).increment(cpu_nanos/1000000L);
 		}
@@ -169,6 +171,7 @@ public class MCLStep extends AbstractMCLJob {
 		private final DistributedDouble chaos = new DistributedDoubleMaximum();
 		private final MCLStats stats = new MCLStats();
 		private long cpu_nanos = 0;
+		private boolean local;
 		
 		@Override
 		protected void setup(Context context)
@@ -178,6 +181,7 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			cpu_nanos = 0;
 			stats.reset();
+			local = MCLConfigHelper.getLocal(context.getConfiguration());
 		}
 		
 		@Override
@@ -206,7 +210,7 @@ public class MCLStep extends AbstractMCLJob {
 			logger.debug("stats: {}",stats);
 			ZkMetric.set(context.getConfiguration(), CHAOS, chaos);
 			ZkMetric.set(context.getConfiguration(), KMAX, k_max);
-			ZkMetric.close();
+			if(!local) ZkMetric.close();
 			context.getCounter(Counters.REDUCE_CPU_MILLIS).increment(cpu_nanos/1000000L);
 			context.getCounter(Counters.PRUNE).increment(stats.prune);
 			context.getCounter(Counters.CUTOFF).increment(stats.cutoff);

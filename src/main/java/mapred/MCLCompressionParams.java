@@ -23,10 +23,10 @@ public class MCLCompressionParams implements Applyable {
 	private static final String COMRESS_OUTPUT_CODEC_CONF = "mapreduce.output.fileoutputformat.compress.codec";
 	private static final String COMRESS_OUTPUT_TYPE_CONF = "mapreduce.output.fileoutputformat.compress.type";
 	
-	@Parameter(names = "-cm")
+	@Parameter(names = "-cm", description = "enable map output compression")
 	private boolean compress_map_output = false;
 	
-	@Parameter(names = "-co")
+	@Parameter(names = "-co", description = "enable job output compression")
 	private boolean compress_output = false;
 	
 	private final CompressionCodec codec;
