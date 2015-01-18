@@ -10,7 +10,6 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
-import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLResult;
 import mapred.MCLStats;
@@ -46,11 +45,11 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 			
 			{				
 				Reader lReader = new Reader(getConf(), Reader.file(left));
-				SliceId lkey = new SliceId(-1);
+				SliceId lkey = new SliceId();
 				M lm = MCLContext.getMatrixSliceInstance(getConf());
 				
 				Reader rReader = new Reader(getConf(), Reader.file(right));
-				SliceId rkey = new SliceId();
+				SliceId rkey = new SliceId(-1);
 				SubBlock<M> subBlock = new SubBlock<M>();
 				subBlock.setConf(getConf());
 				
@@ -58,6 +57,24 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 				SliceId pkey = prev == null ? null : new SliceId();
 				M pm = prev == null ? null : MCLContext.<M>getMatrixSliceInstance(getConf());
 				
+				while(lReader.next(lkey, lm)){
+					
+					while(rkey.get() <= lkey.get()){
+						//TODO make it right
+					}
+					
+					if(prev != null){
+						if(!pReader.next(pkey, pm)){
+							rReader.close();
+							lReader.close();
+							if(prev != null) pReader.close();
+							throw new RuntimeException("missing previous matrix slice");
+						}
+						sqd += lm.sumSquaredDifferences(pm);
+					}
+				}
+				
+				//TODO this is wrong
 				while(rReader.next(rkey,subBlock)){
 					
 					while(lkey.get() < rkey.get()){
@@ -188,6 +205,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 		result.out_nnz = runner.out_nnz;
 		result.cutoff = runner.stats.cutoff;
 		result.prune = runner.stats.prune;
+		result.kmax = runner.stats.kmax;
 		
 		meta.setKmax(runner.stats.kmax);
 		MatrixMeta.save(conf, output, meta);
