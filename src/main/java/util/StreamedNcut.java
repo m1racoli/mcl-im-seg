@@ -6,9 +6,9 @@ package util;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,6 +20,10 @@ import java.util.regex.Pattern;
 import io.cluster.ArrayClustering;
 import io.cluster.Cluster;
 import io.cluster.Clustering;
+import mapred.util.FileUtil;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -62,13 +66,15 @@ public class StreamedNcut extends AbstractUtil {
 		
 		for(String in : inputList){
 			logger.info("load {}",in);
-			File clusteringFile = new File(in);
+			Path clusteringFile = new Path(in);
+			FileSystem fs = clusteringFile.getFileSystem(getConf());
 			
-			if(clusteringFile.isDirectory()){
-				for(String fname : clusteringFile.list()){
-					File clFile = new File(clusteringFile,fname);
+			if(fs.isDirectory(clusteringFile)){
+				for(FileStatus status : fs.listStatus(clusteringFile, FileUtil.defaultPathFilter())){
+					Path clFile = status.getPath();
+					BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(clFile)));
 					inputs.add(clFile.toString());
-					Clustering<Integer> clustering = new ArrayClustering(clFile);
+					Clustering<Integer> clustering = new ArrayClustering(reader);
 					list.add(clustering);
 					Map<Cluster<Integer>, Double> m1 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
 					Map<Cluster<Integer>, Double> m2 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
@@ -80,8 +86,9 @@ public class StreamedNcut extends AbstractUtil {
 					a2.add(m2);
 				}
 			} else {
+				BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(clusteringFile)));
 				inputs.add(in);
-				Clustering<Integer> clustering = new ArrayClustering(clusteringFile);
+				Clustering<Integer> clustering = new ArrayClustering(reader);
 				list.add(clustering);
 				Map<Cluster<Integer>, Double> m1 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
 				Map<Cluster<Integer>, Double> m2 = new HashMap<Cluster<Integer>, Double>(clustering.size(), 1.0f);
@@ -98,7 +105,8 @@ public class StreamedNcut extends AbstractUtil {
 		
 		final Pattern pattern = Pattern.compile("\t");
 		
-		BufferedReader reader = new BufferedReader(new FileReader(input.toString()));
+		FileSystem fs = input.getFileSystem(getConf());
+		BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(input)));
 		for(String line = reader.readLine(); line != null; line = reader.readLine()){
 			String[] split = pattern.split(line);
 			final Integer col = Integer.valueOf(split[0]);
