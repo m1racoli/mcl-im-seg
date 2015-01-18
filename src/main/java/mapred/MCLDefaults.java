@@ -18,6 +18,7 @@ public class MCLDefaults {
 	//generic
 	public static final Class<? extends Selector> selectorClass = Selector.class;
 	public static final PrintMatrix printMatrix = PrintMatrix.NNZ;
+	public static final boolean local = false;
 	
 	//pruning
 	public static final double inflation = 2.0;
@@ -28,10 +29,9 @@ public class MCLDefaults {
 	public static final float pruneB = 2.0f;
 	
 	//algorithm
-	public static final int max_iterations = 100;
+	public static final int max_iterations = 10000;
 	public static final double chaosLimit = 0.0001;
 	public static final double changeLimit = 0.0001;
 	public static final boolean autoPrune = false;
 	public static final int min_iterations = 10;
-	
 }

@@ -59,19 +59,19 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private static final Logger logger = LoggerFactory.getLogger(AbstractMCLAlgorithm.class);
 	
-	@Parameter(names = "-i", required = true)
+	@Parameter(names = "-i", required = true, description = "folder of input matrix")
 	private Path input = null;
 	
-	@Parameter(names = "-o", required = true)
+	@Parameter(names = "-o", required = true, description = "output folder for the clustering result")
 	private Path output = null;
 	
-	@Parameter(names = "-debug")
+	@Parameter(names = "-debug", description = "DEBUG logging level for MCL")
 	private boolean debug = false;
 	
-	@Parameter(names = "-verbose")
+	@Parameter(names = "-verbose", description = "show MapReduce job progress")
 	private boolean verbose = false;
 	
-	@Parameter(names = "-iter")
+	@Parameter(names = "--max-iter", description = "set max number of iterations")
 	private int max_iterations = MCLDefaults.max_iterations;
 	
 	@Parameter(names = "--chaos-limit", description = "convergence treshold for chaos (MCL)")
@@ -92,20 +92,26 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	private FileSystem logFS = null;
 	private FSDataOutputStream logStream = null;
 	
-	@Parameter(names = "--abc")
+	@Parameter(names = "--abc", description = "input matrix is in abc format (beta)")
 	private boolean is_abc = false;
 	
-	@Parameter(names = "-zk")
+	@Parameter(names = "-zk", description = "run an embedded zookeeper server on <THIS_NODES_IP>:2181 for the distributed metrics")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "local")
+	@Parameter(names = "--local", description = "run MapReduce in local mode")
 	private boolean local = false;
 	
-	@Parameter(names = "--in-memory")
+	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode")
 	private boolean in_memory;
+	
+	@Parameter(names = "--force-iter", description = "force the number of iterations")
+	private int fixed_iterations = 0;
 	
 	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
 	private boolean native_input = false;
+	
+	@Parameter(names = {"-h","--help"}, help = true, description = "show this help")
+	private boolean help = false;
 	
 	private final MCLParams params = new MCLParams();
 	private final MCLInitParams initParams = new MCLInitParams();
@@ -133,6 +139,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
+		
+		if(help){
+			cmd.usage();
+			return 1;
+		}
 		
 		this.params.apply(getConf());
 		initParams.apply(getConf());
@@ -168,6 +179,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			logger.info("run mapreduce in local mode");
 			getConf().set("mapreduce.framework.name", "local");
 			getConf().set("yarn.resourcemanager.address", "local");
+			MCLConfigHelper.setLocal(getConf(), local);
 		}
 		
 		if (embeddedZkServer) {
@@ -410,6 +422,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		tmps.clear();
 		tmpFS = null;
 		tmps = null;
+	}
+	
+	public final int getFixedIterations(){
+		return fixed_iterations;
 	}
 	
 }

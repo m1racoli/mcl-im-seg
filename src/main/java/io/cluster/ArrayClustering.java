@@ -41,6 +41,12 @@ public class ArrayClustering extends AbstractSet<Cluster<Integer>> implements Cl
 		logger.debug("{} clusters read",l);
 	}
 	
+	public ArrayClustering(Reader reader) throws IOException {
+		l = read(reader, 0);
+		end = clPtr[l];
+		logger.debug("{} clusters read",l);
+	}
+	
 	private int read(Reader in, int pos) throws IOException {
 		BufferedReader reader = new BufferedReader(in);
 		int l = clPtr[pos];

@@ -28,6 +28,7 @@ public class MCLConfigHelper {
 	private static final String DEBUG_CONF =		"mcl.debug";
 	private static final String ZK_HOSTS_CONF =		"mcl.zk.hosts";
 	private static final String AUTO_PRUNE =		"mcl.auto.prune";
+	private static final String LOCAL_MODE =		"mcl.local.mode";
 	
 	public static final void setKMax(Configuration conf, int kmax) {
 		conf.setInt(KMAX_CONF, kmax);
@@ -145,5 +146,13 @@ public class MCLConfigHelper {
 	
 	public static final boolean getAutoPrune(Configuration conf){
 		return conf.getBoolean(AUTO_PRUNE, MCLDefaults.autoPrune);
+	}
+	
+	public static final void setLocal(Configuration conf, boolean local){
+		conf.setBoolean(LOCAL_MODE, local);
+	}
+	
+	public static final boolean getLocal(Configuration conf){
+		return conf.getBoolean(LOCAL_MODE, MCLDefaults.local);
 	}
 }
