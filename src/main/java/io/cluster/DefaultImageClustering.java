@@ -8,6 +8,7 @@ import iterators.IteratorView;
 import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.AbstractSet;
 import java.util.Iterator;
 
@@ -26,6 +27,12 @@ public class DefaultImageClustering extends AbstractSet<ImageCluster>
 	
 	public DefaultImageClustering(File file, int w, int h) throws IOException {
 		inst = new IndexedClusteringView<Point>(new ArrayClustering(file), new IntTo2D(h));
+		this.w = w;
+		this.h = h;
+	}
+	
+	public DefaultImageClustering(Reader reader, int w, int h) throws IOException {
+		inst = new IndexedClusteringView<Point>(new ArrayClustering(reader), new IntTo2D(h));
 		this.w = w;
 		this.h = h;
 	}
