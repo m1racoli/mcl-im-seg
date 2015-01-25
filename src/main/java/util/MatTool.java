@@ -1,17 +1,25 @@
 package util;
 
+import io.image.Images;
+
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
+
+import mapred.util.FileUtil;
 import model.nb.RadialPixelNeighborhood;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
@@ -190,6 +198,33 @@ public class MatTool extends Configured implements Tool {
 		
 	}
 	
+	private static final String COMPONENT_CONF = "mattool.component";
+	private static final String I_MIN_CONF = "mattool.imin";
+	private static final String I_MAX_CONF = "mattool.imax";
+	
+	public static final void setComponent(Configuration conf, String c){
+		conf.set(COMPONENT_CONF, c);
+	}
+	
+	public static final void setIMin(Configuration conf, double imin){
+		conf.setDouble(I_MIN_CONF, imin);
+	}
+	
+	public static final void setIMax(Configuration conf, double imax){
+		conf.setDouble(I_MAX_CONF, imax);
+	}
+	
+	public static BufferedImage readImage(Configuration conf, FileSystem fs, Path file) throws IOException{
+		final String c = conf.get(COMPONENT_CONF, "I");
+		final double imin = conf.getDouble(I_MIN_CONF, 0.0);
+		final double imax = conf.getDouble(I_MAX_CONF, I_scale);
+		
+		final File localTmp = FileUtil.getLocalCopy(conf, fs, file);
+		final Frame frame = Frame.fromFile(localTmp);
+		final double[] vals = frame.getComponent(c, imin, imax);
+		return Images.createGrayScaleImage(vals, frame.w, frame.h);
+	}
+	
 	private static class Frame {
 		
 		final MLNumericArray<Double> X;
@@ -208,9 +243,13 @@ public class MatTool extends Configured implements Tool {
 			this.w = w;
 		}
 		
+		static Frame fromFile(String filename) throws FileNotFoundException, IOException {
+			return fromFile(new File(filename));
+		}
+		
 		@SuppressWarnings("unchecked")
-		static Frame fromFile(String filename) throws FileNotFoundException, IOException{
-			MatFileReader reader = new MatFileReader(filename);
+		static Frame fromFile(File file) throws FileNotFoundException, IOException{
+			MatFileReader reader = new MatFileReader(file);
 			
 			Map<String, MLArray> map = reader.getContent();
 			
@@ -224,6 +263,44 @@ public class MatTool extends Configured implements Tool {
 			logger.info("frame loaded [h: {}, w: {}]",dim[0],dim[1]);
 			
 			return new Frame(X,Y,Z,I,dim[0],dim[1]);
+		}
+		
+		/**
+		 * get component c of frame mapping [imin,imax] -> [0.0,1.0]
+		 */
+		double[] getComponent(String c, double imin, double imax){
+
+			MLNumericArray<Double> a = null;
+			switch(c){
+			case "X":
+				a = X;
+				break;
+			case "Y":
+				a = Y;
+				break;
+			case "Z":
+				a = Z;
+				break;
+			case "I":
+				a = I;
+				break;
+			default:
+				throw new IllegalArgumentException("unkown component: "+c);				
+			}
+			
+			
+			final double c1 = 1.0/(imax-imin);
+			final double c0 = imin/(imin-imax);
+			final double[] vals = new double[w*h];
+			
+			for(int i = vals.length -1; i>0; --i){
+				final int y = i / w;
+				final int x = i % w;
+				final double v = a.get(y, x) * c1 + c0;
+				vals[i] = v <= 0.0 ? 0.0 : v >= 1.0 ? 1.0 : v;
+			}
+			
+			return vals;
 		}
 		
 		double dist(int i1, int i2, double sX, double sF){

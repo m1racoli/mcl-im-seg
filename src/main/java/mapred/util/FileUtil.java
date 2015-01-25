@@ -3,6 +3,7 @@
  */
 package mapred.util;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -68,6 +69,18 @@ public class FileUtil {
 				return !filename.startsWith(".") && !filename.startsWith("_");
 			}
 		};
+	}
+	
+	/**
+	 * created a local copy of path which can be accessed via Java standard IO 
+	 */
+	public static File getLocalCopy(Configuration conf, FileSystem fs, Path path) throws IOException{
+		FileSystem localFs = FileSystem.getLocal(conf);
+		Path local = new Path(localFs.getWorkingDirectory(),System.currentTimeMillis()+"_tmp_"+path.getName());
+		fs.copyToLocalFile(path, local);
+		localFs.deleteOnExit(local);
+		logger.info("created local tmp {} of {}",local,path);
+		return new File(local.toUri());
 	}
 
 }

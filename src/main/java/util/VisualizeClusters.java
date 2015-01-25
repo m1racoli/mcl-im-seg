@@ -51,6 +51,15 @@ public class VisualizeClusters extends AbstractUtil {
 	@Parameter(names = {"-lc","--line-color"})
 	private double line_color = 1.0;
 	
+	@Parameter(names = {"--component"}, description = "component of matfile to choose (X,Y,Z,I)")
+	private String component = "I";
+	
+	@Parameter(names = {"--imin"}, description = "I min threshold of mat file component")
+	private double imin = 0.0;
+	
+	@Parameter(names = {"--imax"}, description = "I max threshold of mat file component")
+	private double imax = 65535.0;
+	
 	/* (non-Javadoc)
 	 * @see util.AbstractUtil#run(org.apache.hadoop.fs.Path, org.apache.hadoop.fs.Path, boolean)
 	 */
@@ -58,6 +67,10 @@ public class VisualizeClusters extends AbstractUtil {
 	protected int run(Path input, Path output, boolean hdfsOutput)
 			throws Exception {
 
+		MatTool.setComponent(getConf(), component);
+		MatTool.setIMin(getConf(), imin);
+		MatTool.setIMax(getConf(), imax);
+		
 		FileSystem fs = clusteringFile.getFileSystem(getConf());
 		clusteringFile = fs.makeQualified(clusteringFile);
 		Clustering<Integer> clustering = new ArrayClustering(new InputStreamReader(fs.open(clusteringFile)));
@@ -120,6 +133,7 @@ public class VisualizeClusters extends AbstractUtil {
 			final Path outfile = outFS.makeQualified(new Path(output,String.format("part-%05d.%s",f,output_format)));
 			FSDataOutputStream out = outFS.create(outfile, true);
 			ImageIO.write(im, output_format, out);
+			logger.info("output {} written",outfile);
 			out.close();
 		}
 		
@@ -170,7 +184,7 @@ public class VisualizeClusters extends AbstractUtil {
 	
 	private static BufferedImage loadImage(Configuration conf, FileSystem fs, Path input) throws IOException {
 		if(input.getName().toLowerCase().endsWith(".mat")){
-			return null;
+			return MatTool.readImage(conf, fs, input);
 		}
 		logger.info("read image {}",input);
 		return ImageIO.read(fs.open(input));
@@ -198,7 +212,7 @@ public class VisualizeClusters extends AbstractUtil {
 		@Override
 		public boolean accept(Path path) {
 			final String name = path.getName().toLowerCase();
-			return name.endsWith(".jpg") || name.endsWith(".png");
+			return name.endsWith(".jpg") || name.endsWith(".png") || name.endsWith(".mat");
 		}
 		
 	}
