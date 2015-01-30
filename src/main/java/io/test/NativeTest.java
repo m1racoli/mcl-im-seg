@@ -1,14 +1,22 @@
 package io.test;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class NativeTest {
 
 	public static void main(String[] args) {
-		System.out.println(new File(System.getProperty("java.library.path")).getAbsolutePath());
-		System.loadLibrary("nativetest");
+		System.out.println("java.library.path: "+ System.getProperty("java.library.path"));
+		
+		try{
+			System.loadLibrary("nativetest");
+		} catch (Throwable e){
+			System.err.println("could not load libary 'nativetest'");
+			System.err.println(e.getMessage());
+			System.exit(1);
+		}
+		
+		System.out.println("libary 'nativetest' successfully loaded");
 		
 		ByteBuffer bb = ByteBuffer.allocateDirect(32);
 		bb.order(ByteOrder.nativeOrder());

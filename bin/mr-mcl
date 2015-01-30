@@ -12,4 +12,11 @@ bin=`cd "$bin"; pwd`
 
 JAR="$bin"/../mcl-im-seg-jar-with-dependencies.jar
 
+COMMAND="$1"
+
+if [ "$COMMAND" = "checknative" ] ; then
+	exec hadoop jar $JAR "io.test.NativeTest"
+	exit 0
+fi
+
 exec hadoop jar $JAR "$@"
