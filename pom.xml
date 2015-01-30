@@ -111,4 +111,38 @@
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  
+  <profiles>
+  	<profile>
+  		<id>native</id>
+  		<activation>
+  			<activeByDefault>false</activeByDefault>
+  		</activation>
+  		<build>
+  			<plugins>
+  				<plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-enforcer-plugin</artifactId>
+  					<executions>
+  						<execution>
+  							<id>enforce-os</id>
+  							<goals>
+  								<goal>enforce</goal>
+  							</goals>
+  							<configuration>
+  								<rules>
+  									<requireOS>
+  										<family>unix</family>
+  										<message>native build only supported on Unix</message>
+  									</requireOS>
+  								</rules>
+  								<fail>true</fail>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>
+  			</plugins>
+  		</build>
+  	</profile>
+  </profiles>
 </project>
