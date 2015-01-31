@@ -11,12 +11,18 @@ bin=`dirname ${bin}`
 bin=`cd "$bin"; pwd`
 
 JAR="$bin"/../mcl-im-seg-jar-with-dependencies.jar
+nat="$bin"/../native #/libnativetest.so
 
 COMMAND="$1"
 
+#export HADOOP_OPTS="$HADOOP_OPTS":"$NATIVE"
+export JAVA_LIBRARY_PATH="$nat"
+
 if [ "$COMMAND" = "checknative" ] ; then
-	exec hadoop jar $JAR "io.test.NativeTest"
+	exec hadoop jar $JAR "io.test.NativeTest" #-files "$nat"
 	exit 0
 fi
+
+
 
 exec hadoop jar $JAR "$@"

@@ -20,11 +20,15 @@ public class NativeTest {
 		
 		ByteBuffer bb = ByteBuffer.allocateDirect(32);
 		bb.order(ByteOrder.nativeOrder());
-		bb.putInt(0,1);
-		bb.putDouble(8,3.14);
+		int i = 1;
+		double d = 3.14;
+		bb.putInt(0,i);
+		bb.putDouble(8,d);
+		System.out.printf("JAVA: put int %d, put double %f\n",i,d);
 		NativeTest.hello(bb);
-		System.out.println("java int: "+bb.getInt(0));
-		System.out.println("java int: "+bb.getDouble(8));
+		i = bb.getInt(0);
+		d = bb.getDouble(8);
+		System.out.printf("JAVA: get int %d, get double %f\n",i,d);
 	}
 
 	private static native void hello(ByteBuffer bb);
