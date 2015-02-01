@@ -143,23 +143,7 @@
   				</plugin>
   				<plugin>
   					<groupId>org.codehaus.mojo</groupId>
-  					<artifactId>native-maven-plugin</artifactId>
-  					<!--  <configuration>
-						<javahOS>unix</javahOS>
-						<compilerProvider>generic-classic</compilerProvider>
-						<compilerExecutable>gcc</compilerExecutable>
-						<linkerExecutable>gcc</linkerExecutable>
-						<sources>
-							<source>
-								<directory>${basedir}/src/main/native/io/test</directory>
-								<filenames>
-									<filename>NativeTest.c</filename>
-								</filenames>
-							</source>
-						</sources>
-						
-						
-					</configuration>  	-->				
+  					<artifactId>native-maven-plugin</artifactId>			
   					<executions>
   						<execution>
   							<phase>compile</phase>
@@ -167,7 +151,6 @@
   								<goal>javah</goal>
   							</goals>
   							<configuration>
-<!--   								<javahOS>unix</javahOS> -->
   								<javahPath>${env.JAVA_HOME}/bin/javah</javahPath>
   								<javahClassNames>
   									<javahClassName>io.test.NativeTest</javahClassName>
@@ -183,25 +166,19 @@
   					<version>1.8</version>
   					<executions>
   						<execution>
-							<id>gcc</id>
+							<id>cmake</id>
   							<phase>compile</phase>
   							<goals>
   								<goal>run</goal>
   							</goals>
   							<configuration>
   								<target>
-  									<exec executable="gcc" dir="${project.build.directory}/native" failonerror="true">
-  										<arg line="-I${env.JAVA_HOME}/include -I${env.JAVA_HOME}/include/linux -Ijavah -o libnativetest.so -shared -fpic ${basedir}/src/main/native/io/test/NativeTest.c"/>
-  									</exec>
-  									<!-- <exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
-										<arg line="${basedir}/src/ -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJVM_ARCH_DATA_MODEL=${sun.arch.data.model} -DREQUIRE_BZIP2=${require.bzip2} -DREQUIRE_SNAPPY=${require.snappy} -DCUSTOM_SNAPPY_PREFIX=${snappy.prefix} -DCUSTOM_SNAPPY_LIB=${snappy.lib} -DCUSTOM_SNAPPY_INCLUDE=${snappy.include} -DREQUIRE_OPENSSL=${require.openssl} -DCUSTOM_OPENSSL_PREFIX=${openssl.prefix} -DCUSTOM_OPENSSL_LIB=${openssl.lib} -DCUSTOM_OPENSSL_INCLUDE=${openssl.include} -DEXTRA_LIBHADOOP_RPATH=${extra.libhadoop.rpath}"/>
+  									<exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
+										<arg line="${basedir}/src/main/native -DPF=linux -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJNI_INCLUDE=${env.JAVA_HOME}/include"/>
 									</exec>
 									<exec executable="make" dir="${project.build.directory}/native" failonerror="true">
-									<arg line="VERBOSE=1"/>
+										<arg line="VERBOSE=1"/>
 									</exec>
-									The second make is a workaround for HADOOP-9215. It can
-									be removed when version 2.6 of cmake is no longer supported .
-									<exec executable="make" dir="${project.build.directory}/native" failonerror="true"></exec> -->
   								</target>
   							</configuration>
   						</execution>

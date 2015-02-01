@@ -13,7 +13,7 @@ set(CMAKE_BUILD_TYPE, Release)
 
 include_directories(
     ${JNI_INCLUDE}
-    ${JNI_INCLUDE}/win32
+    ${JNI_INCLUDE}/${PF}
     ${GENERATED_JAVAH}
 )
 
