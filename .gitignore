@@ -6,3 +6,4 @@ dump/
 results/
 *.m~
 ~$*
+src/main/native/.idea/
