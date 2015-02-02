@@ -22,6 +22,7 @@ include_directories(
 
 
 set(SOURCE_FILES
-    src/io/test/NativeTest.c)
+    src/io/test/NativeTest.c
+    src/io/writables/nat/NativeCSCSliceHelper.c)
 
-add_library(native SHARED ${SOURCE_FILES})
+add_library(mclnative SHARED ${SOURCE_FILES})
