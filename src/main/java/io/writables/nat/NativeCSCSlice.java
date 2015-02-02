@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 
 import mapred.MCLStats;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
@@ -29,8 +30,17 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	/**
 	 * 
 	 */
-	public NativeCSCSlice() {
-		// TODO Auto-generated constructor stub
+	public NativeCSCSlice() {}
+	
+	public NativeCSCSlice(Configuration conf){
+		setConf(conf);
+		NativeCSCSliceHelper.setNsub(nsub);
+	}
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
+		bb = ByteBuffer.allocateDirect(nsub * Integer.SIZE + max_nnz * (Long.SIZE + Float.SIZE));		
 	}
 
 	/* (non-Javadoc)
@@ -54,7 +64,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void clear() {
-		NativeCSCSliceHelper.clear(bb,nsub);
+		NativeCSCSliceHelper.clear(bb);
 	}
 
 	/* (non-Javadoc)
@@ -80,8 +90,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void add(NativeCSCSlice m) {
-		// TODO Auto-generated method stub
-
+		NativeCSCSliceHelper.add(bb, m.bb);
 	}
 
 	/* (non-Javadoc)
@@ -134,7 +143,10 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		// TODO Auto-generated method stub
+		if(obj instanceof NativeCSCSlice){
+			NativeCSCSlice o = (NativeCSCSlice) obj;
+			return NativeCSCSliceHelper.equals(bb, o.bb);
+		}
 		return false;
 	}
 
@@ -152,8 +164,17 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public double sumSquaredDifferences(NativeCSCSlice other) {
-		// TODO Auto-generated method stub
-		return 0;
+		return NativeCSCSliceHelper.sumSquaredDifferences(bb, other.bb);
+	}
+	
+	@Override
+	public NativeCSCSlice deepCopy() {
+		NativeCSCSlice other = getInstance();
+		bb.rewind();
+		other.bb.put(bb);
+		bb.rewind();
+		other.bb.flip();
+		return other;
 	}
 
 }

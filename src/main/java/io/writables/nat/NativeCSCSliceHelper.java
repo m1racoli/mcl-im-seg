@@ -24,7 +24,20 @@ final class NativeCSCSliceHelper {
 			throw e;
 		}
 	}
+	
+	static native void setNsub(int nsub);
 
-	static native void clear(ByteBuffer bb, int nsub);
+	static native void clear(ByteBuffer bb);
+	
+	/**
+	 * add b2 to b1
+	 * @param b1
+	 * @param b2
+	 */
+	static native void add(ByteBuffer b1, ByteBuffer b2);
+	
+	static native boolean equals(ByteBuffer b1, ByteBuffer b2);
+	
+	static native double sumSquaredDifferences(ByteBuffer b1, ByteBuffer b2);
 	
 }
