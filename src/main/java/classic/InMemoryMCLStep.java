@@ -134,7 +134,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 				id.set(e.getKey());
 				M m = e.getValue();
 				
-				m.inflateAndPrune(stats, null);
+				m.inflateAndPrune(stats);
 				out_nnz += m.size();
 				writer.append(id, m);
 				it.remove();

@@ -15,11 +15,9 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import mapred.Counters;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -353,7 +351,7 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 	
 	@Override
-	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats) {
 		//TODO
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
@@ -371,14 +369,10 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 			
 			switch(k){
 			case 0:
-				if(context != null) context.getCounter(Counters.EMPTY_COLUMNS).increment(1);
 				continue;
 			case 1:
-				if(context != null) {
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-				}
-				
+				stats.homogen++;
+				stats.attractors++;
 				rowInd[valPtr] = rowInd[cs];
 				val[valPtr++] = 1.0f;
 				if(max_s < 1) max_s = 1;
@@ -387,7 +381,7 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 				break;
 			}
 			
-			int selected = prune(val, cs, ct, selection, context);
+			int selected = prune(val, cs, ct, selection, stats);
 
 			
 			for(int i  = 0; i < selected; i++){

@@ -15,11 +15,9 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import mapred.Counters;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -363,7 +361,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats) {
 		
 		final int[] selection = new int[kmax];
 		int valPtr = 0;

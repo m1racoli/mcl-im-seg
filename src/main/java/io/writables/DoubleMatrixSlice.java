@@ -7,9 +7,6 @@ import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import mapred.Counters;
 import mapred.MCLStats;
 
 /**
@@ -27,7 +24,7 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		}
 	}
 	
-	protected final int prune(double[] val, int s, int t, int[] selection, TaskAttemptContext context) {
+	protected final int prune(double[] val, int s, int t, int[] selection, MCLStats stats) {
 		
 		final int k = t-s;
 		double sum = 0.0f;
@@ -48,12 +45,12 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 			if(val[i] >= tresh){
 				selection[selected++] = i;
 			} else {
-				if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
+				stats.cutoff++;
 			}
 		}
 		
 		if(selected > S){
-			if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
+			stats.prune += selected-S;
 			select(val, selection, selected, S);
 			selected = S;
 		}

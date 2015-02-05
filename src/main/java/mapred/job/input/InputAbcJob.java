@@ -22,6 +22,7 @@ import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLInitParams;
 import mapred.MCLResult;
+import mapred.MCLStats;
 import mapred.SlicePartitioner;
 import mapred.job.AbstractMCLJob;
 import model.nb.RadialPixelNeighborhood;
@@ -116,6 +117,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	private static final class AbcReducer<M extends MCLMatrixSlice<M>> extends Reducer<Index, FloatWritable, SliceId, M>{
 		private M col = null;
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
+		private final MCLStats stats = new MCLStats();
 		
 		@Override
 		protected void setup(Context context)
@@ -123,6 +125,7 @@ public class InputAbcJob extends AbstractMCLJob {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
+			stats.reset();
 		}
 		
 		@Override
@@ -137,7 +140,7 @@ public class InputAbcJob extends AbstractMCLJob {
 				
 			});
 			col.addLoops(idx);
-			col.makeStochastic(context);
+			col.makeStochastic(stats);
 			
 			kmax.set(kmax_tmp);
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
@@ -148,6 +151,8 @@ public class InputAbcJob extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<Index, FloatWritable, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
+			context.getCounter(Counters.ATTRACTORS).increment(stats.attractors);
+			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(stats.homogen);
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
 			ZkMetric.close();
 		}
