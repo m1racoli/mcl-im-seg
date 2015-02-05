@@ -37,7 +37,7 @@ public class CSCSliceTest extends MCLContext {
 		for(CSCSlice m : rewrite(slice,conf).getSubBlocks(id)){
 			CSCSlice o = rewrite(m,conf);
 			System.out.println(o);
-			System.out.println(o.multipliedBy(slice, null));
+			System.out.println(o.multipliedBy(slice));
 			o.add(slice);
 			System.out.println(o);
 		}

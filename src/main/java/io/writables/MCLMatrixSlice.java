@@ -70,7 +70,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @param M to multiply with
 	 * @return this multiplied by m
 	 */
-	public abstract M multipliedBy(M m, TaskAttemptContext context);
+	public abstract M multipliedBy(M m);
 	
 	/**
 	 * @param id to write index of current sub block to

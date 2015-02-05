@@ -210,7 +210,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 
 	@Override
-	public CSCSlice multipliedBy(CSCSlice m, TaskAttemptContext context) {
+	public CSCSlice multipliedBy(CSCSlice m) {
 
 		assert top_aligned;
 		

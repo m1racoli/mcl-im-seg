@@ -205,7 +205,7 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public CSCDoubleSlice multipliedBy(CSCDoubleSlice m, TaskAttemptContext context) {
+	public CSCDoubleSlice multipliedBy(CSCDoubleSlice m) {
 
 		assert top_aligned : "right matrix is not correctly aligned";
 		assert m.top_aligned : "align left";
