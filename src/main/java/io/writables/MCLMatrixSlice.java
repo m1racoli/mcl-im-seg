@@ -98,6 +98,10 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 */
 	public abstract boolean equals(Object obj);
 
+	/**
+	 * adds self loops to the matrix
+	 * @param id
+	 */
 	public abstract void addLoops(SliceIndex id);
 	
 	/**

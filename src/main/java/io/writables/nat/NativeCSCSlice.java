@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
  * @author Cedrik
@@ -97,8 +96,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 * @see io.writables.MCLMatrixSlice#multipliedBy(io.writables.MCLMatrixSlice, org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public NativeCSCSlice multipliedBy(NativeCSCSlice m,
-			TaskAttemptContext context) {
+	public NativeCSCSlice multipliedBy(NativeCSCSlice m) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -124,7 +122,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 * @see io.writables.MCLMatrixSlice#inflateAndPrune(mapred.MCLStats, org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats) {
 		// TODO Auto-generated method stub
 
 	}
@@ -133,7 +131,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 * @see io.writables.MCLMatrixSlice#makeStochastic(org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public void makeStochastic(MCLStats stats) {
 		// TODO Auto-generated method stub
 
 	}
@@ -155,8 +153,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void addLoops(SliceIndex id) {
-		// TODO Auto-generated method stub
-
+		// TODO
 	}
 
 	/* (non-Javadoc)
