@@ -199,13 +199,13 @@
   		</build>
   	</profile>
   	<profile>
-  		<id>native-win</id>
+  		<id>javah</id>
   		<activation>
   			<activeByDefault>false</activeByDefault>
   		</activation>
   		<build>
   			<plugins>
-  				<plugin>
+  				<!--  <plugin>
   					<groupId>org.apache.maven.plugins</groupId>
   					<artifactId>maven-enforcer-plugin</artifactId>
   					<version>1.4</version>
@@ -226,7 +226,7 @@
   							</configuration>
   						</execution>
   					</executions>
-  				</plugin>
+  				</plugin>-->
   				<plugin>
   					<groupId>org.codehaus.mojo</groupId>
   					<artifactId>native-maven-plugin</artifactId>
