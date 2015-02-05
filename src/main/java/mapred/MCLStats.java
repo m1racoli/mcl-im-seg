@@ -13,6 +13,8 @@ public final class MCLStats {
 	public int kmax = 0;
 	public int prune = 0;
 	public int cutoff = 0;
+	public long attractors = 0;
+	public long homogen = 0;
 	
 	@Override
 	public String toString() {
@@ -24,5 +26,7 @@ public final class MCLStats {
 		kmax = 0;
 		prune = 0;
 		cutoff = 0;
+		attractors = 0;
+		homogen = 0;
 	}
 }

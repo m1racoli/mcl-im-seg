@@ -25,6 +25,7 @@ import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLInitParams;
 import mapred.MCLResult;
+import mapred.MCLStats;
 import mapred.SlicePartitioner;
 import mapred.job.AbstractMCLJob;
 import mapred.util.FileUtil;
@@ -148,6 +149,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 		private M col = null;
 		//private int kmax = 0;
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
+		private final MCLStats stats = new MCLStats();
 		
 		@Override
 		protected void setup(Context context)
@@ -155,6 +157,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
+			stats.reset();
 		}
 		
 		@Override
@@ -169,7 +172,7 @@ public class SequenceInputJob extends AbstractMCLJob {
 				
 			});
 			col.addLoops(idx);
-			col.makeStochastic(context);
+			col.makeStochastic(stats);
 			
 			kmax.set(kmax_tmp);
 			
@@ -181,6 +184,8 @@ public class SequenceInputJob extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
+			context.getCounter(Counters.ATTRACTORS).increment(stats.attractors);
+			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(stats.homogen);
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
 			ZkMetric.close();
 		}

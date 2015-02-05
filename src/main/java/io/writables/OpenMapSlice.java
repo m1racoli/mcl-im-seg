@@ -16,7 +16,6 @@ import org.apache.commons.math3.linear.DefaultRealMatrixPreservingVisitor;
 import org.apache.commons.math3.linear.OpenMapRealMatrix;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,7 +155,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#multipliedBy(io.writables.MCLMatrixSlice, org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public OpenMapSlice multipliedBy(OpenMapSlice m, TaskAttemptContext context) {		
+	public OpenMapSlice multipliedBy(OpenMapSlice m) {		
 		OpenMapSlice o = getInstance();
 		o.matrix = m.matrix.multiply(matrix);
 		return o;
@@ -216,20 +215,20 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#inflateAndPrune(org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats) {
 		int kmax = 0;
 		int[] selection = new int[kmax];
 		for(int col = 0, end = nsub; col < end; col++){
 			final double[] val = matrix.getColumn(col);
 			inflate(val, 0, val.length);
-			int selected = prune(val, 0, val.length, selection, context);
+			int selected = prune(val, 0, val.length, selection, stats);
 			kmax = Math.max(kmax, selected);
 			final double[] newval = new double[val.length];
 			for(int i = 0; i < selected; i++) {
 				final int idx = selection[i];
 				newval[idx] = val[idx];
 			}
-			normalize(newval, 0, newval.length, context);
+			normalize(newval, 0, newval.length, stats);
 			matrix.setColumn(col, newval);
 		}
 		//TODO
@@ -245,11 +244,11 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	}
 
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public void makeStochastic(MCLStats stats) {
 		
 		for(int col = 0, end = matrix.getColumnDimension(); col < end; col++){
 			final double[] val = matrix.getColumn(col);
-			normalize(val, 0, val.length, context);
+			normalize(val, 0, val.length, stats);
 			matrix.setColumn(col, val);
 		}
 

@@ -24,8 +24,6 @@ import mapred.PrintMatrix;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import com.beust.jcommander.IStringConverter;
 
 /**
@@ -70,7 +68,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @param M to multiply with
 	 * @return this multiplied by m
 	 */
-	public abstract M multipliedBy(M m, TaskAttemptContext context);
+	public abstract M multipliedBy(M m);
 	
 	/**
 	 * @param id to write index of current sub block to
@@ -87,13 +85,13 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * inflate, prune and normalize
 	 * @return max column size
 	 */
-	public abstract void inflateAndPrune(MCLStats stats, TaskAttemptContext context);
+	public abstract void inflateAndPrune(MCLStats stats);
 	
 	/**
 	 * @param context
 	 * @return chaos
 	 */
-	public abstract void makeStochastic(TaskAttemptContext context);
+	public abstract void makeStochastic(MCLStats stats);
 	
 	/**
 	 * equality test on implementation level

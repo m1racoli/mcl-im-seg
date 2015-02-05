@@ -7,9 +7,7 @@ import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import mapred.Counters;
+import mapred.MCLStats;
 
 /**
  * @author Cedrik
@@ -26,7 +24,7 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		}
 	}
 	
-	protected final int prune(double[] val, int s, int t, int[] selection, TaskAttemptContext context) {
+	protected final int prune(double[] val, int s, int t, int[] selection, MCLStats stats) {
 		
 		final int k = t-s;
 		double sum = 0.0f;
@@ -47,12 +45,12 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 			if(val[i] >= tresh){
 				selection[selected++] = i;
 			} else {
-				if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
+				stats.cutoff++;
 			}
 		}
 		
 		if(selected > S){
-			if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
+			stats.prune += selected-S;
 			select(val, selection, selected, S);
 			selected = S;
 		}
@@ -116,7 +114,7 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 	 * @param context
 	 * @return chaos
 	 */
-	protected final float normalize(double[] val, int s, int t, TaskAttemptContext context) {
+	protected final float normalize(double[] val, int s, int t, MCLStats stats) {
 		
 		if(s == t){
 			return 0.0f;
@@ -139,8 +137,8 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		
 		for(int i = s; i < t; i++){
 			final double v = val[i] / sum;
-			if(context != null && v > 0.5f){
-				context.getCounter(Counters.ATTRACTORS).increment(1);
+			if(stats != null && v > 0.5f){
+				stats.attractors++;
 			}
 			
 			sumsq += v*v;
@@ -154,8 +152,8 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 			val[i] = v;
 		}
 		
-		if(context != null && min == max){
-			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+		if(stats != null && min == max){
+			stats.homogen++;
 		}
 		
 		return (float) (max - sumsq) * (t-s);
