@@ -98,7 +98,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 						}
 					}
 					
-					M m = subBlock.subBlock.multipliedBy(lm, null);
+					M m = subBlock.subBlock.multipliedBy(lm);
 					add(subBlock.id,m);
 				}
 				

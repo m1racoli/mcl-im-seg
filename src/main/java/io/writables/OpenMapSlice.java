@@ -156,7 +156,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	 * @see io.writables.MCLMatrixSlice#multipliedBy(io.writables.MCLMatrixSlice, org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public OpenMapSlice multipliedBy(OpenMapSlice m, TaskAttemptContext context) {		
+	public OpenMapSlice multipliedBy(OpenMapSlice m) {		
 		OpenMapSlice o = getInstance();
 		o.matrix = m.matrix.multiply(matrix);
 		return o;

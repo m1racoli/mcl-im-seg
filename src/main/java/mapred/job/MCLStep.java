@@ -102,7 +102,7 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.MAP_INPUT_BLOCK_VALUES).increment(subBlock.subBlock.size());
 			
 			//context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
-			M product = subBlock.subBlock.multipliedBy(m, context);
+			M product = subBlock.subBlock.multipliedBy(m);
 			
 			//count output records on diagonal and off diagonal
 			if(id.get() == key.get()){
@@ -214,6 +214,8 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.REDUCE_CPU_MILLIS).increment(cpu_nanos/1000000L);
 			context.getCounter(Counters.PRUNE).increment(stats.prune);
 			context.getCounter(Counters.CUTOFF).increment(stats.cutoff);
+			context.getCounter(Counters.ATTRACTORS).increment(stats.attractors);
+			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(stats.homogen);
 		}
 	}
 	

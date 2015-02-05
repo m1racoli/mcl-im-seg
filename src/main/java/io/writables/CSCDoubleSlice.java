@@ -205,7 +205,7 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public CSCDoubleSlice multipliedBy(CSCDoubleSlice m, TaskAttemptContext context) {
+	public CSCDoubleSlice multipliedBy(CSCDoubleSlice m) {
 
 		assert top_aligned : "right matrix is not correctly aligned";
 		assert m.top_aligned : "align left";
@@ -578,9 +578,9 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public void makeStochastic(MCLStats stats) {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], context);
+			normalize(val, colPtr[col_start], colPtr[col_end], stats);
 		}
 	}
 

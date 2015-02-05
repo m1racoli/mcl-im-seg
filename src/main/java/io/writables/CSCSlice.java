@@ -210,7 +210,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 
 	@Override
-	public CSCSlice multipliedBy(CSCSlice m, TaskAttemptContext context) {
+	public CSCSlice multipliedBy(CSCSlice m) {
 
 		assert top_aligned;
 		
@@ -383,10 +383,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				rowInd[valPtr] = rowInd[cs];
 				val[valPtr++] = 1.0f;
 				if(stats.kmax < 1) stats.kmax = 1;
-				if(context != null) {
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-				}
+				stats.attractors++;
+				stats.homogen++;
 				continue;
 			default:
 				break;
@@ -405,10 +403,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			if(selected == 1){
 				rowInd[valPtr] = rowInd[selection[0]];
 				val[valPtr++] = 1.0f;
-				if(context != null) {
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-				}
+				stats.homogen++;
+				stats.attractors++;
 				continue;
 			}
 			
@@ -421,7 +417,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			ct = valPtr;
 			cs = ct - selected;
 			
-			normalize(val, cs, ct, context);
+			normalize(val, cs, ct, stats);
 			
 			double max = 0.0;
 			double new_center = 0.0;
@@ -443,9 +439,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public void makeStochastic(MCLStats stats) {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], context);
+			normalize(val, colPtr[col_start], colPtr[col_end], stats);
 		}
 	}
 	

@@ -7,9 +7,6 @@ import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import mapred.Counters;
 import mapred.MCLStats;
 
 /**
@@ -115,7 +112,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		return tresh < max ? tresh : max;
 	}
 	
-	protected final void normalize(float[] val, int s, int t, TaskAttemptContext context) {
+	protected final void normalize(float[] val, int s, int t, MCLStats stats) {
 		
 		float min = Float.MAX_VALUE;
 		float max = 0.0f;
@@ -128,8 +125,8 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		for(int i = s; i < t; i++){
 			final float v = val[i] / sum;
 			
-			if(context != null && v > 0.5f){
-				context.getCounter(Counters.ATTRACTORS).increment(1);
+			if(stats != null && v > 0.5f){
+				stats.attractors++;
 			}
 			
 			if(min > v) min = v;
@@ -137,9 +134,9 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 			val[i] = v;			
 		}
 		
-		if(context != null && max-min <= 1e-6f){
+		if(stats != null && max-min <= 1e-6f){
 			//TODO interesting or do we use chaos?
-			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+			stats.homogen++;
 		}
 	}
 	

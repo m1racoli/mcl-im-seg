@@ -10,6 +10,7 @@ import java.util.Queue;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import mapred.Counters;
+import mapred.MCLStats;
 
 /**
  * @author Cedrik
@@ -116,7 +117,7 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 	 * @param context
 	 * @return chaos
 	 */
-	protected final float normalize(double[] val, int s, int t, TaskAttemptContext context) {
+	protected final float normalize(double[] val, int s, int t, MCLStats stats) {
 		
 		if(s == t){
 			return 0.0f;
@@ -139,8 +140,8 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		
 		for(int i = s; i < t; i++){
 			final double v = val[i] / sum;
-			if(context != null && v > 0.5f){
-				context.getCounter(Counters.ATTRACTORS).increment(1);
+			if(stats != null && v > 0.5f){
+				stats.attractors++;
 			}
 			
 			sumsq += v*v;
@@ -154,8 +155,8 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 			val[i] = v;
 		}
 		
-		if(context != null && min == max){
-			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
+		if(stats != null && min == max){
+			stats.homogen++;
 		}
 		
 		return (float) (max - sumsq) * (t-s);
