@@ -572,9 +572,9 @@ public final class CSCDoubleSlice extends DoubleMatrixSlice<CSCDoubleSlice> {
 	}
 
 	@Override
-	public void makeStochastic(MCLStats stats) {
+	public void makeStochastic() {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], stats);
+			normalize(val, colPtr[col_start], colPtr[col_end]);
 		}
 	}
 

@@ -114,7 +114,7 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 	 * @param context
 	 * @return chaos
 	 */
-	protected final float normalize(double[] val, int s, int t, MCLStats stats) {
+	protected final float normalize(double[] val, int s, int t) {
 		
 		if(s == t){
 			return 0.0f;
@@ -137,9 +137,6 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 		
 		for(int i = s; i < t; i++){
 			final double v = val[i] / sum;
-			if(stats != null && v > 0.5f){
-				stats.attractors++;
-			}
 			
 			sumsq += v*v;
 
@@ -150,10 +147,6 @@ public abstract class DoubleMatrixSlice<M extends DoubleMatrixSlice<M>> extends 
 			}
 
 			val[i] = v;
-		}
-		
-		if(stats != null && min == max){
-			stats.homogen++;
 		}
 		
 		return (float) (max - sumsq) * (t-s);

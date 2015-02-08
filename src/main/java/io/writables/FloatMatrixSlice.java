@@ -39,11 +39,13 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		float max = 0.0f;
 		final int S = select;
 		
-		for(int i = s; i < t; i++){
-			final float v = val[i];
-			sum += v;
-			if(max < v)
-				max = v;
+		if(auto){
+			for(int i = s; i < t; i++){
+				final float v = val[i];
+				sum += v;
+				if(max < v)
+					max = v;
+			}
 		}
 		
 		final float tresh = auto ? computeTreshold(sum/k, max) : cutoff;
@@ -112,31 +114,16 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		return tresh < max ? tresh : max;
 	}
 	
-	protected final void normalize(float[] val, int s, int t, MCLStats stats) {
+	protected final void normalize(float[] val, int s, int t) {
 		
-		float min = Float.MAX_VALUE;
-		float max = 0.0f;
-		float sum = 0.0f;
+		double sum = 0.0f;
 		
-		for(int i = s; i < t; i++){
-			sum += val[i];
+		for(int i = t; i > s;){
+			sum += val[--i];
 		}		
 		
-		for(int i = s; i < t; i++){
-			final float v = val[i] / sum;
-			
-			if(stats != null && v > 0.5f){
-				stats.attractors++;
-			}
-			
-			if(min > v) min = v;
-			if(max < v) max = v;
-			val[i] = v;			
-		}
-		
-		if(stats != null && max-min <= 1e-6f){
-			//TODO interesting or do we use chaos?
-			stats.homogen++;
+		for(int i = t; i > s;){
+			val[--i] /= sum;			
 		}
 	}
 	

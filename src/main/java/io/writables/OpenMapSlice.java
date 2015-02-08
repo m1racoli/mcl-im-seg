@@ -228,7 +228,7 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 				final int idx = selection[i];
 				newval[idx] = val[idx];
 			}
-			normalize(newval, 0, newval.length, stats);
+			normalize(newval, 0, newval.length);
 			matrix.setColumn(col, newval);
 		}
 		//TODO
@@ -244,11 +244,11 @@ public class OpenMapSlice extends DoubleMatrixSlice<OpenMapSlice> {
 	}
 
 	@Override
-	public void makeStochastic(MCLStats stats) {
+	public void makeStochastic() {
 		
 		for(int col = 0, end = matrix.getColumnDimension(); col < end; col++){
 			final double[] val = matrix.getColumn(col);
-			normalize(val, 0, val.length, stats);
+			normalize(val, 0, val.length);
 			matrix.setColumn(col, val);
 		}
 
