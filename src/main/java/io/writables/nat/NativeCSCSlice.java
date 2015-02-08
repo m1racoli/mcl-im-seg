@@ -34,6 +34,12 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	public NativeCSCSlice(Configuration conf){
 		setConf(conf);
 		NativeCSCSliceHelper.setNsub(nsub);
+		NativeCSCSliceHelper.setSelect(select);
+		NativeCSCSliceHelper.setAutoprune(auto_prune);
+		NativeCSCSliceHelper.setInflation(inflation);
+		NativeCSCSliceHelper.setCutoff(cutoff);
+		NativeCSCSliceHelper.setPruneA(pruneA);
+		NativeCSCSliceHelper.setPruneB(pruneB);
 	}
 	
 	@Override

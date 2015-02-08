@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include "vector.h"
 #include "alloc.h"
 #include "item.h"
@@ -78,7 +79,7 @@ void vecAddLoops(mclv *v, rowInd d) {
 }
 
 void vecMakeStochastic(mclv *v) {
-    jdouble sum = 0.0;
+    double sum = 0.0;
     mcli *s, *i;
 
     for(s = v->items, i = s + v->n; i != s;){
@@ -88,4 +89,80 @@ void vecMakeStochastic(mclv *v) {
     for(s = v->items, i = s + v->n; i != s;){
         (--i)->val /= sum;
     }
+}
+
+void vecMakeStochasticAndStats(mclv *v, double *center, double *max) {
+    double c = 0.0;
+    double m = 0.0;
+    double s = 0.0;
+    mcli *i, *t;
+
+    for(i = v->items, t = i + v->n; i != t; ++i){
+        s += i->val;
+    }
+
+    for(i = v->items, t = i + v->n; i != t; ++i){
+        i->val /= s;
+        if(m < i->val) m = i->val;
+        c += i->val*i->val;
+    }
+
+    *center = c;
+    *max = m;
+}
+
+void vecInflateAndStats(mclv *v, double inf, double *sum, double *max) {
+    double s = 0.0;
+    double m = 0.0;
+    mcli *i, *t;
+
+    for(i = v->items, t = i + v->n; i != t; ++i){
+        i->val = (value) pow(i->val, inf);
+        s += i->val;
+        if(m < i->val) m = i->val;
+    }
+
+    *sum = s;
+    *max = m;
+}
+
+void vecInflateMakeStochasticAndStats(mclv *v, double inf, double *center, double *max) {
+    double s = 0.0;
+    double m = 0.0;
+    double c = 0.0;
+    mcli *i, *t;
+
+    for(i = v->items, t = i + v->n; i != t; ++i){
+        i->val = (value) pow(i->val, inf);
+        s += i->val;
+    }
+
+    for(i = v->items, t = i + v->n; i != t; ++i){
+        i->val /= s;
+        if(m < i->val) m = i->val;
+        c += i->val*i->val;
+    }
+
+    *center = c;
+    *max = m;
+}
+
+void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
+    dim n = 0;
+    mcli *i, *t, *d;
+
+    for(i = v->items, t = i + v->n, d = i; i != t; ++i){
+        if(i->val >= threshold){
+            *(d++) = *i;
+            n++;
+        } else {
+            stats->cutoff++;
+        }
+    }
+
+    v->n = n;
+}
+
+void vecSelectionPrune(mclv *v, dim _select) {
+    //TODO selection prune
 }

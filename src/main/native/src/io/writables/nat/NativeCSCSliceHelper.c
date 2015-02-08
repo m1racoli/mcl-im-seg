@@ -15,6 +15,36 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setNsub
     sliceSetNsub(nsub);
 }
 
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setSelect
+        (JNIEnv *env, jclass cls, jint select) {
+    sliceSetSelect(select);
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setAutoprune
+        (JNIEnv *env, jclass cls, jboolean autoprune) {
+    sliceSetAutoprune(autoprune);
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setInflation
+        (JNIEnv *env, jclass cls, jdouble inflation) {
+    sliceSetInflation(inflation);
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setCutoff
+        (JNIEnv *env, jclass cls, jfloat cutoff) {
+    sliceSetCutoff(cutoff);
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setPruneA
+        (JNIEnv *env, jclass cls, jfloat pruneA) {
+    sliceSetPruneA(pruneA);
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setPruneB
+        (JNIEnv *env, jclass cls, jfloat pruneB) {
+    sliceSetPruneB(pruneB);
+}
+
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *env, jclass cls, jobject buf) {
     jint *colIdx = colIdxFromByteBuffer(env, buf);
     int i;

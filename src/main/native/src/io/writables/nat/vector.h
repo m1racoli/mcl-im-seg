@@ -23,4 +23,14 @@ void vecAddLoops(mclv *v, rowInd d);
 
 void vecMakeStochastic(mclv *v);
 
+void vecMakeStochasticAndStats(mclv *v, double *center, double *max);
+
+void vecInflateAndStats(mclv *v, double inf, double *sum, double *max);
+
+void vecInflateMakeStochasticAndStats(mclv *v, double inf, double *center, double *max);
+
+void vecThresholdPrune(mclv *v, value threshold, mclStats *stats);
+
+void vecSelectionPrune(mclv *v, dim _select);
+
 #endif

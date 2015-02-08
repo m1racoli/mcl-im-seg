@@ -27,6 +27,18 @@ final class NativeCSCSliceHelper {
 	}
 	
 	static native void setNsub(int nsub);
+	
+	static native void setSelect(int select);
+	
+	static native void setAutoprune(boolean autoprune);
+	
+	static native void setInflation(double inflation);
+	
+	static native void setCutoff(float cutoff);
+	
+	static native void setPruneA(float pruneA);
+	
+	static native void setPruneB(float pruneB);
 
 	static native void clear(ByteBuffer bb);
 	

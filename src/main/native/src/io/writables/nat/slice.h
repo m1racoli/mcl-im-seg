@@ -15,6 +15,18 @@ typedef struct {
 
 void sliceSetNsub(dim nsub);
 
+void sliceSetSelect(dim select);
+
+void sliceSetAutoprune(jboolean autoprune);
+
+void sliceSetInflation(jdouble inflation);
+
+void sliceSetCutoff(value cutoff);
+
+void sliceSetPruneA(jdouble pruneA);
+
+void sliceSetPruneB(jdouble pruneB);
+
 jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
 mclSlice *sliceInit(mcls *slice, JNIEnv *env, jobject buf);
