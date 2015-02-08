@@ -4,8 +4,9 @@
 package io.writables.nat;
 
 import io.test.NativeTest;
-
 import java.nio.ByteBuffer;
+
+import mapred.MCLStats;
 
 /**
  * helper class of native methods
@@ -39,5 +40,13 @@ final class NativeCSCSliceHelper {
 	static native boolean equals(ByteBuffer b1, ByteBuffer b2);
 	
 	static native double sumSquaredDifferences(ByteBuffer b1, ByteBuffer b2);
+
+	static native void addLoops(ByteBuffer bb, int id);
+
+	static native void makeStochastic(ByteBuffer bb, MCLStats stats);
+
+	static native void inflateAndPrune(ByteBuffer bb, MCLStats stats);
+
+	static native int size(ByteBuffer bb);
 	
 }
