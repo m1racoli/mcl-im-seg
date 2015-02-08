@@ -91,7 +91,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @param context
 	 * @return chaos
 	 */
-	public abstract void makeStochastic(MCLStats stats);
+	public abstract void makeStochastic();
 	
 	/**
 	 * equality test on implementation level

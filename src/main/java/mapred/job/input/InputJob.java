@@ -25,7 +25,6 @@ import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLInitParams;
 import mapred.MCLResult;
-import mapred.MCLStats;
 import mapred.SlicePartitioner;
 import mapred.job.AbstractMCLJob;
 import model.nb.RadialPixelNeighborhood;
@@ -116,7 +115,6 @@ public class InputJob extends AbstractMCLJob {
 		
 		private M col = null;
 		private int kmax = 0;
-		private final MCLStats stats = new MCLStats();
 		
 		@Override
 		protected void setup(Context context)
@@ -124,7 +122,6 @@ public class InputJob extends AbstractMCLJob {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
-			stats.reset();
 		}
 		
 		@Override
@@ -139,7 +136,7 @@ public class InputJob extends AbstractMCLJob {
 				
 			});
 			col.addLoops(idx);
-			col.makeStochastic(stats);
+			col.makeStochastic();
 			
 			if(kmax < kmax_tmp) kmax = kmax_tmp;
 			context.getCounter(Counters.MATRIX_SLICES).increment(1);
@@ -150,8 +147,6 @@ public class InputJob extends AbstractMCLJob {
 		@Override
 		protected void cleanup(Reducer<Index, V, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
-			context.getCounter(Counters.ATTRACTORS).increment(stats.attractors);
-			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(stats.homogen);
 			MatrixMeta.writeKmax(context, kmax);
 			//TODO multiple otput or correct path
 		}

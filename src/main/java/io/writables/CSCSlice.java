@@ -415,7 +415,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			ct = valPtr;
 			cs = ct - selected;
 			
-			normalize(val, cs, ct, stats);
+			normalize(val, cs, ct);
 			
 			double max = 0.0;
 			double new_center = 0.0;
@@ -426,6 +426,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			}			
 			
 			double chaos = ((double) max - new_center) * (ct-cs);
+			if(max > 0.5) stats.attractors++;
+			if(chaos < 1.0e-4) stats.homogen++;
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
 			
 			if(!auto_prune){
@@ -437,9 +439,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public void makeStochastic(MCLStats stats) {
+	public void makeStochastic() {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], stats);
+			normalize(val, colPtr[col_start], colPtr[col_end]);
 		}
 	}
 	
