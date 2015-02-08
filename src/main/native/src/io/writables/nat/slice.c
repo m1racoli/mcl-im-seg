@@ -1,6 +1,8 @@
 #include "slice.h"
 #include "alloc.h"
 #include "vector.h"
+#include "item.h"
+#include "stats.h"
 
 static dim _nsub;
 
@@ -75,5 +77,46 @@ void sliceAddLoops(mcls *slice, jint id) {
         vecAddLoops(v,--d);
     }
 
+    mclFree(v);
+}
+
+void sliceMakeStochastic(mcls *slice) {
+    mclv *v = NULL;
+    colInd *s, *c;
+
+    for(s = slice->colPtr, c = s + _nsub; c != s;) {
+        v = vecInit(v, *(c--) - *c, slice->items + *c);
+        vecMakeStochastic(v);
+    }
+    mclFree(v);
+}
+
+void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
+    mclv *v = NULL;
+    colInd *cs, *ct, *t;
+    colInd num_new_items = 0;
+    mcli *new_items = slice->items;
+
+    for(cs = slice->colPtr, ct = slice->colPtr+1, t = slice->colPtr + _nsub; cs != t; cs = ct++) {
+        v = vecInit(v, *ct - *cs, slice->items + *cs);
+
+        switch (v->n) {
+            case 0:
+                continue;
+            case 1:
+                itemSet(new_items++, v->items->id, 1.0);
+                *cs = num_new_items++;
+                if(!stats->kmax) stats->kmax = 1;
+                stats->attractors++;
+                stats->homogen++;
+                continue;
+            default:
+                break;
+        }
+
+        //TODO inflate and prune
+    }
+
+    *cs = num_new_items;
     mclFree(v);
 }

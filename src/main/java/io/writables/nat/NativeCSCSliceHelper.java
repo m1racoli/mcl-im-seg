@@ -43,7 +43,7 @@ final class NativeCSCSliceHelper {
 
 	static native void addLoops(ByteBuffer bb, int id);
 
-	static native void makeStochastic(ByteBuffer bb, MCLStats stats);
+	static native void makeStochastic(ByteBuffer bb);
 
 	static native void inflateAndPrune(ByteBuffer bb, MCLStats stats);
 

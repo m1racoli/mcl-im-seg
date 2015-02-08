@@ -4,6 +4,7 @@
 
 #include "jni.h"
 #include "item.h"
+#include "stats.h"
 
 typedef struct {
     colInd *colPtr;
@@ -23,5 +24,9 @@ jboolean sliceEquals(mcls *s1, mcls *s2);
 jdouble sliceSumSquaredDiffs(mcls *s1, mcls *s2);
 
 void sliceAddLoops(mcls *slice, jint id);
+
+void sliceMakeStochastic(mcls *slice);
+
+void sliceInflateAndPrune(mcls *slice, mclStats *stats);
 
 #endif

@@ -130,8 +130,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 * @see io.writables.MCLMatrixSlice#makeStochastic(org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public void makeStochastic(MCLStats stats) {
-		NativeCSCSliceHelper.makeStochastic(bb, stats);
+	public void makeStochastic() {
+		NativeCSCSliceHelper.makeStochastic(bb);
 	}
 
 	/* (non-Javadoc)

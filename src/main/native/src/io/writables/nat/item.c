@@ -19,3 +19,11 @@ jint itemIdComp(void *i1, void *i2) {
     rowInd d = ((mcli*)i1)->id - ((mcli*)i2)->id;
     return d < 0 ? -1 : d > 0 ? 1 : 0;
 }
+
+void itemSet(mcli *item, rowInd id, value val) {
+    item->id = id; item->val + val;
+}
+
+void itemCopy(mcli *dst, mcli *src) {
+    dst->id = src->id; dst->val = src->val;
+}

@@ -4,6 +4,7 @@
 #include "types.h"
 #include "vector.h"
 #include "item.h"
+#include "stats.h"
 
 typedef struct {
     dim n; //number of items
@@ -19,5 +20,7 @@ jboolean vecEquals(mclv *v1, mclv *v2);
 jdouble vecSumSquaredDiffs(mclv *v1, mclv *v2);
 
 void vecAddLoops(mclv *v, rowInd d);
+
+void vecMakeStochastic(mclv *v);
 
 #endif

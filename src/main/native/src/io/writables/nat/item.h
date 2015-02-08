@@ -16,4 +16,8 @@ jboolean itemEquals(mcli *i1, mcli *i2);
 
 jint itemIdComp(void *i1, void *i2);
 
+void itemSet(mcli *item, rowInd id, value val);
+
+void itemCopy(mcli *dst, mcli *src);
+
 #endif

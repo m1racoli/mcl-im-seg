@@ -57,16 +57,18 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_addLoops
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_makeStochastic
-        (JNIEnv *env, jclass cls, jobject buf, jobject jstats) {
-    mclStats *stats = statsInit(env, jstats);
-    //TODO make stochastic
-    statsDump(stats, env, jstats);
+        (JNIEnv *env, jclass cls, jobject buf) {
+    mcls *slice = sliceInit(NULL, env, buf);
+    sliceMakeStochastic(slice);
+    mclFree(slice);
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_inflateAndPrune
         (JNIEnv *env, jclass cls, jobject buf, jobject jstats) {
     mclStats *stats = statsInit(env, jstats);
-    //TODO inflate and prune
+    mcls *slice = sliceInit(NULL, env, buf);
+    sliceInflateAndPrune(slice, stats);
+    mclFree(slice);
     statsDump(stats, env, jstats);
 }
 

@@ -2,6 +2,7 @@
 #include "vector.h"
 #include "alloc.h"
 #include "item.h"
+#include "stats.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -59,8 +60,9 @@ jdouble vecSumSquaredDiffs(mclv *v1, mclv *v2) {
 void vecAddLoops(mclv *v, rowInd d) {
     mcli *c = NULL;
     value max = 0.0;
+    mcli *i, *t;
 
-    for(mcli *i = v->items, *t = i + v->n; i != t; i++){
+    for(i = v->items, t = i + v->n; i != t; i++){
         if(i->id == d){
             c = i;
         }
@@ -73,4 +75,17 @@ void vecAddLoops(mclv *v, rowInd d) {
     }
 
     c->val = max;
+}
+
+void vecMakeStochastic(mclv *v) {
+    jdouble sum = 0.0;
+    mcli *s, *i;
+
+    for(s = v->items, i = s + v->n; i != s;){
+        sum += (--i)->val;
+    }
+
+    for(s = v->items, i = s + v->n; i != s;){
+        (--i)->val /= sum;
+    }
 }
