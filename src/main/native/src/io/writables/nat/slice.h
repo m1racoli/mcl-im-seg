@@ -1,18 +1,27 @@
+
+#ifndef nat_slice_h
+#define nat_slice_h
+
 #include "jni.h"
-
-typedef long pnum;
-typedef float pval;
+#include "item.h"
 
 typedef struct {
-    pnum idx;
-    pval val;
-} ivp; // index value pair
-
-typedef struct {
-    jint* colPtr;
-    ivp* colVal;
+    colInd *colPtr;
+    mcli *items;
 } mclSlice;
+
+#define mcls mclSlice
+
+void sliceSetNsub(dim nsub);
 
 jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
-mclSlice * initSlice(mclSlice *slice, JNIEnv *env, jobject buf, int nsub);
+mclSlice *sliceInit(mcls *slice, JNIEnv *env, jobject buf);
+
+jboolean sliceEquals(mcls *s1, mcls *s2);
+
+jdouble sliceSumSquaredDiffs(mcls *s1, mcls *s2);
+
+void sliceAddLoops(mcls *slice, jint id);
+
+#endif

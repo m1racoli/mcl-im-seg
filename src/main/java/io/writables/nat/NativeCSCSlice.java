@@ -115,7 +115,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public int size() {
-		return bb.getInt(nsub)-bb.getInt(0);
+		return NativeCSCSliceHelper.size(bb);
 	}
 
 	/* (non-Javadoc)
@@ -123,8 +123,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void inflateAndPrune(MCLStats stats) {
-		// TODO Auto-generated method stub
-
+		NativeCSCSliceHelper.inflateAndPrune(bb, stats);
 	}
 
 	/* (non-Javadoc)
@@ -132,8 +131,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void makeStochastic(MCLStats stats) {
-		// TODO Auto-generated method stub
-
+		NativeCSCSliceHelper.makeStochastic(bb, stats);
 	}
 
 	/* (non-Javadoc)
@@ -143,7 +141,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	public boolean equals(Object obj) {
 		if(obj instanceof NativeCSCSlice){
 			NativeCSCSlice o = (NativeCSCSlice) obj;
-			return NativeCSCSliceHelper.equals(bb, o.bb);
+			return nsub == o.nsub && NativeCSCSliceHelper.equals(bb, o.bb);
 		}
 		return false;
 	}
@@ -153,7 +151,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void addLoops(SliceIndex id) {
-		// TODO
+		NativeCSCSliceHelper.addLoops(bb, id.getSliceId());
 	}
 
 	/* (non-Javadoc)
