@@ -2,8 +2,6 @@
 #include <math.h>
 #include "vector.h"
 #include "alloc.h"
-#include "item.h"
-#include "stats.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -16,7 +14,7 @@ mclv *vecInit(mclv *vec, dim n, mcli *items) {
     return vec;
 }
 
-jboolean vecEquals(mclv *v1, mclv *v2) {
+jboolean vecEquals(mclVector const *v1, mclVector const *v2) {
     mcli *s1 = v1->items;
     mcli *t1 = s1 + v1->n;
     mcli *s2 = v2->items;
@@ -27,10 +25,10 @@ jboolean vecEquals(mclv *v1, mclv *v2) {
             return JNI_FALSE;
     }
 
-    return s1 == t1 && s2 == t2;
+    return (jboolean) (s1 == t1 && s2 == t2);
 }
 
-jdouble vecSumSquaredDiffs(mclv *v1, mclv *v2) {
+jdouble vecSumSquaredDiffs(mclVector const *v1, mclVector const *v2) {
     mcli *s1 = v1->items;
     mcli *t1 = s1 + v1->n;
     mcli *s2 = v2->items;

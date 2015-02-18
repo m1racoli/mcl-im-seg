@@ -12,12 +12,12 @@ typedef struct {
 
 mcli *itemInit(mcli *item, rowInd idx, value val);
 
-jboolean itemEquals(mcli *i1, mcli *i2);
+jboolean itemEquals(const mcli *i1, const mcli *i2);
 
 jint itemIdComp(void *i1, void *i2);
 
 void itemSet(mcli *item, rowInd id, value val);
 
-void itemCopy(mcli *dst, mcli *src);
+void itemCopy(mcli *dst,const mcli *src);
 
 #endif

@@ -38,6 +38,11 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
     stats->attractors = (*env)->GetLongField(env,jstats,ATTRACTORS_ID);
     stats->homogen = (*env)->GetLongField(env,jstats,HOMOGEN_ID);
 
+    if((*env)->ExceptionCheck){
+        (*env)->ExceptionDescribe(env);
+        return NULL;
+    }
+
     return stats;
 }
 
@@ -48,6 +53,10 @@ void statsDump(mclStats *stats, JNIEnv *env, jobject jstats) {
     (*env)->SetIntField(env,jstats,CUTOFF_ID,stats->cutoff);
     (*env)->SetLongField(env,jstats,ATTRACTORS_ID,stats->attractors);
     (*env)->SetLongField(env,jstats,HOMOGEN_ID,stats->homogen);
+
+    if((*env)->ExceptionCheck){
+        (*env)->ExceptionDescribe(env);
+    }
 
     mclFree(stats);
 }

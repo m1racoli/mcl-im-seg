@@ -15,9 +15,9 @@ typedef struct {
 
 mclv* vecInit (mclv *vec, dim n, mcli *items);
 
-jboolean vecEquals(mclv *v1, mclv *v2);
+jboolean vecEquals(const mclv *v1, const mclv *v2);
 
-jdouble vecSumSquaredDiffs(mclv *v1, mclv *v2);
+jdouble vecSumSquaredDiffs(const mclv *v1, const mclv *v2);
 
 void vecAddLoops(mclv *v, rowInd d);
 

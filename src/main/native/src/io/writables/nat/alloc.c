@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <jvmti.h>
 #include "alloc.h"
 
 void* mclAlloc (dim size) {
@@ -13,10 +14,15 @@ void* mclRealloc (void* object, dim new_size) {
             mclFree(object);
         }
     } else {
-        //TODO alloc
+        mblock = object
+                ? realloc(object, new_size)
+                : malloc(new_size);
     }
 
-    //TODO check
+    if (new_size && (!mblock)) {
+        //TODO say something
+        exit(1);
+    }
 
     return mblock;
 }
@@ -26,15 +32,33 @@ void mclFree (void* object) {
 }
 
 void mclNFree (void* base, dim n_elem, dim elem_size, void (*objRelease)(void *)) {
-    //TODO implement
+    if(n_elem && objRelease){
+        byte *ob = base;
+        while (n_elem-- > 0){
+            objRelease(ob);
+            ob += elem_size;
+        }
+        mclFree(base);
+    }
 }
 
 void* mclNAlloc (dim n_elem, dim elem_size, void* (*obInit)(void*)) {
-    //TODO implement
-    return NULL;
+    return mclNRealloc(NULL, n_elem, 0, elem_size, obInit);
 }
 
 void* mclNRealloc (void* mem, dim n_elem, dim n_elem_prev, dim elem_size, void* (*obInit)(void*)) {
-    //TODO implement
-    return NULL;
+    byte *ob;
+    mem = mclRealloc(mem, n_elem * elem_size);
+
+    if(!mem)
+        return NULL;
+
+    if(obInit && n_elem > n_elem_prev){
+        ob = ((byte*) mem) + (elem_size * n_elem_prev);
+        while(n_elem-- > n_elem_prev) {
+            obInit(ob);
+            ob += elem_size;
+        }
+    }
+    return mem;
 }

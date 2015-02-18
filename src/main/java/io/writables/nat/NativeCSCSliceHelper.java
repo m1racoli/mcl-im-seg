@@ -47,7 +47,7 @@ final class NativeCSCSliceHelper {
 	 * @param b1
 	 * @param b2
 	 */
-	static native void add(ByteBuffer b1, ByteBuffer b2);
+	static native boolean add(ByteBuffer b1, ByteBuffer b2);
 	
 	static native boolean equals(ByteBuffer b1, ByteBuffer b2);
 	

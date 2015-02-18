@@ -24,6 +24,8 @@ import org.apache.hadoop.conf.Configuration;
  */
 public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 
+	private static final byte TOP_ALIGNED = 0x00;
+	
 	private ByteBuffer bb = null;
 	
 	/**
@@ -45,7 +47,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
-		bb = ByteBuffer.allocateDirect(nsub * Integer.SIZE + max_nnz * (Long.SIZE + Float.SIZE));		
+		bb = ByteBuffer.allocateDirect((nsub + 1) * Integer.SIZE + max_nnz * (Long.SIZE + Float.SIZE) + 1);
 	}
 
 	/* (non-Javadoc)
@@ -61,6 +63,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void readFields(DataInput in) throws IOException {
+		bb.put(0, TOP_ALIGNED);
 		// TODO Auto-generated method stub
 	}
 
@@ -95,7 +98,11 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void add(NativeCSCSlice m) {
-		NativeCSCSliceHelper.add(bb, m.bb);
+		if(!NativeCSCSliceHelper.add(bb, m.bb)){
+			ByteBuffer tmp = bb;
+			bb = m.bb;
+			m.bb = tmp;
+		}
 	}
 
 	/* (non-Javadoc)
@@ -121,7 +128,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public int size() {
-		return NativeCSCSliceHelper.size(bb);
+		//return NativeCSCSliceHelper.size(bb);
+		return bb.getInt(nsub*Integer.SIZE + 1) - bb.getInt(1);
 	}
 
 	/* (non-Javadoc)

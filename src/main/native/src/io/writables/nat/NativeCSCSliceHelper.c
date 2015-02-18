@@ -54,9 +54,21 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *
     }
 }
 
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_add
+JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_add
         (JNIEnv *env, jclass cls, jobject b1, jobject b2) {
-    //TODO add
+    mcls *s1 = sliceInit(NULL, env, b1);
+
+    if(sliceSize(s1) == 0){
+        mclFree(s1);
+        return JNI_FALSE;
+    }
+
+    mcls *s2 = sliceInit(NULL, env, b2);
+    sliceAdd(s1, s2, s1);
+
+    mclFree(s1);
+    mclFree(s2);
+    return JNI_TRUE;
 }
 
 JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_equals
@@ -96,6 +108,7 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_makeStochastic
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_inflateAndPrune
         (JNIEnv *env, jclass cls, jobject buf, jobject jstats) {
     mclStats *stats = statsInit(env, jstats);
+    if(!stats)return;
     mcls *slice = sliceInit(NULL, env, buf);
     sliceInflateAndPrune(slice, stats);
     mclFree(slice);

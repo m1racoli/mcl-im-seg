@@ -30,6 +30,7 @@ set(SOURCE_FILES
     src/io/writables/nat/vector.c
     src/io/writables/nat/types.h
     src/io/writables/nat/stats.c
+    src/io/writables/nat/heap.c
     )
 
 add_library(mclnative SHARED ${SOURCE_FILES})

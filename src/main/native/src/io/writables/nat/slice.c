@@ -1,8 +1,6 @@
 #include "slice.h"
 #include "alloc.h"
 #include "vector.h"
-#include "item.h"
-#include "stats.h"
 
 static dim _nsub;
 static dim _select;
@@ -15,7 +13,7 @@ static value _cutoff;
 static value computeThreshold(double avg, double max){
     double thresh = _prune_A * avg * (1.0 - _prune_B * (max - avg));
     thresh = thresh < 1.0e-7 ? 1.0e-7 : thresh;
-    return (value) thresh < max ? thresh : max;
+    return (value) (thresh < max ? thresh : max);
 }
 
 void sliceSetNsub(dim nsub) {
@@ -47,20 +45,23 @@ void sliceSetPruneB(jdouble pruneB) {
 }
 
 colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
-    void* dBuf = (*env)->GetDirectBufferAddress(env,buf);
-    return (colInd*) dBuf;
+    jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
+    return (colInd*) (arr + 1);
 }
 
 mcls *sliceInit(mcls *slice, JNIEnv *env, jobject buf) {
     if(!slice)
         slice = mclAlloc(sizeof(mcls));
 
-    slice->colPtr = colIdxFromByteBuffer(env, buf);
+    jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
+
+    slice->align = *arr;
+    slice->colPtr = (colInd *) (arr + 1);
     slice->items = (mcli*) (slice->colPtr + _nsub + 1);
     return slice;
 }
 
-jboolean sliceEquals(mcls *s1, mcls *s2) {
+jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {
     int i;
     mclv *v1 = NULL;
     mclv *v2 = NULL;
@@ -68,8 +69,8 @@ jboolean sliceEquals(mcls *s1, mcls *s2) {
     colInd *c2 = s2->colPtr + _nsub;
 
     for(i = _nsub - 1; i >= 0; --i) {
-        v1 = vecInit(v1, *(c1--) - *c1, s1->items + *c1);
-        v2 = vecInit(v2, *(c2--) - *c2, s2->items + *c2);
+        v1 = vecInit(v1, (dim) (*(c1--) - *c1), s1->items + *c1);
+        v2 = vecInit(v2, (dim) (*(c2--) - *c2), s2->items + *c2);
 
         if(!vecEquals(v1, v2)){
             mclFree(v1);
@@ -83,7 +84,7 @@ jboolean sliceEquals(mcls *s1, mcls *s2) {
     return JNI_TRUE;
 }
 
-jdouble sliceSumSquaredDiffs(mcls *s1, mcls *s2) {
+jdouble sliceSumSquaredDiffs(const mcls *s1, const mcls *s2) {
     int i;
     mclv *v1 = NULL;
     mclv *v2 = NULL;
@@ -92,8 +93,8 @@ jdouble sliceSumSquaredDiffs(mcls *s1, mcls *s2) {
     jdouble sum = 0.0;
 
     for(i = _nsub - 1; i >= 0; --i) {
-        v1 = vecInit(v1, *(c1--) - *c1, s1->items + *c1);
-        v2 = vecInit(v2, *(c2--) - *c2, s2->items + *c2);
+        v1 = vecInit(v1, (dim) (*(c1--) - *c1), s1->items + *c1);
+        v2 = vecInit(v2, (dim) (*(c2--) - *c2), s2->items + *c2);
         sum += vecSumSquaredDiffs(v1,v2);
     }
 
@@ -109,7 +110,7 @@ void sliceAddLoops(mcls *slice, jint id) {
     rowInd d = (rowInd) id * (rowInd) _nsub + (rowInd) _nsub;
 
     while(c != s){
-        v = vecInit(v, *(c--) - *c, slice->items + *c);
+        v = vecInit(v, (dim) (*(c--) - *c), slice->items + *c);
         vecAddLoops(v,--d);
     }
 
@@ -121,7 +122,7 @@ void sliceMakeStochastic(mcls *slice) {
     colInd *s, *c;
 
     for(s = slice->colPtr, c = s + _nsub; c != s;) {
-        v = vecInit(v, *(c--) - *c, slice->items + *c);
+        v = vecInit(v, (dim) (*(c--) - *c), slice->items + *c);
         vecMakeStochastic(v);
     }
     mclFree(v);
@@ -140,7 +141,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
     double chaos;
 
     for(cs = slice->colPtr, ct = slice->colPtr+1, t = slice->colPtr + _nsub; cs != t; cs = ct++) {
-        v = vecInit(v, *ct - *cs, slice->items + *cs);
+        v = vecInit(v, (dim) (*ct - *cs), slice->items + *cs);
         *cs = num_new_items;
 
         switch (v->n) {
@@ -185,9 +186,17 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
         if(max > 0.5) stats->attractors++;
         if(chaos < 1.0e-4) stats->homogen++;
         if(stats->chaos < chaos) stats->chaos = chaos;
-        if(stats->kmax < v->n) stats->kmax = v->n;
+        if(stats->kmax < v->n) stats->kmax = (jint) v->n;
     }
 
     *cs = num_new_items;
     mclFree(v);
+}
+
+dim sliceSize(const mcls *slice){
+    return (dim) (slice->colPtr[_nsub]-slice->colPtr[0]);
+}
+
+void sliceAdd(mcls *s1, mcls *s2, mcls *dst){
+    //TODO
 }
