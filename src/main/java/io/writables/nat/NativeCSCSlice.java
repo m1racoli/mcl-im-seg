@@ -35,6 +35,11 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	
 	public NativeCSCSlice(Configuration conf){
 		setConf(conf);
+	}
+	
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
 		NativeCSCSliceHelper.setNsub(nsub);
 		NativeCSCSliceHelper.setSelect(select);
 		NativeCSCSliceHelper.setAutoprune(auto_prune);
@@ -43,11 +48,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 		NativeCSCSliceHelper.setPruneA(pruneA);
 		NativeCSCSliceHelper.setPruneB(pruneB);
 		NativeCSCSliceHelper.setMaxNnz(max_nnz);
-	}
-	
-	@Override
-	public void setConf(Configuration conf) {
-		super.setConf(conf);
+		
 		bb = ByteBuffer.allocateDirect((nsub + 1) * Integer.SIZE + max_nnz * (Long.SIZE + Float.SIZE) + 1);
 	}
 
@@ -111,8 +112,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public NativeCSCSlice multipliedBy(NativeCSCSlice m) {
-		// TODO Auto-generated method stub
-		return null;
+		NativeCSCSliceHelper.multiply(m.bb, bb);
+		return this;
 	}
 
 	/* (non-Javadoc)
@@ -120,8 +121,25 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	protected ReadOnlyIterator<NativeCSCSlice> getSubBlockIterator(SliceId id) {
-		// TODO Auto-generated method stub
-		return null;
+		return new SubBlockIterator();
+	}
+	
+	private final class SubBlockIterator extends ReadOnlyIterator<NativeCSCSlice> {
+
+		private final NativeCSCSlice b = new NativeCSCSlice();
+		private ByteBuffer next = NativeCSCSliceHelper.startIterateBlocks(bb);
+		
+		@Override
+		public boolean hasNext() {
+			return next != null;
+		}
+
+		@Override
+		public NativeCSCSlice next() {
+			b.bb = next;
+			next = NativeCSCSliceHelper.nextBlock();
+			return b;
+		}
 	}
 
 	/* (non-Javadoc)
@@ -129,7 +147,6 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public int size() {
-		//return NativeCSCSliceHelper.size(bb);
 		return bb.getInt(nsub*Integer.SIZE + 1) - bb.getInt(1);
 	}
 

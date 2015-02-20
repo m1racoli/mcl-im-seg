@@ -1,13 +1,12 @@
 #include <jni.h>
-#include <stdio.h>
 #include "io_writables_nat_NativeCSCSliceHelper.h"
 #include "types.h"
 #include "slice.h"
-#include "vector.h"
-#include "stats.h"
 #include "alloc.h"
+#include "blockiterator.h"
 
 static dim _nsub;
+static mclit *_blockIterator = NULL;
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setNsub
         (JNIEnv *env, jclass cls, jint nsub) {
@@ -124,4 +123,30 @@ JNIEXPORT jint JNICALL Java_io_writables_nat_NativeCSCSliceHelper_size
         (JNIEnv *env, jclass cls, jobject buf) {
     colInd *colIdx = colIdxFromByteBuffer(env, buf);
     return colIdx[_nsub]-colIdx[0];
+}
+
+JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks
+        (JNIEnv *env, jclass cls, jobject buf) {
+    mcls *slice = sliceInit(NULL, env, buf);
+    _blockIterator = iteratorInit(_blockIterator, env, buf, _nsub);
+    return Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls);
+}
+
+JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_nextBlock
+        (JNIEnv *env, jclass cls) {
+    if(iteratorNext(_blockIterator)){
+        return _blockIterator->buf;
+    }
+
+    iteratorFree(&_blockIterator);
+    return NULL;
+}
+
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_multiply
+        (JNIEnv *env, jclass cls, jobject b2, jobject b1) {
+    mcls *s1 = sliceInit(NULL, env, b1);
+    mcls *s2 = sliceInit(NULL, env, b2);
+    sliceMultiply(s1, s2);
+    mclFree(s1);
+    mclFree(s2);
 }

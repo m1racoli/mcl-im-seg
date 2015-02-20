@@ -248,3 +248,9 @@ void sliceAdd(mcls *s1, const mcls *s2){
 
     s1->align = (alignment) (s1->align ? TOP_ALIGNED : BOTTOM_ALIGNED);
 }
+
+void sliceMultiply(const mcls *s1, mcls *s2) {
+    // s1 left side read-only
+    // s2 right side and destination
+    //TODO multiply
+}

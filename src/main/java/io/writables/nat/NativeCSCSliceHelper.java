@@ -63,4 +63,16 @@ final class NativeCSCSliceHelper {
 
 	static native int size(ByteBuffer bb);
 	
+	/**
+	 * starts iteration over the blocks in a slice
+	 * 
+	 * @param bb matrix slice to iterate over
+	 * @return block of matrix slice or null if islice 
+	 */
+	static native ByteBuffer startIterateBlocks(ByteBuffer bb);
+	
+	static native ByteBuffer nextBlock();
+	
+	static native void multiply(ByteBuffer s, ByteBuffer b);
+	
 }

@@ -50,4 +50,6 @@ void sliceAdd(mcls *s1, const mcls *s2);
 
 mclSlice *sliceFlipped(mcls *slice);
 
+void sliceMultiply(const mcls *s1, mcls *s2);
+
 #endif

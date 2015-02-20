@@ -65,7 +65,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	//TODO column -> slice matcher
 	
 	/**
-	 * @param M to multiply with
+	 * @param m to multiply with
 	 * @return this = m * this
 	 */
 	public abstract M multipliedBy(M m);

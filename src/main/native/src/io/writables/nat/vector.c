@@ -2,7 +2,6 @@
 #include <math.h>
 #include "vector.h"
 #include "alloc.h"
-#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
