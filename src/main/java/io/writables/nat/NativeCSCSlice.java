@@ -42,6 +42,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 		NativeCSCSliceHelper.setCutoff(cutoff);
 		NativeCSCSliceHelper.setPruneA(pruneA);
 		NativeCSCSliceHelper.setPruneB(pruneB);
+		NativeCSCSliceHelper.setMaxNnz(max_nnz);
 	}
 	
 	@Override

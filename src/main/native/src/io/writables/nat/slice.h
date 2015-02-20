@@ -28,6 +28,8 @@ void sliceSetPruneA(jdouble pruneA);
 
 void sliceSetPruneB(jdouble pruneB);
 
+void sliceSetMaxNnz(dim maxnnz);
+
 jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
 mclSlice *sliceInit(mcls *slice, JNIEnv *env, jobject buf);
@@ -44,7 +46,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats);
 
 dim sliceSize(const mcls *slice);
 
-void sliceAdd(mcls *s1, mcls *s2, mcls *dst);
+void sliceAdd(mcls *s1, const mcls *s2);
 
 mclSlice *sliceFlipped(mcls *slice);
 

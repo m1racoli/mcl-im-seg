@@ -11,13 +11,13 @@ static dim _nsub;
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setNsub
         (JNIEnv *env, jclass cls, jint nsub) {
-    _nsub = nsub;
+    _nsub = (dim) (dim) nsub;
     sliceSetNsub(nsub);
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setSelect
         (JNIEnv *env, jclass cls, jint select) {
-    sliceSetSelect(select);
+    sliceSetSelect((dim) select);
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setAutoprune
@@ -45,6 +45,11 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setPruneB
     sliceSetPruneB(pruneB);
 }
 
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setMaxNnz
+        (JNIEnv *env, jclass cls, jint maxnnz) {
+    sliceSetMaxNnz((dim) maxnnz);
+}
+
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *env, jclass cls, jobject buf) {
     jint *colIdx = colIdxFromByteBuffer(env, buf);
     int i;
@@ -64,7 +69,7 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_add
     }
 
     mcls *s2 = sliceInit(NULL, env, b2);
-    sliceAdd(s1, s2, s1);
+    sliceAdd(s1, s2);
 
     mclFree(s1);
     mclFree(s2);

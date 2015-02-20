@@ -33,4 +33,8 @@ void vecThresholdPrune(mclv *v, value threshold, mclStats *stats);
 
 void vecSelectionPrune(mclv *v, dim _select);
 
+void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst);
+
+void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst);
+
 #endif

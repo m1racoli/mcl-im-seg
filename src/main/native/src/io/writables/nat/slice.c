@@ -9,6 +9,7 @@ static jdouble _inflation;
 static jdouble _prune_A;
 static jdouble _prune_B;
 static value _cutoff;
+static dim _maxnnz;
 
 static value computeThreshold(double avg, double max){
     double thresh = _prune_A * avg * (1.0 - _prune_B * (max - avg));
@@ -42,6 +43,10 @@ void sliceSetPruneA(jdouble pruneA) {
 
 void sliceSetPruneB(jdouble pruneB) {
     if(!_prune_B) _prune_B = pruneB;
+}
+
+void sliceSetMaxNnz(dim maxnnz) {
+    if(!_maxnnz) _maxnnz = maxnnz;
 }
 
 colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
@@ -197,6 +202,49 @@ dim sliceSize(const mcls *slice){
     return (dim) (slice->colPtr[_nsub]-slice->colPtr[0]);
 }
 
-void sliceAdd(mcls *s1, mcls *s2, mcls *dst){
-    //TODO
+void sliceAdd(mcls *s1, const mcls *s2){
+    mclv *v1 = NULL, *v2 = NULL, *vd = NULL;
+    colInd *cs1, *cs2, *ct1, *ct2;
+    colInd num_new_items;
+
+    if(s1->align){
+        //aligned at end
+
+        cs1 = s1->colPtr, ct1 = cs1 + 1;
+        cs2 = s2->colPtr, ct2 = cs1 + 1;
+        num_new_items = 0;
+
+        for(dim i = _nsub; i > 0; --i, cs1 = ct1++, cs2 = ct2++)
+        {
+            v1 = vecInit(v1, (dim) (*ct1 - *cs1), s1->items + *cs1);
+            v2 = vecInit(v2, (dim) (*ct2 - *cs2), s2->items + *cs2);
+            vd = vecInit(vd, 0, s1->items + num_new_items);
+            vecAddForward(v1, v2, vd);
+            *cs1 = num_new_items;
+            num_new_items += vd->n;
+        }
+
+        *cs1 = num_new_items;
+
+    } else {
+        //aligned at beginning
+
+        ct1 = s1->colPtr + _nsub, cs1 = ct1 - 1;
+        ct2 = s2->colPtr + _nsub, cs2 = ct2 - 1;
+        num_new_items = (colInd) _maxnnz;
+
+        for(dim i = _nsub; i > 0; --i, ct1 = cs1--, ct2 = cs2--)
+        {
+            v1 = vecInit(v1, (dim) (*ct1 - *cs1), s1->items + *ct1);
+            v2 = vecInit(v2, (dim) (*ct2 - *cs2), s2->items + *ct2);
+            vd = vecInit(vd, 0, s1->items + num_new_items);
+            vecAddBackward(v1, v2, vd);
+            *ct1 = num_new_items;
+            num_new_items -= vd->n;
+        }
+
+        *ct1 = num_new_items;
+    }
+
+    s1->align = (alignment) (s1->align ? TOP_ALIGNED : BOTTOM_ALIGNED);
 }

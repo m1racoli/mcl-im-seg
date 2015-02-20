@@ -2,6 +2,7 @@
 #include <math.h>
 #include "vector.h"
 #include "alloc.h"
+#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -163,4 +164,50 @@ void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
 
 void vecSelectionPrune(mclv *v, dim _select) {
     //TODO selection prune
+}
+
+void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst){
+    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
+    mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
+
+    while(i1 != t1 && i2 != t2){
+        if(i1->id < i2->id){
+            *(id++) = *(i1++);
+        } else if (i1->id > i2->id) {
+            *(id++) = *(i2++);
+        } else {
+            itemSet(id++, i1->id, (i1++)->val + (i2++)->val);
+        }
+    }
+
+    while(i1 != t1){
+        *(id++) = *(i1++);
+    }
+
+    while(i2 != t2){
+        *(id++) = *(i2++);
+    }
+}
+
+void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
+    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
+    mcli *s1 = i1 - v1->n, *s2 = i2 - v2->n;
+
+    while(i1 != s1 && i2 != s2){
+        if(i1->id < i2->id){
+            *(--id) = *(--i2);
+        } else if (i1->id > i2->id) {
+            *(--id) = *(--i1);
+        } else {
+            itemSet(--id, (--i1)->id, i1->val + (--i2)->val);
+        }
+    }
+
+    while(i1 != s1){
+        *(--id) = *(--i1);
+    }
+
+    while(i2 != s2){
+        *(--id) = *(--i2);
+    }
 }

@@ -39,6 +39,8 @@ final class NativeCSCSliceHelper {
 	static native void setPruneA(float pruneA);
 	
 	static native void setPruneB(float pruneB);
+	
+	static native void setMaxNnz(int max_nnz);
 
 	static native void clear(ByteBuffer bb);
 	

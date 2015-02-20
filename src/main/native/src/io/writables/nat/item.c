@@ -11,7 +11,7 @@ mcli* itemInit (mcli* item, rowInd id, value val) {
     return item;
 }
 
-jboolean itemEquals(mclItem const *i1, mclItem const *i2) {
+bool itemEquals(mclItem const *i1, mclItem const *i2) {
     return i1->id == i2->id && i1->val == i2->val;
 }
 
@@ -20,8 +20,8 @@ jint itemIdComp(void *i1, void *i2) {
     return d < 0 ? -1 : d > 0 ? 1 : 0;
 }
 
-void itemSet(mcli *item, rowInd id, value val) {
-    item->id = id; item->val + val;
+void itemSet(mcli *item, const rowInd id, const value val) {
+    item->id = id; item->val = val;
 }
 
 void itemCopy(mcli *dst, mclItem const *src) {
