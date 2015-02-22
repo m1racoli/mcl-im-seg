@@ -127,7 +127,6 @@ JNIEXPORT jint JNICALL Java_io_writables_nat_NativeCSCSliceHelper_size
 
 JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks
         (JNIEnv *env, jclass cls, jobject buf) {
-    mcls *slice = sliceInit(NULL, env, buf);
     _blockIterator = iteratorInit(_blockIterator, env, buf, _nsub);
     return Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls);
 }

@@ -126,7 +126,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		colPtr[0] = 0;
 		int kmax = 0;
 		int cs = 0;
-		int max_nnz = this.max_nnz;
 		
 		for(SliceEntry entry : entries){
 			
@@ -579,24 +578,24 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private final class EntryIterator extends ReadOnlyIterator<SliceEntry> {
 
 		private final SliceEntry entry = new SliceEntry();
-		private final int l = colPtr[nsub]-colPtr[0];
+		private final int t = colPtr[nsub];
 		private int col_end = colPtr[1];
-		private int col = 0;
+		private int col = 1;
 		private int i = colPtr[0];
 		
 		@Override
 		public boolean hasNext() {
-			return i < l;
+			return i < t;
 		}
 
 		@Override
 		public SliceEntry next() {
 
 			while(i == col_end) {
-				col_end = colPtr[++col + 1];
+				entry.col = col;
+				col_end = colPtr[++col];
 			}
 			
-			entry.col = col;
 			entry.row = rowInd[i];
 			entry.val = val[i++];
 			

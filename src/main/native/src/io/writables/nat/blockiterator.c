@@ -6,6 +6,9 @@ mclit *iteratorInit(mclit *it, JNIEnv *env, jobject buf, const dim nsub) {
 
     if (!it)
         it = mclAlloc(sizeof(mclit));
+    else {
+        //TODO
+    }
 
     it->slice = sliceInit(NULL, env, buf);
     it->nsub = nsub;
