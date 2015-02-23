@@ -5,6 +5,7 @@
 #include "jni.h"
 #include "item.h"
 #include "stats.h"
+#include "vector.h"
 
 typedef struct {
     alignment align;
@@ -14,21 +15,8 @@ typedef struct {
 
 #define mcls mclSlice
 
-void sliceSetNsub(dim nsub);
-
-void sliceSetSelect(dim select);
-
-void sliceSetAutoprune(jboolean autoprune);
-
-void sliceSetInflation(jdouble inflation);
-
-void sliceSetCutoff(value cutoff);
-
-void sliceSetPruneA(jdouble pruneA);
-
-void sliceSetPruneB(jdouble pruneB);
-
-void sliceSetMaxNnz(dim maxnnz);
+void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
+        value cutoff, jdouble pruneA, jdouble pruneB, dim kmax);
 
 jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
@@ -51,5 +39,7 @@ void sliceAdd(mcls *s1, const mcls *s2);
 mclSlice *sliceFlipped(mcls *slice);
 
 void sliceMultiply(const mcls *s1, mcls *s2);
+
+void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top);
 
 #endif

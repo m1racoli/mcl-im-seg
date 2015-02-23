@@ -1,4 +1,6 @@
 #include <jni.h>
+#include <jvmti.h>
+#include <winsock.h>
 #include "io_writables_nat_NativeCSCSliceHelper.h"
 #include "types.h"
 #include "slice.h"
@@ -8,45 +10,11 @@
 static dim _nsub;
 static mclit *_blockIterator = NULL;
 
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setNsub
-        (JNIEnv *env, jclass cls, jint nsub) {
-    _nsub = (dim) (dim) nsub;
-    sliceSetNsub(nsub);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setSelect
-        (JNIEnv *env, jclass cls, jint select) {
-    sliceSetSelect((dim) select);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setAutoprune
-        (JNIEnv *env, jclass cls, jboolean autoprune) {
-    sliceSetAutoprune(autoprune);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setInflation
-        (JNIEnv *env, jclass cls, jdouble inflation) {
-    sliceSetInflation(inflation);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setCutoff
-        (JNIEnv *env, jclass cls, jfloat cutoff) {
-    sliceSetCutoff(cutoff);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setPruneA
-        (JNIEnv *env, jclass cls, jfloat pruneA) {
-    sliceSetPruneA(pruneA);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setPruneB
-        (JNIEnv *env, jclass cls, jfloat pruneB) {
-    sliceSetPruneB(pruneB);
-}
-
-JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setMaxNnz
-        (JNIEnv *env, jclass cls, jint maxnnz) {
-    sliceSetMaxNnz((dim) maxnnz);
+JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setParams
+        (JNIEnv *env, jclass cls, jint nsub, jint select, jboolean autoprune, jdouble inflation,
+                jfloat cutoff, jfloat pruneA, jfloat pruneB, jint kmax){
+    _nsub = (dim) nsub;
+    sliceSetParams((dim) nsub, (dim) select, autoprune, inflation, cutoff, (jdouble) pruneA, (jdouble) pruneB, (dim) kmax);
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *env, jclass cls, jobject buf) {

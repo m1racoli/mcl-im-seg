@@ -73,14 +73,14 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 	protected final void select(float[] val, int[] selection, int n, int s) {
 		
 		if(queue == null) {
-			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select+1);
+			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select+1);//TODO
 		}
 		
 		for(int i = 0; i < n; i++) {
 			int sel = selection[i];
 			queue.add( new QueueItem(sel, val[sel]));
 			if(i >= s){
-				queue.remove();
+				queue.remove();//TODO
 			}
 		}
 		

@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "vector.h"
 #include "alloc.h"
+#include "slice.h"
+#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -12,6 +15,20 @@ mclv *vecInit(mclv *vec, dim n, mcli *items) {
     vec->items = items;
 
     return vec;
+}
+
+mclv *vecNew(mclv *v, dim n) {
+    //TODO
+}
+
+void vecFree(mclv **v){
+    if(*v){
+        if((*v)->items)
+            mclFree((*v)->items);
+
+        mclFree(*v);
+        *v = NULL;
+    }
 }
 
 jboolean vecEquals(mclVector const *v1, mclVector const *v2) {
@@ -161,7 +178,8 @@ void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
     v->n = n;
 }
 
-void vecSelectionPrune(mclv *v, dim _select) {
+void vecSelectionPrune(mclv *v, mclh *h, dim _select) {
+    //TODO heap new
     //TODO selection prune
 }
 
@@ -186,6 +204,8 @@ void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst){
     while(i2 != t2){
         *(id++) = *(i2++);
     }
+
+    dst->n = id - dst->items;
 }
 
 void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
@@ -209,4 +229,68 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
     while(i2 != s2){
         *(--id) = *(--i2);
     }
+
+    dst->n = dst->items - id;
+}
+
+void vecCopyForward(const mclv *src, mclv *dst) {
+    //src is at beginning
+    dst->n = src->n;
+    memcpy(dst->items, src->items, src->n * sizeof(mcli));
+}
+
+void vecCopyBackward(const mclv *src, mclv *dst) {
+    //src is at end
+    dst->n = src->n;
+    memcpy(dst->items, src->items - src->n, src->n * sizeof(mcli));
+}
+
+void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
+    mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
+
+    while(i1 != t1 && i2 != t2){
+        if(i1->id < i2->id){
+            itemSet(id++, i1->id, val * (i1++)->val);
+        } else if (i1->id > i2->id) {
+            *(id++) = *(i2++);
+        } else {
+            itemSet(id++, i1->id, val * (i1++)->val + (i2++)->val);
+        }
+    }
+
+    while(i1 != t1){
+        itemSet(id++, i1->id, val * (i1++)->val);
+    }
+
+    while(i2 != t2){
+        *(id++) = *(i2++);
+    }
+
+    dst->n = id - dst->items;
+}
+
+void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
+    mcli *s1 = i1 - v1->n, *s2 = i2 - v2->n;
+
+    while(i1 != s1 && i2 != s2){
+        if(i1->id < i2->id){
+            *(--id) = *(--i2);
+        } else if (i1->id > i2->id) {
+            itemSet(--id, (--id)->id, val * i1->val);
+        } else {
+            itemSet(--id, (--i1)->id, val * i1->val + (--i2)->val);
+        }
+    }
+
+    while(i1 != s1){
+        itemSet(--id, (--id)->id, val * i1->val);
+    }
+
+    while(i2 != s2){
+        *(--id) = *(--i2);
+    }
+
+    dst->n = dst->items - id;
 }

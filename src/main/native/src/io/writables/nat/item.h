@@ -15,10 +15,16 @@ mcli *itemInit(mcli *item, rowInd idx, value val);
 
 bool itemEquals(const mcli *i1, const mcli *i2);
 
-jint itemIdComp(void *i1, void *i2);
+int itemIdComp(const void *i1, const void *i2);
+
+int itemValComp(const void *i1, const void *i2);
 
 void itemSet(mcli *item, const rowInd id, const value val);
 
 void itemCopy(mcli *dst,const mcli *src);
+
+mcli *itemNCopy(mcli *dst, const mcli *src, dim n);
+
+mcli *itemNMove(mcli *dst, const mcli *src, dim n);
 
 #endif

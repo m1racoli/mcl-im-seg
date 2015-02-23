@@ -57,7 +57,7 @@ public class TestNativeCSCSlice {
 	public void testClear() {
 		int nsub = 128;
 		ByteBuffer bb = getBBInstance(nsub);
-		NativeCSCSliceHelper.setNsub(nsub);
+		//TODO
 		NativeCSCSliceHelper.clear(bb);
 		IntBuffer ibb = bb.asIntBuffer();
 		for(int i = 0; i < nsub; i++){

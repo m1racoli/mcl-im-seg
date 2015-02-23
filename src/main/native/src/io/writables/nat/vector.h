@@ -2,9 +2,10 @@
 #define nat_vector_h
 
 #include "types.h"
-#include "vector.h"
 #include "item.h"
 #include "stats.h"
+#include "heap.h"
+#include "slice.h"
 
 typedef struct {
     dim n; //number of items
@@ -14,6 +15,10 @@ typedef struct {
 #define mclv mclVector
 
 mclv* vecInit (mclv *vec, dim n, mcli *items);
+
+mclv *vecNew(mclv *v, dim n);
+
+void vecFree(mclv **v);
 
 jboolean vecEquals(const mclv *v1, const mclv *v2);
 
@@ -31,10 +36,18 @@ void vecInflateMakeStochasticAndStats(mclv *v, double inf, double *center, doubl
 
 void vecThresholdPrune(mclv *v, value threshold, mclStats *stats);
 
-void vecSelectionPrune(mclv *v, dim _select);
+void vecSelectionPrune(mclv *v, mclh *h, dim _select);
 
 void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst);
 
 void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst);
+
+void vecCopyForward(const mclv *src, mclv *dst);
+
+void vecCopyBackward(const mclv *src, mclv *dst);
+
+void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst);
+
+void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst);
 
 #endif

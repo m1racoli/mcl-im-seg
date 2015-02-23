@@ -1,6 +1,6 @@
+#include <winsock.h>
 #include "slice.h"
 #include "alloc.h"
-#include "vector.h"
 
 static dim _nsub;
 static dim _select;
@@ -9,7 +9,7 @@ static jdouble _inflation;
 static jdouble _prune_A;
 static jdouble _prune_B;
 static value _cutoff;
-static dim _maxnnz;
+static dim _kmax;
 
 static value computeThreshold(double avg, double max){
     double thresh = _prune_A * avg * (1.0 - _prune_B * (max - avg));
@@ -17,36 +17,16 @@ static value computeThreshold(double avg, double max){
     return (value) (thresh < max ? thresh : max);
 }
 
-void sliceSetNsub(dim nsub) {
-    if(!_nsub) _nsub = nsub;
-}
-
-void sliceSetSelect(dim select) {
-    if(!_select) _select = select;
-}
-
-void sliceSetAutoprune(jboolean autoprune) {
-    if(!_autoprune) _autoprune = autoprune;
-}
-
-void sliceSetInflation(jdouble inflation) {
-    if(!_inflation) _inflation = inflation;
-}
-
-void sliceSetCutoff(value cutoff) {
-    if(!_cutoff) _cutoff = cutoff;
-}
-
-void sliceSetPruneA(jdouble pruneA) {
-    if(!_prune_A) _prune_A = pruneA;
-}
-
-void sliceSetPruneB(jdouble pruneB) {
-    if(!_prune_B) _prune_B = pruneB;
-}
-
-void sliceSetMaxNnz(dim maxnnz) {
-    if(!_maxnnz) _maxnnz = maxnnz;
+void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
+        value cutoff, jdouble pruneA, jdouble pruneB, dim kmax) {
+    _nsub = nsub;
+    _select = select;
+    _autoprune = autoprune;
+    _inflation = inflation;
+    _cutoff = cutoff;
+    _prune_A = pruneA;
+    _prune_B = pruneB;
+    _kmax = kmax;
 }
 
 colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
@@ -138,12 +118,13 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
     colInd *cs, *ct, *t;
     colInd num_new_items = 0;
     mcli *new_items = slice->items;
-    mcli *it, *ii;
+    //mcli *it, *ii;
     value threshold;
     double center;
     double max;
     double sum;
     double chaos;
+    mclh *h = heapInit(NULL); //TODO
 
     for(cs = slice->colPtr, ct = slice->colPtr+1, t = slice->colPtr + _nsub; cs != t; cs = ct++) {
         v = vecInit(v, (dim) (*ct - *cs), slice->items + *cs);
@@ -173,7 +154,8 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
         vecThresholdPrune(v, threshold, stats);
 
         if(v->n > _select){
-            vecSelectionPrune(v,_select);
+            h = heapNew(h, _select, sizeof(mcli), itemValComp);
+            vecSelectionPrune(v, h, _select);
         }
 
         if(_autoprune){
@@ -182,9 +164,12 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
             vecInflateMakeStochasticAndStats(v, _inflation, &center, &max);
         }
 
+        /*
         for(ii = v->items, it = new_items + v->n; new_items != it;){
             *(new_items++) = *(ii++);
-        }
+        }*/
+
+        new_items = itemNMove(new_items, v->items, v->n) + v->n;
 
         num_new_items += v->n;
         chaos = (max - center) * v->n;
@@ -196,6 +181,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
 
     *cs = num_new_items;
     mclFree(v);
+    heapFree(&h);
 }
 
 dim sliceSize(const mcls *slice){
@@ -225,13 +211,13 @@ void sliceAdd(mcls *s1, const mcls *s2){
         }
 
         *cs1 = num_new_items;
-
+        s1->align = TOP_ALIGNED;
     } else {
         //aligned at beginning
 
         ct1 = s1->colPtr + _nsub, cs1 = ct1 - 1;
         ct2 = s2->colPtr + _nsub, cs2 = ct2 - 1;
-        num_new_items = (colInd) _maxnnz;
+        num_new_items = (colInd) (_nsub * _kmax);
 
         for(dim i = _nsub; i > 0; --i, ct1 = cs1--, ct2 = cs2--)
         {
@@ -244,13 +230,92 @@ void sliceAdd(mcls *s1, const mcls *s2){
         }
 
         *ct1 = num_new_items;
+        s1->align = BOTTOM_ALIGNED;
     }
 
-    s1->align = (alignment) (s1->align ? TOP_ALIGNED : BOTTOM_ALIGNED);
+    mclFree(v1);
+    mclFree(v2);
+    mclFree(vd);
 }
 
 void sliceMultiply(const mcls *s1, mcls *s2) {
     // s1 left side read-only
     // s2 right side and destination
-    //TODO multiply
+
+    colInd *cs, *ct;
+    colInd num_new_items;
+    mclv *tmp = vecNew(NULL, _kmax);
+    mclv *d = vecInit(NULL, 0, NULL);
+
+    if(s2->align){
+        //bottom aligned => forward
+
+        cs = s2->colPtr, ct = cs + 1;
+        num_new_items = 0;
+
+        for(dim i = _nsub; i > 0; --i, cs = ct++)
+        {
+            itemNCopy(tmp->items, s2->items + *cs, (dim) (*ct - *cs));
+            sliceVecMult(s1, tmp, d, s2->items, num_new_items, *ct, true);
+            *cs = num_new_items;
+            num_new_items -= d->n;
+        }
+
+        *cs = num_new_items;
+        s2->align = TOP_ALIGNED;
+    } else {
+        //top aligned => backward
+
+        ct = s2->colPtr + _nsub, cs = ct - 1;
+        num_new_items = (colInd) (_nsub * _kmax);
+
+        for(dim i = _nsub; i > 0; --i, ct = cs--)
+        {
+            itemNCopy(tmp->items, s2->items + *cs, (dim) (*ct - *cs));
+            sliceVecMult(s1, tmp, d, s2->items, *cs, num_new_items, false);
+            *ct = num_new_items;
+            num_new_items -= d->n;
+        }
+
+        *ct = num_new_items;
+        s2->align = BOTTOM_ALIGNED;
+    }
+
+    mclFree(d);
+    vecFree(&tmp);
+}
+
+void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top){
+    mcli *item = v->items;
+    bool inorder = FALSE;
+    mclv *v1 = NULL, *v2 = NULL;
+    colInd cs;
+    dst->n = 0;
+
+    for(int i = v->n; i > 0; --i){
+        cs = slice->colPtr[item->id];
+        v1 = vecInit(v1, (dim) (slice->colPtr[item->id+1] - cs), slice->items + cs);
+        v2 = vecInit(v2, dst->n, dst->items);
+
+        if(inorder){
+            dst->items = items + t;
+            vecAddMultBackward(item->val, v1, v2, dst);
+        } else {
+            dst->items = items + s;
+            vecAddMultForward(item->val, v1, v2, dst);
+        }
+
+        inorder = !inorder;
+    }
+
+    if(top != inorder){
+        if(top){
+            dst->items = itemNMove(items + (t - dst->n) , dst->items, dst->n);
+        } else {
+            dst->items = itemNMove(items, dst->items, dst->n);
+        }
+    }
+
+    mclFree(v1);
+    mclFree(v2);
 }
