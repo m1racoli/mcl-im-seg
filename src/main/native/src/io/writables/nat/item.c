@@ -12,26 +12,24 @@ mcli* itemInit (mcli* item, rowInd id, value val) {
     return item;
 }
 
+mcli *itemNNew(dim size){
+    return mclAlloc(size * sizeof(mcli));
+}
+
 bool itemEquals(mclItem const *i1, mclItem const *i2) {
     return i1->id == i2->id && i1->val == i2->val;
 }
 
 int itemIdComp(const void *i1, const void *i2) {
-    rowInd d = ((mcli*)i1)->id - ((mcli*)i2)->id;
-    return d < 0 ? -1 : d > 0 ? 1 : 0;
+    return ((((mcli*)i1)->id > ((mcli*)i2)->id) - (((mcli*)i1)->id < ((mcli*)i2)->id));;
 }
 
 int itemValComp(const void *i1, const void * i2) {
-    //TODO
-    return 0;
+    return ((((mcli*)i1)->val > ((mcli*)i2)->val) - (((mcli*)i1)->val < ((mcli*)i2)->val));
 }
 
 void itemSet(mcli *item, const rowInd id, const value val) {
     item->id = id; item->val = val;
-}
-
-void itemCopy(mcli *dst, mclItem const *src) {
-    dst->id = src->id; dst->val = src->val;
 }
 
 mcli *itemNCopy(mcli *dst, const mcli *src, dim n){

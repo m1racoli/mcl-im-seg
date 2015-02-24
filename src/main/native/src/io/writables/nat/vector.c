@@ -3,8 +3,6 @@
 #include <string.h>
 #include "vector.h"
 #include "alloc.h"
-#include "slice.h"
-#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -17,8 +15,8 @@ mclv *vecInit(mclv *vec, dim n, mcli *items) {
     return vec;
 }
 
-mclv *vecNew(mclv *v, dim n) {
-    //TODO
+mclv *vecNew(dim n) {
+    return vecInit(NULL, 0, itemNNew(n));
 }
 
 void vecFree(mclv **v){
@@ -86,7 +84,7 @@ void vecAddLoops(mclv *v, rowInd d) {
     }
 
     if(!c){
-        //TODO error
+        printf("column %d does not contain diagonal element. exit!!!",d);
         exit(1);
     }
 
@@ -231,18 +229,6 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
     }
 
     dst->n = dst->items - id;
-}
-
-void vecCopyForward(const mclv *src, mclv *dst) {
-    //src is at beginning
-    dst->n = src->n;
-    memcpy(dst->items, src->items, src->n * sizeof(mcli));
-}
-
-void vecCopyBackward(const mclv *src, mclv *dst) {
-    //src is at end
-    dst->n = src->n;
-    memcpy(dst->items, src->items - src->n, src->n * sizeof(mcli));
 }
 
 void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){

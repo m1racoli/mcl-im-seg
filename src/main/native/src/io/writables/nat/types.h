@@ -13,5 +13,4 @@ typedef char byte;
 #define TOP_ALIGNED 0
 #define BOTTOM_ALIGNED 1
 
-
 #endif

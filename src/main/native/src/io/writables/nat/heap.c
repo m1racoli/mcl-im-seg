@@ -1,7 +1,7 @@
 #include "heap.h"
 #include "alloc.h"
 
-mclh *heapInit(void* h){
+static mclh *heapInit(void* h){
     mclh *heap = h;
 
     if(!heap && !(heap = mclAlloc(sizeof(mclh)))){
@@ -18,7 +18,12 @@ mclh *heapInit(void* h){
 }
 
 mclh *heapNew(mclh *h, dim heap_size, dim elem_size, int (*cmp)  (const void* lft, const void* rgt)){
+    mclh *heap = h ? h : heapInit(NULL);
+
+
     //TODO
+
+    return heap;
 }
 
 void heapReset(mclh *h){

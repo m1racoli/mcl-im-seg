@@ -17,8 +17,6 @@ typedef struct {
 
 #define mclh mclHeap
 
-mclh *heapInit(void* h);
-
 mclh *heapNew(mclh *h, dim heap_size, dim elem_size, int (*cmp)  (const void* lft, const void* rgt));
 
 void heapReset(mclh *h);

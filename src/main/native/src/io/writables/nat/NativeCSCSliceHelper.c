@@ -8,12 +8,14 @@
 #include "blockiterator.h"
 
 static dim _nsub;
+static dim _kmax;
 static mclit *_blockIterator = NULL;
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setParams
         (JNIEnv *env, jclass cls, jint nsub, jint select, jboolean autoprune, jdouble inflation,
                 jfloat cutoff, jfloat pruneA, jfloat pruneB, jint kmax){
     _nsub = (dim) nsub;
+    _kmax = (dim) kmax;
     sliceSetParams((dim) nsub, (dim) select, autoprune, inflation, cutoff, (jdouble) pruneA, (jdouble) pruneB, (dim) kmax);
 }
 
@@ -95,7 +97,7 @@ JNIEXPORT jint JNICALL Java_io_writables_nat_NativeCSCSliceHelper_size
 
 JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks
         (JNIEnv *env, jclass cls, jobject buf) {
-    _blockIterator = iteratorInit(_blockIterator, env, buf, _nsub);
+    _blockIterator = iteratorInit(_blockIterator, env, buf, _nsub, _kmax);
     return Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls);
 }
 

@@ -20,7 +20,7 @@ void* mclRealloc (void* object, dim new_size) {
     }
 
     if (new_size && (!mblock)) {
-        //TODO say something
+        printf("could not allocate memory. exit!!!");
         exit(1);
     }
 

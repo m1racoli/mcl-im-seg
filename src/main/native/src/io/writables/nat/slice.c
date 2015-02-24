@@ -29,6 +29,27 @@ void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
     _kmax = kmax;
 }
 
+mclSlice *sliceNew(dim nsub, dim size){
+    mcls *s = mclAlloc(sizeof(mcls));
+    s->align = TOP_ALIGNED;
+    s->colPtr = mclAlloc(nsub * sizeof(colInd));
+    s->items = itemNNew(size);
+    return s;
+}
+
+void sliceFree(mcls **s){
+    if(*s){
+
+        if((*s)->items)
+            mclFree((*s)->items);
+        if((*s)->colPtr)
+            mclFree((*s)->colPtr);
+
+        mclFree(*s);
+        *s = NULL;
+    }
+}
+
 colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
     jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
     return (colInd*) (arr + 1);
@@ -67,6 +88,10 @@ jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {
     mclFree(v1);
     mclFree(v2);
     return JNI_TRUE;
+}
+
+dim sliceGetDataSize(dim nsub, dim items){
+    return 1 + nsub * sizeof(colInd) + items * sizeof(mcli);
 }
 
 jdouble sliceSumSquaredDiffs(const mcls *s1, const mcls *s2) {
@@ -124,7 +149,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
     double max;
     double sum;
     double chaos;
-    mclh *h = heapInit(NULL); //TODO
+    mclh *h = NULL;
 
     for(cs = slice->colPtr, ct = slice->colPtr+1, t = slice->colPtr + _nsub; cs != t; cs = ct++) {
         v = vecInit(v, (dim) (*ct - *cs), slice->items + *cs);
@@ -244,7 +269,7 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
 
     colInd *cs, *ct;
     colInd num_new_items;
-    mclv *tmp = vecNew(NULL, _kmax);
+    mclv *tmp = vecNew(_kmax);
     mclv *d = vecInit(NULL, 0, NULL);
 
     if(s2->align){

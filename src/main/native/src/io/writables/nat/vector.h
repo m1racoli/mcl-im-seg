@@ -16,7 +16,7 @@ typedef struct {
 
 mclv* vecInit (mclv *vec, dim n, mcli *items);
 
-mclv *vecNew(mclv *v, dim n);
+mclv *vecNew(dim n);
 
 void vecFree(mclv **v);
 
@@ -41,10 +41,6 @@ void vecSelectionPrune(mclv *v, mclh *h, dim _select);
 void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst);
 
 void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst);
-
-void vecCopyForward(const mclv *src, mclv *dst);
-
-void vecCopyBackward(const mclv *src, mclv *dst);
 
 void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst);
 
