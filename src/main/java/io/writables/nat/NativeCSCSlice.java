@@ -213,15 +213,16 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	protected ReadOnlyIterator<NativeCSCSlice> getSubBlockIterator(SliceId id) {
-		return new SubBlockIterator();
+		return new SubBlockIterator(id);
 	}
 	
 	private final class SubBlockIterator extends ReadOnlyIterator<NativeCSCSlice> {
-
+		private final SliceId id;
 		private final NativeCSCSlice b = new NativeCSCSlice();
 		private boolean ready = true;
 		
-		public SubBlockIterator() {
+		public SubBlockIterator(SliceId id) {
+			this.id = id;
 			b.bb = NativeCSCSliceHelper.startIterateBlocks(bb);
 		}
 		
@@ -241,6 +242,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 		private final void check() {
 			if(!ready){
 				b.bb = NativeCSCSliceHelper.nextBlock();
+				//set id
 				ready = true;
 			}
 		}

@@ -32,6 +32,7 @@ set(SOURCE_FILES
     src/io/writables/nat/stats.c
     src/io/writables/nat/heap.c
     src/io/writables/nat/blockiterator.c
+    src/io/writables/nat/heapitem.c
     )
 
 add_library(mclnative SHARED ${SOURCE_FILES})

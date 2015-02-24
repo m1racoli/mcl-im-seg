@@ -5,24 +5,26 @@
 #include "slice.h"
 
 typedef struct {
-    int col;
-    dim size;
     jint id;
+    const dim col;
+    mcli *s;
+    dim size;
+    mcli *const t;
 } subBlockItem;
 
 #define sbi subBlockItem
 
-sbi *sbiNNew(dim n);
+sbi *sbiNNew(const dim n, const mcls *slice);
 
 int subBlockItemComp(const void *i1, const void *i2);
 
 typedef struct {
-    const mcls *slice;
+    mcls *slice;
     mcls *block;
     jobject buf;
-    dim nsub;
     mclh *h;
     sbi *blockItems;
+    void* data;
 } mclBlockIterator;
 
 #define mclit mclBlockIterator
@@ -31,6 +33,6 @@ mclit *iteratorInit(mclit *it, JNIEnv *env, jobject buf, const dim nsub, const d
 
 bool iteratorNext(mclit *it);
 
-void iteratorFree(mclit **it);
+void iteratorFree(mclit **it, JNIEnv *env);
 
 #endif

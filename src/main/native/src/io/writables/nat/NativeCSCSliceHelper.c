@@ -107,7 +107,7 @@ JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_nextBlock
         return _blockIterator->buf;
     }
 
-    iteratorFree(&_blockIterator);
+    iteratorFree(&_blockIterator, env);
     return NULL;
 }
 

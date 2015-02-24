@@ -2,22 +2,19 @@
 #define heap_h
 
 #include "types.h"
+#include "heapitem.h"
 
 typedef struct {
-
-} heapItem;
-
-typedef struct {
-    void *base;
+    hpi *base;
     dim heap_size;
-    dim elem_size;
-    int (*cmp)(const void *i1, const void *i2);
+    hpi *root;
     dim n_inserted;
+    int (*cmp)(const void *i1, const void *i2);
 } mclHeap;
 
 #define mclh mclHeap
 
-mclh *heapNew(mclh *h, dim heap_size, dim elem_size, int (*cmp)  (const void* lft, const void* rgt));
+mclh *heapNew(mclh *h, dim heap_size, int (*cmp)  (const void* lft, const void* rgt));
 
 void heapReset(mclh *h);
 

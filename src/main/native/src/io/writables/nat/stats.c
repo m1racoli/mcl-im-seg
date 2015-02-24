@@ -22,8 +22,8 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
     mclStats *stats = mclAlloc(sizeof(mclStats));
 
     if(!cls){
-        //TODO global ref of cls
-        cls = (*env)->GetObjectClass(env,jstats);
+        jclass local_cls = (*env)->GetObjectClass(env,jstats);
+        cls = (*env)->NewGlobalRef(env, local_cls);
         CHAOS_ID = (*env)->GetFieldID(env,cls,"chaosMax","D");
         KMAX_ID = (*env)->GetFieldID(env,cls,"kmax","I");
         PRUNE_ID = (*env)->GetFieldID(env,cls,"prune","I");

@@ -9,15 +9,15 @@ static mclh *heapInit(void* h){
     }
 
     heap->base = NULL;
+    heap->root = NULL;
     heap->heap_size = 0;
-    heap->elem_size = 0;
     heap->cmp = NULL;
     heap->n_inserted = 0;
 
     return heap;
 }
 
-mclh *heapNew(mclh *h, dim heap_size, dim elem_size, int (*cmp)  (const void* lft, const void* rgt)){
+mclh *heapNew(mclh *h, dim heap_size, int (*cmp)  (const void* lft, const void* rgt)){
     mclh *heap = h ? h : heapInit(NULL);
 
 
@@ -38,5 +38,19 @@ void heapFree(mclh **h){
         mclFree(*h);
         *h = NULL;
     }
+}
+
+void heapInsert(mclh *h, void *elem){
+
+    hpi *item;
+
+    if(!h->root){
+        item = h->base;
+        h->root = item;
+        h->n_inserted++;
+
+    }
+
+    //TODO
 }
 
