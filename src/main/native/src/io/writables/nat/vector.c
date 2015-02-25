@@ -83,7 +83,7 @@ void vecAddLoops(mclv *v, rowInd d) {
     }
 
     if(!c){
-        printf("column %ld does not contain diagonal element. exit!!!\n",d);
+        printf("column %ld does not contain diagonal element. exit!!!\n",(long) d);
         exit(1);
     }
 
