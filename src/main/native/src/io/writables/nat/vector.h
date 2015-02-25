@@ -5,7 +5,6 @@
 #include "item.h"
 #include "stats.h"
 #include "heap.h"
-#include "slice.h"
 
 typedef struct {
     dim n; //number of items

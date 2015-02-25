@@ -6,6 +6,61 @@ static inline int hpiCmp(mclh *h, const hpi *i1, const hpi *i2){
     return h->cmp(i1->data,i2->data);
 }
 
+static hpi *hpiNew(void *data, hpi *neighbor){
+    hpi *i = mclAlloc(sizeof(hpi));
+
+    i->data = data;
+    i->child = NULL;
+    i->parent = NULL;
+    i->degree = 0;
+
+    if(neighbor){
+        i->right = neighbor;
+        i->left = neighbor->left;
+        neighbor->left = i;
+        i->left->right = i;
+    } else {
+        i->left = i;
+        i->right =  i;
+    }
+
+    return i;
+}
+
+static inline void hpiLink(hpi *parent, hpi *node){
+    node->left->right = node->right;
+    node->right->left = node->left;
+    node->parent = parent;
+
+    if(parent->child == NULL){
+        parent->child = node;
+        node->right = node;
+        node->left = node;
+    } else {
+        node->left = parent->child;
+        node->right = parent->child->right;
+        parent->child->right = node;
+        node->right->left = node;
+    }
+
+    parent->degree++;
+}
+
+static void hpiFree(hpi **node){
+    hpi *child = (*node)->child;
+    if(child){
+        child->left->right = NULL;
+
+        for(hpi *i = child, *n; i; i = n){
+            n = i->right;
+            hpiFree(&i);
+        }
+    }
+
+    mclFree(*node);
+    *node = NULL;
+}
+
 mclh *heapNew(mclh *h, dim max_size, int (*cmp)  (const void*, const void*)){
     if(h) return h;
 
@@ -148,7 +203,7 @@ void *heapRemove(mclh *h){
     return data;
 }
 
-static byte *hpiDump(byte * dst, const hpi *node, size_t elem_size){
+static char *hpiDump(char * dst, const hpi *node, size_t elem_size){
 
     dst = memcpy(dst, node->data, elem_size) + elem_size;
 
@@ -157,7 +212,7 @@ static byte *hpiDump(byte * dst, const hpi *node, size_t elem_size){
 
     dst = hpiDump(dst, node->child, elem_size);
 
-    for(hpi *t = node->child, *i = t->right, ; i != t; i = i->right){
+    for(hpi *t = node->child, *i = t->right; i != t; i = i->right){
         dst = hpiDump(dst, i, elem_size);
     }
 
@@ -168,9 +223,9 @@ void heapDump(const mclh *h, void *dst, size_t elem_size){
     if(!h->root)
         return;
 
-    byte *it = hpiDump(dst, h->root, elem_size);
+    char *it = hpiDump(dst, h->root, elem_size);
 
-    for(hpi *t = h->root, *i = t->right, ; i != t; i = i->right){
+    for(hpi *t = h->root, *i = t->right; i != t; i = i->right){
         it = hpiDump(it, i, elem_size);
     }
 }

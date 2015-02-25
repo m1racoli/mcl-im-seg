@@ -33,7 +33,7 @@ void mclFree (void* object) {
 
 void mclNFree (void* base, dim n_elem, dim elem_size, void (*objRelease)(void *)) {
     if(n_elem && objRelease){
-        byte *ob = base;
+        char *ob = base;
         while (n_elem-- > 0){
             objRelease(ob);
             ob += elem_size;
@@ -47,14 +47,14 @@ void* mclNAlloc (dim n_elem, dim elem_size, void* (*obInit)(void*)) {
 }
 
 void* mclNRealloc (void* mem, dim n_elem, dim n_elem_prev, dim elem_size, void* (*obInit)(void*)) {
-    byte *ob;
+    char *ob;
     mem = mclRealloc(mem, n_elem * elem_size);
 
     if(!mem)
         return NULL;
 
     if(obInit && n_elem > n_elem_prev){
-        ob = ((byte*) mem) + (elem_size * n_elem_prev);
+        ob = ((char*) mem) + (elem_size * n_elem_prev);
         while(n_elem-- > n_elem_prev) {
             obInit(ob);
             ob += elem_size;

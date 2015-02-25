@@ -2,7 +2,15 @@
 #define heap_h
 
 #include "types.h"
-#include "heapitem.h"
+
+typedef struct heapItem {
+    void *data;
+    struct heapItem *parent, *child;
+    struct heapItem *left, *right;
+    int degree;
+} heapItem;
+
+typedef heapItem hpi;
 
 typedef struct {
     const dim max_size;

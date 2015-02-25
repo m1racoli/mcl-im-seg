@@ -17,9 +17,7 @@ include_directories(
     ${GENERATED_JAVAH}
 )
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 set(SOURCE_FILES
     src/io/test/NativeTest.c
@@ -32,7 +30,6 @@ set(SOURCE_FILES
     src/io/writables/nat/stats.c
     src/io/writables/nat/heap.c
     src/io/writables/nat/blockiterator.c
-    src/io/writables/nat/heapitem.c
     )
 
 add_library(mclnative SHARED ${SOURCE_FILES})
