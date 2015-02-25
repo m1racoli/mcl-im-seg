@@ -99,7 +99,7 @@ void sliceAddLoops(mcls *slice, jint id) {
 
     while(c != s){
         v = vecInit(v, (dim) (*(c--) - *c), slice->items + *c);
-        vecAddLoops(v,--d);
+        if(v->n) vecAddLoops(v,--d);
     }
 
     mclFree(v);
