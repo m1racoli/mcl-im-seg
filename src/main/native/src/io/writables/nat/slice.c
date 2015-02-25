@@ -1,4 +1,3 @@
-#include <winsock.h>
 #include "slice.h"
 #include "alloc.h"
 
@@ -291,7 +290,7 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
 
 void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top){
     mcli *item = v->items;
-    bool inorder = FALSE;
+    bool inorder = false;
     mclv *v1 = NULL, *v2 = NULL;
     colInd cs;
     dst->n = 0;

@@ -1,6 +1,4 @@
 #include <jni.h>
-#include <jvmti.h>
-#include <winsock.h>
 #include "io_writables_nat_NativeCSCSliceHelper.h"
 #include "types.h"
 #include "slice.h"

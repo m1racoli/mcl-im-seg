@@ -47,11 +47,6 @@ mclit *iteratorInit(mclit *it, JNIEnv *env, jobject buf, const dim nsub, const d
 
     if (!it)
         it = mclAlloc(sizeof(mclit));
-    else {
-        //should not happen
-        printf("cannot start iteration. blockiterator already exists. exit!!!");
-        exit(1);
-    }
 
     _nsub = nsub;
 

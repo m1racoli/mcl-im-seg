@@ -10,7 +10,6 @@
 #ifndef nat_alloc_h
 #define nat_alloc_h
 
-//#include <stdio.h>
 #include "types.h"
 
 void* mclAlloc (dim size);
