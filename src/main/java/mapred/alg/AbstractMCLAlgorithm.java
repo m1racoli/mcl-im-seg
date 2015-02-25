@@ -13,15 +13,14 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
+import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
 import mapred.MCLInitParams;
 import mapred.MCLOut;
-import mapred.MCLParams;
+import mapred.MCLAlgorithmParams;
 import mapred.MCLResult;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
@@ -35,9 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Counters;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,12 +59,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "-o", required = true, description = "output folder for the clustering result")
 	private Path output = null;
-	
-	@Parameter(names = "-debug", description = "DEBUG logging level for MCL")
-	private boolean debug = false;
-	
-	@Parameter(names = "-verbose", description = "show MapReduce job progress")
-	private boolean verbose = false;
 	
 	@Parameter(names = "--max-iter", description = "set max number of iterations")
 	private int max_iterations = MCLDefaults.max_iterations;
@@ -108,7 +99,8 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = {"-h","--help"}, help = true, description = "show this help")
 	private boolean help = false;
 	
-	private final MCLParams params = new MCLParams();
+	private final MCLCoreParams coreParams = new MCLCoreParams();
+	private final MCLAlgorithmParams params = new MCLAlgorithmParams();
 	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
@@ -127,10 +119,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		List<Object> params = new LinkedList<Object>();
 		params.add(this);
+		params.add(coreParams);
 		params.add(this.params);
 		params.add(initParams);
 		params.add(compressionParams);
-		params.add(getParams());
+		
+		
+		//params.add(getParams());
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
@@ -140,34 +135,13 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			return 1;
 		}
 		
+		coreParams.apply(getConf());
 		this.params.apply(getConf());
 		initParams.apply(getConf());
 		compressionParams.apply(getConf());
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
-		}
-		
-		org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
-		
-		if (verbose) {
-			org.apache.log4j.Logger.getLogger(Job.class).setLevel(Level.INFO);
-		}
-
-		if (debug) {
-			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);			
-			
-			if(embeddedZkServer){
-				//org.apache.log4j.Logger.getLogger("org.apache.zookeeper.server").setLevel(Level.DEBUG);
-			}
-			
-			//TODO package
-			MCLConfigHelper.setDebug(getConf(), true);
-			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
-				logger.debug("{}: {}",e.getKey(),e.getValue());
-			}
 		}
 		
 		if(local){

@@ -10,7 +10,7 @@ import com.beust.jcommander.Parameter;
  * @author Cedrik Neumann
  *
  */
-public class MCLParams {
+public class MCLAlgorithmParams implements Applyable {
 	
 	@Parameter(names = "-I", description = "inflation parameter")
 	private double inflation = MCLDefaults.inflation;
@@ -27,12 +27,10 @@ public class MCLParams {
 	@Parameter(names = "-selector", converter = Selector.ClassConverter.class, description = "Java implementation for selection pruning")
 	private Class<? extends Selector> selectorClass = MCLDefaults.selectorClass;
 	
-	@Parameter(names = "-print-matrix", description = "define how a matrix slice should be printed to text (NNZ,COMPACT,ALL)")
-	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
-	
 	@Parameter(names = {"-a","--auto-prune"}, description = "enable auto prune. overrides manual pruning options")
 	private boolean auto_prune = MCLDefaults.autoPrune;
 	
+	@Override
 	public void apply(Configuration conf) {
 		MCLConfigHelper.setInflation(conf, inflation);		
 		
@@ -44,7 +42,6 @@ public class MCLParams {
 		
 		MCLConfigHelper.setSelection(conf, selection);
 		MCLConfigHelper.setSelectorClass(conf, selectorClass);
-		MCLConfigHelper.setPrintMatrix(conf, printMatrix);
 		MCLConfigHelper.setAutoPrune(conf, auto_prune);
 	}
 }

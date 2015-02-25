@@ -25,6 +25,7 @@ public class MCLInitParams implements Applyable {
 	@Parameter(names = {"-n","--native"}, description= "native computation engine")
 	private boolean use_native = false;
 	
+	@Override
 	public void apply(Configuration conf) {
 		MCLConfigHelper.setNSub(conf, nsub);		
 		MCLConfigHelper.setNumThreads(conf, te);
