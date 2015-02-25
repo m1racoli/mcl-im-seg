@@ -11,6 +11,7 @@ import mapred.alg.MCLJob;
 import mapred.alg.RMCLJob;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
+import mapred.job.input.InputAbcJob;
 import mapred.job.input.InputJob;
 
 import org.apache.hadoop.util.ToolRunner;
@@ -35,6 +36,8 @@ public class Launcher {
 		args = Arrays.copyOfRange(args, 1, args.length);
 		
 		switch(command){
+		case "abc":
+			InputAbcJob.main(args);
 		case "input":
 			InputJob.main(args);
 		case "transpose":
