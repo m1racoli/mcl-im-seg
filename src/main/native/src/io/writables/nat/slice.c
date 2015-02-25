@@ -29,27 +29,6 @@ void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
     _kmax = kmax;
 }
 
-mclSlice *sliceNew(dim nsub, dim size){
-    mcls *s = mclAlloc(sizeof(mcls));
-    s->align = TOP_ALIGNED;
-    s->colPtr = mclAlloc(nsub * sizeof(colInd));
-    s->items = itemNNew(size);
-    return s;
-}
-
-void sliceFree(mcls **s){
-    if(*s){
-
-        if((*s)->items)
-            mclFree((*s)->items);
-        if((*s)->colPtr)
-            mclFree((*s)->colPtr);
-
-        mclFree(*s);
-        *s = NULL;
-    }
-}
-
 colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
     jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
     return (colInd*) (arr + 1);
@@ -179,7 +158,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
         vecThresholdPrune(v, threshold, stats);
 
         if(v->n > _select){
-            h = heapNew(h, _select, sizeof(mcli), itemValComp);
+            h = heapNew(h, _select, itemValComp);
             vecSelectionPrune(v, h, _select);
         }
 

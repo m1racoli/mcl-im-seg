@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <math.h>
-#include <string.h>
 #include "vector.h"
 #include "alloc.h"
 
@@ -84,7 +83,7 @@ void vecAddLoops(mclv *v, rowInd d) {
     }
 
     if(!c){
-        printf("column %d does not contain diagonal element. exit!!!",d);
+        printf("column %l does not contain diagonal element. exit!!!",d);
         exit(1);
     }
 
@@ -177,8 +176,15 @@ void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
 }
 
 void vecSelectionPrune(mclv *v, mclh *h, dim _select) {
-    //TODO heap new
-    //TODO selection prune
+
+    for(mcli *i = v->items, *t = i + v->n; i != t; i++){
+        heapInsert(h, i);
+    }
+
+    v->n = _select;
+    heapDump(h, v->items, sizeof(mcli));
+    qsort(v->items, _select, sizeof(mcli), itemIdComp);
+    heapReset(h);
 }
 
 void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst){
@@ -264,14 +270,14 @@ void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
         if(i1->id < i2->id){
             *(--id) = *(--i2);
         } else if (i1->id > i2->id) {
-            itemSet(--id, (--id)->id, val * i1->val);
+            itemSet(--id, (--i1)->id, val * i1->val);
         } else {
             itemSet(--id, (--i1)->id, val * i1->val + (--i2)->val);
         }
     }
 
     while(i1 != s1){
-        itemSet(--id, (--id)->id, val * i1->val);
+        itemSet(--id, (--i1)->id, val * i1->val);
     }
 
     while(i2 != s2){

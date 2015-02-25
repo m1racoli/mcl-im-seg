@@ -5,8 +5,7 @@
 #include "heapitem.h"
 
 typedef struct {
-    hpi *base;
-    dim heap_size;
+    const dim max_size;
     hpi *root;
     dim n_inserted;
     int (*cmp)(const void *i1, const void *i2);
@@ -14,7 +13,7 @@ typedef struct {
 
 #define mclh mclHeap
 
-mclh *heapNew(mclh *h, dim heap_size, int (*cmp)  (const void* lft, const void* rgt));
+mclh *heapNew(mclh *h, dim max_size, int (*cmp) (const void*, const void*));
 
 void heapReset(mclh *h);
 
@@ -23,5 +22,7 @@ void heapFree(mclh **h);
 void heapInsert(mclh *h, void *elem);
 
 void *heapRemove(mclh *h);
+
+void heapDump(const mclh *h, void *dst, size_t elem_size);
 
 #endif

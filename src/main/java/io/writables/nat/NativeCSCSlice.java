@@ -236,13 +236,13 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 		public NativeCSCSlice next() {
 			check(); 
 			ready = false;
+			id.set(b.id());
 			return b;
 		}
 		
 		private final void check() {
 			if(!ready){
 				b.bb = NativeCSCSliceHelper.nextBlock();
-				//set id
 				ready = true;
 			}
 		}
@@ -418,5 +418,9 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	private final void putItem(long row, float val){
 		bb.putLong(row).putFloat(val);
+	}
+	
+	private final int id(){
+		return bb.getInt(itemBytesEnd());
 	}
 }

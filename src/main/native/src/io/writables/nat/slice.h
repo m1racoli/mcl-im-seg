@@ -22,11 +22,7 @@ jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
 mclSlice *sliceInit(mcls *slice, JNIEnv *env, jobject buf);
 
-mclSlice *sliceNew(dim nsub, dim size);
-
 dim sliceGetDataSize(dim nsub, dim items);
-
-void sliceFree(mcls **s);
 
 jboolean sliceEquals(const mcls *s1, const mcls *s2);
 

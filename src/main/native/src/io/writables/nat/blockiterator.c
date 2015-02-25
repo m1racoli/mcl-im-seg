@@ -82,12 +82,12 @@ bool iteratorNext(mclit *it) {
 
     jint last_col = -1;
     colInd new_items = 0;
-    jint id = ((sbi*)it->h->root->obj)->id;
+    jint id = ((sbi*)it->h->root->data)->id;
     mcli *items = it->block->items;
     colInd *ct = it->block->colPtr;
     *ct++ = 0;
 
-    while(it->h->root && id == ((sbi*)it->h->root->obj)->id){
+    while(it->h->root && id == ((sbi*)it->h->root->data)->id){
         sbi *const sbii = heapRemove(it->h);
 
         for(jint i = last_col + 1; i < sbii->col; i++){
