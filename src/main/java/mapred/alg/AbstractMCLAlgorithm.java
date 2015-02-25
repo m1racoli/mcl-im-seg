@@ -25,9 +25,7 @@ import mapred.MCLParams;
 import mapred.MCLResult;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
-import mapred.job.input.InputAbcJob;
 import mapred.job.input.NativeInputJob;
-import mapred.job.input.SequenceInputJob;
 import mapred.job.output.ReadClusters;
 
 import org.apache.hadoop.conf.Configured;
@@ -106,9 +104,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "--force-iter", description = "force the number of iterations")
 	private int fixed_iterations = 0;
-	
-	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
-	private boolean native_input = false;
 	
 	@Parameter(names = {"-h","--help"}, help = true, description = "show this help")
 	private boolean help = false;
@@ -229,15 +224,16 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	protected final MCLResult inputJob(Path input, Path output) throws Exception {
 		MCLResult result = null;
 		
-		if(!native_input){
-			logger.debug("run InputJob on {} => {}",input,output);
-			result = is_abc 
-					? new InputAbcJob().run(getConf(), input, output)
-					: new SequenceInputJob().run(getConf(), input, output);
-			
-		} else {
-			result = new NativeInputJob().run(getConf(), input, output);
-		}
+		result = new NativeInputJob().run(getConf(), input, output);
+		
+//		old stuff
+//		if(!use_native){
+//			logger.debug("run InputJob on {} => {}",input,output);
+//			result = is_abc 
+//					? new InputAbcJob().run(getConf(), input, output)
+//					: new SequenceInputJob().run(getConf(), input, output);
+//			
+//		}
 		
 		if (result == null || !result.success) {
 			MCLOut.println("input failed");
