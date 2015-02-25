@@ -73,14 +73,20 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 	protected final void select(float[] val, int[] selection, int n, int s) {
 		
 		if(queue == null) {
-			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select+1);//TODO
+			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select);
 		}
 		
-		for(int i = 0; i < n; i++) {
+		for(int i = 0; i < s; i++) {
 			int sel = selection[i];
-			queue.add( new QueueItem(sel, val[sel]));
-			if(i >= s){
-				queue.remove();//TODO
+			queue.add(new QueueItem(sel, val[sel]));
+		}
+		
+		for(int i = s; i < n; i++) {
+			int sel = selection[i];
+			float v = val[sel];
+			if(v > queue.peek().val){
+				queue.remove();
+				queue.add(new QueueItem(sel, v));
 			}
 		}
 		
@@ -104,7 +110,7 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		
 		@Override
 		public int compareTo(QueueItem o) {
-			return val > o.val ? 1 : val < o.val ? -1 : 0; // unsafe. we assume non NaN floats
+			return val > o.val ? 1 : -1; // unsafe. we assume non NaN floats
 		}
 	}
 	
