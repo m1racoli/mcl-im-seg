@@ -11,7 +11,6 @@ static hpi *hpiNew(void *data, hpi *neighbor){
 
     i->data = data;
     i->child = NULL;
-    i->parent = NULL;
     i->degree = 0;
 
     if(neighbor){
@@ -30,7 +29,6 @@ static hpi *hpiNew(void *data, hpi *neighbor){
 static inline void hpiLink(hpi *parent, hpi *node){
     node->left->right = node->right;
     node->right->left = node->left;
-    node->parent = parent;
 
     if(parent->child == NULL){
         parent->child = node;
@@ -173,11 +171,6 @@ void *heapRemove(mclh *h){
     }
 
     if(z->child){
-        z->child->parent = NULL;
-
-        for(hpi *i = z->child->right; i != z->child; i = i->right){
-            i->parent = NULL;
-        }
 
         hpi *min_left = h->root->left;
         hpi * z_child_left = z->child->left;

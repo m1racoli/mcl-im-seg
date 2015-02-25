@@ -5,7 +5,7 @@
 
 typedef struct heapItem {
     void *data;
-    struct heapItem *parent, *child;
+    struct heapItem *child;
     struct heapItem *left, *right;
     int degree;
 } heapItem;
