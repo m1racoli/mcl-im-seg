@@ -282,7 +282,37 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	private final int addForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
-		return addMultForw(s1, t1, m, s2, t2, pos, 1.0f);
+		int p = pos, i1 = s1, i2 = s2;
+		
+		while (i1 < t1 && i2 < t2) {
+			final long r1 = rowInd[i1];
+			final long r2 = m.rowInd[i2];
+			
+			if (r1 == r2) {
+				rowInd[p] = r1;
+				val[p++] = val[i1++] + m.val[i2++];				
+			} else {
+				if (r1 < r2) {
+					rowInd[p] = r1;
+					val[p++] = val[i1++];	
+				} else {
+					rowInd[p] = r2;
+					val[p++] = m.val[i2++];
+				}
+			}
+		}
+		
+		while (i1 < t1) {
+			rowInd[p] = rowInd[i1];
+			val[p++] = val[i1++];
+		}
+
+		while(i2 < t2) {
+			rowInd[p] = m.rowInd[i2];
+			val[p++] = m.val[i2++];
+		}
+		
+		return p - pos;
 	}
 	
 	private final int addMultForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
@@ -321,7 +351,37 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	private final int addBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
-		return addMultBack(s1, t1, m, s2, t2, pos, 1.0f);
+		int p = pos, i1 = t1 - 1, i2 = t2 - 1 ;
+		
+		while (i1 >= s1 && i2 >= s2) {
+			long r1 = rowInd[i1];
+			long r2 = m.rowInd[i2];
+			
+			if (r1 == r2) {
+				rowInd[--p] = r1;
+				val[p] = val[i1--] + m.val[i2--];
+			} else {
+				if (r1 > r2) {
+					rowInd[--p] = r1;
+					val[p] = val[i1--];
+				} else {
+					rowInd[--p] = r2;
+					val[p] = m.val[i2--];
+				}
+			}
+		}
+			
+		while (i1 >= s1) {
+			rowInd[--p] = rowInd[i1];
+			val[p] = val[i1--];
+		}			
+		
+		while (i2 >= s2) {
+			rowInd[--p] = m.rowInd[i2];
+			val[p] = m.val[i2--];	
+		}
+		
+		return pos - p;
 	}
 	
 	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
