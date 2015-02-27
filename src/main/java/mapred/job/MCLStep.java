@@ -71,6 +71,7 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void map(SliceId key, TupleWritable tuple, Context context)
 				throws IOException, InterruptedException {
+			logger.debug("MAP START");
 			
 			long start = System.nanoTime();
 			
@@ -119,6 +120,7 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
 			cpu_nanos += System.nanoTime() - start;
 			context.write(id, product);
+			logger.debug("MAP END");
 		}
 		
 		@Override
@@ -149,6 +151,8 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+			logger.debug("COMBINE START");
+			
 			long start; // = System.nanoTime();
 			vec.clear();
 			
@@ -161,6 +165,8 @@ public class MCLStep extends AbstractMCLJob {
 			
 			context.getCounter(Counters.COMBINE_OUTPUT_VALUES).increment(vec.size());
 			context.write(col, vec);
+			
+			logger.debug("COMBINE END");
 		}
 		
 		@Override
@@ -193,6 +199,8 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+			logger.debug("REDUCE START");
+			
 			long start; // = System.nanoTime();
 			vec.clear();
 			for(M m : values){
@@ -208,6 +216,8 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
 			cpu_nanos += System.nanoTime() - start;
 			context.write(col, vec);
+			
+			logger.debug("REDUCE END");
 		}
 		
 		@Override

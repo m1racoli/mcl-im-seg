@@ -11,6 +11,8 @@ set(CMAKE_BUILD_TYPE, Release)
 #    ${GENERATED_JAVAH}
 #)
 
+add_definitions(-D${C_LOGGING_LEVEL})
+
 include_directories(
     ${JNI_INCLUDE}
     ${JNI_INCLUDE}/${PF}
@@ -30,6 +32,8 @@ set(SOURCE_FILES
     src/io/writables/nat/stats.c
     src/io/writables/nat/heap.c
     src/io/writables/nat/blockiterator.c
+    src/io/writables/nat/logger.c
+    src/io/writables/nat/exception.h
     )
 
 add_library(mclnative SHARED ${SOURCE_FILES})

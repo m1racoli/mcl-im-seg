@@ -8,6 +8,7 @@
 #include "vector.h"
 
 typedef struct {
+    void* data;
     alignment align;
     colInd *colPtr;
     mcli *items;
@@ -20,9 +21,11 @@ void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
 
 jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
 
-mclSlice *sliceInit(mcls *slice, JNIEnv *env, jobject buf);
+mcls *sliceInitFromAdress(mcls *slice, void *obj);
 
-dim sliceGetDataSize(dim nsub, dim items);
+mclSlice *sliceInitFromBB(mcls *slice, JNIEnv *env, jobject buf);
+
+dim sliceGetDataSize(dim nsub, dim kmax);
 
 jboolean sliceEquals(const mcls *s1, const mcls *s2);
 
@@ -41,5 +44,7 @@ void sliceAdd(mcls *s1, const mcls *s2);
 void sliceMultiply(const mcls *s1, mcls *s2);
 
 void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top);
+
+void sliceDescribe(const mcls* self);
 
 #endif

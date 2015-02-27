@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
-import mapred.MCLConfigHelper;
 import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
 import mapred.MCLInitParams;
@@ -87,9 +86,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-zk", description = "run an embedded zookeeper server on <THIS_NODES_IP>:2181 for the distributed metrics")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "--local", description = "run MapReduce in local mode")
-	private boolean local = false;
-	
 	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode")
 	private boolean in_memory;
 	
@@ -142,13 +138,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
-		}
-		
-		if(local){
-			logger.info("run mapreduce in local mode");
-			getConf().set("mapreduce.framework.name", "local");
-			getConf().set("yarn.resourcemanager.address", "local");
-			MCLConfigHelper.setLocal(getConf(), local);
 		}
 		
 		if (embeddedZkServer) {

@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include <jvmti.h>
 #include "alloc.h"
+#include "logger.h"
 
 void* mclAlloc (dim size) {
     return mclRealloc(NULL, size);
@@ -19,8 +19,12 @@ void* mclRealloc (void* object, dim new_size) {
                 : malloc(new_size);
     }
 
+    //if(loggerIsDebugEnabled()){
+        //logDebug("allocated [%p, %u]",mblock,new_size);
+    //}
+
     if (new_size && (!mblock)) {
-        printf("could not allocate memory. exit!!!\n");
+        logErr("could not allocate %i bytes of memory",new_size);
         exit(1);
     }
 
@@ -28,6 +32,9 @@ void* mclRealloc (void* object, dim new_size) {
 }
 
 void mclFree (void* object) {
+    //if(loggerIsDebugEnabled()){
+    //    logDebug("free [%p]",object);
+    //}
     if (object) free(object);
 }
 

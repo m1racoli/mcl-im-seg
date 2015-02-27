@@ -23,6 +23,9 @@ public class MCLCoreParams implements Applyable {
 	@Parameter(names = "--print-matrix", description = "define how a matrix slice should be printed to text (NNZ,COMPACT,ALL)")
 	private PrintMatrix printMatrix = MCLDefaults.printMatrix;
 	
+	@Parameter(names = "--local", description = "run MapReduce in local mode")
+	private boolean local = false;
+	
 	@Override
 	public void apply(Configuration conf) {
 		
@@ -41,6 +44,13 @@ public class MCLCoreParams implements Applyable {
 			for(Entry<String, String> e : conf.getValByRegex("mcl.*").entrySet()){
 				logger.debug("{}: {}",e.getKey(),e.getValue());
 			}
+		}
+		
+		MCLConfigHelper.setLocal(conf, local);
+		if(local){
+			logger.info("run mapreduce in local mode");
+			conf.set("mapreduce.framework.name", "local");
+			conf.set("yarn.resourcemanager.address", "local");
 		}
 		
 		MCLConfigHelper.setPrintMatrix(conf, printMatrix);

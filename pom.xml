@@ -118,6 +118,7 @@
   </dependencies>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  	<C_LOGGING_LEVEL>ERROR</C_LOGGING_LEVEL>
   </properties>
   
   <profiles>
@@ -185,7 +186,7 @@
   							<configuration>
   								<target>
   									<exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
-										<arg line="${basedir}/src/main/native -DPF=linux -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJNI_INCLUDE=${env.JAVA_HOME}/include"/>
+										<arg line="${basedir}/src/main/native -DPF=linux -DC_LOGGING_LEVEL=${C_LOGGING_LEVEL} -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJNI_INCLUDE=${env.JAVA_HOME}/include"/>
 									</exec>
 									<exec executable="make" dir="${project.build.directory}/native" failonerror="true">
 										<arg line="VERBOSE=1"/>

@@ -4,7 +4,11 @@
 package io.writables.nat;
 
 import io.test.NativeTest;
+
 import java.nio.ByteBuffer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import mapred.MCLStats;
 
@@ -16,9 +20,13 @@ import mapred.MCLStats;
  */
 final class NativeCSCSliceHelper {
 	
+	private static final Logger logger = LoggerFactory.getLogger(NativeCSCSliceHelper.class);
+	
 	static {
 		try {
+			logger.debug("load library {}",NativeTest.NATIVE_TEST_LIB_NAME);
 			System.loadLibrary(NativeTest.NATIVE_TEST_LIB_NAME);
+			logger.info("{} loaded",NativeTest.NATIVE_TEST_LIB_NAME);
 		} catch (Throwable e){
 			System.err.printf("could not load library '%s' "
 					+ "from java.library.path: %s\n", NativeTest.NATIVE_TEST_LIB_NAME,System.getProperty("java.library.path"));
@@ -27,7 +35,7 @@ final class NativeCSCSliceHelper {
 	}
 	
 	static native void setParams(int nsub, int select, boolean auto_prune,
-			double inflation, float cutoff, float pruneA, float pruneB, int kmax);
+			double inflation, float cutoff, float pruneA, float pruneB, int kmax, boolean debug);
 
 	static native void clear(ByteBuffer bb);
 	
@@ -58,7 +66,7 @@ final class NativeCSCSliceHelper {
 	 */
 	static native ByteBuffer startIterateBlocks(ByteBuffer bb);
 	
-	static native ByteBuffer nextBlock();
+	static native boolean nextBlock();
 	
 	static native void multiply(ByteBuffer s, ByteBuffer b);
 	

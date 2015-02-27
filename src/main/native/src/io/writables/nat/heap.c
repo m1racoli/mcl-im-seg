@@ -1,12 +1,19 @@
 #include <string.h>
 #include "heap.h"
 #include "alloc.h"
+#include "logger.h"
 
 static inline int hpiCmp(mclh *h, const hpi *i1, const hpi *i2){
+    //logDebug("hpiCmp[%p %p]",i1,i2);
     return h->cmp(i1->data,i2->data);
 }
 
 static hpi *hpiNew(void *data, hpi *neighbor){
+
+    //if(loggerIsDebugEnabled()){
+    //    logDebug("new heap item");
+    //}
+
     hpi *i = mclAlloc(sizeof(hpi));
 
     i->data = data;
@@ -45,6 +52,11 @@ static inline void hpiLink(hpi *parent, hpi *node){
 }
 
 static void hpiFree(hpi **node){
+
+//    if(loggerIsDebugEnabled()){
+//        logDebug("hpi free [%p]",*node);
+//    }
+
     hpi *child = (*node)->child;
     if(child){
         child->left->right = NULL;
@@ -62,13 +74,17 @@ static void hpiFree(hpi **node){
 mclh *heapNew(mclh *h, dim max_size, int (*cmp)  (const void*, const void*)){
     if(h) return h;
 
+//    if(loggerIsDebugEnabled()){
+//        logDebug("new heap [max_size= %u]",max_size);
+//    }
+
     mclh *heap = mclAlloc(sizeof(mclh));
 
     heap->root = NULL;
     *(dim*)&heap->max_size = max_size;
     heap->cmp = cmp;
     heap->n_inserted = 0;
-
+    //TODO log base phi (n)
     return heap;
 }
 
@@ -99,23 +115,32 @@ void heapInsert(mclh *h, void *elem){
 
     if(!h->root){
         h->root = hpiNew(elem, NULL);
+        //logDebug("heap remove [%p]",h->root);
         h->n_inserted = 1;
         return;
     }
 
-    hpi *item = hpiNew(elem, h->root);
-    h->n_inserted++;
+    if(h->max_size && h->max_size == h->n_inserted){
+        //logDebug("pre check items");
+        if(h->cmp(elem,h->root->data) <= 0){
+            return;
+        }
 
-    if(hpiCmp(h, item, h->root) < 0){
-        h->root = item;
+        heapRemove(h);
     }
 
-    if(h->max_size && h->max_size < h->n_inserted){
-        heapRemove(h);
+    hpi *item = hpiNew(elem, h->root);
+    h->n_inserted++;
+    //logDebug("heap insert [%p]",item);
+    //logDebug("after check items");
+    if(hpiCmp(h, item, h->root) < 0){
+        h->root = item;
     }
 }
 
 static void consolidate(mclh* h){
+
+    //logDebug("consolidate %u items",h->n_inserted);
     hpi *arr[45];
 
     for(int i = 45; i>0;)
@@ -132,7 +157,8 @@ static void consolidate(mclh* h){
         while(arr[d]){
             hpi *y = arr[d];
 
-            if(hpiCmp(h, x, y) > 1){
+            //logDebug("check in while loop");
+            if(hpiCmp(h, x, y) > 0){
                 hpi *tmp = y;
                 y = x;
                 x = tmp;
@@ -158,6 +184,7 @@ static void consolidate(mclh* h){
     h->root = s;
 
     for(hpi **i = arr, **e = arr + 45; i != e; ++i){
+        //logDebug("check in for loop");
         if(*i && hpiCmp(h, *i, h->root) < 0){
             h->root = *i;
         }
@@ -167,18 +194,23 @@ static void consolidate(mclh* h){
 void *heapRemove(mclh *h){
     hpi *z = h->root;
     if(!z){
+        logWarn("trying to get item from empty heap");
         return NULL;
     }
+
+    //logDebug("heap remove [%p]",z);
 
     if(z->child){
 
         hpi *min_left = h->root->left;
-        hpi * z_child_left = z->child->left;
+        hpi *z_child_left = z->child->left;
         h->root->left = z_child_left;
         z_child_left->right = h->root;
         z->child->left = min_left;
         min_left->right = z->child;
     }
+
+    h->n_inserted--;
 
     if(z == z->right){
         h->root = NULL;
@@ -189,7 +221,6 @@ void *heapRemove(mclh *h){
         consolidate(h);
     }
 
-    h->n_inserted--;
     void *data = z->data;
     mclFree(z);
 
@@ -221,5 +252,39 @@ void heapDump(const mclh *h, void *dst, size_t elem_size){
     for(hpi *t = h->root, *i = t->right; i != t; i = i->right){
         it = hpiDump(it, i, elem_size);
     }
+}
+
+static void hpiPrint(hpi *h, dim l){
+    if(!h){
+        printf("heap: %u -> hpi[ NULL WTF! ]\n",l);
+        return;
+    }
+
+    printf("heap: %u -> hpi[%p -> d:%i, l:%p, r:%p, c:%p | d:%p]\n",l,h,h->degree, h->left,h->right,h->child,h->data);
+
+    if(h->child){
+        l++;
+        hpi *i = h->child;
+        hpi *t = h->child;
+        do {
+            hpiPrint(i,l);
+            i = i->right;
+        }while(i != t);
+    }
+
+}
+
+void heapPrint(mclh *h){
+    if(!h->root){
+        puts("heap: (empty heap)");
+        return;
+    }
+
+    hpi *i = h->root;
+    hpi *t = h->root;
+    do {
+        hpiPrint(i,0);
+        i = i->right;
+    }while(i != t);
 }
 

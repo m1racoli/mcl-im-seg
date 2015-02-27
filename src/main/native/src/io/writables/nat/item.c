@@ -1,6 +1,7 @@
 #include <string.h>
 #include "item.h"
 #include "alloc.h"
+#include "logger.h"
 
 mcli* itemInit (mcli* item, rowInd id, value val) {
     if(!item)
@@ -33,6 +34,7 @@ void itemSet(mcli *item, const rowInd id, const value val) {
 }
 
 mcli *itemNCopy(mcli *dst, const mcli *src, dim n){
+    //logDebug("itemNCopy %u items: [%p,%p) -> [%p,%p)",n,src,src+n,dst,dst+n);
     return memcpy(dst, src, n * sizeof(mcli));
 }
 

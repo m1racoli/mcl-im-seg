@@ -16,9 +16,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
 
+import mapred.MCLConfigHelper;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Cedrik
@@ -26,16 +29,18 @@ import org.apache.hadoop.conf.Configuration;
  */
 public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 
+	private static final Logger logger = LoggerFactory.getLogger(NativeCSCSlice.class);
+	
 	private static final byte TOP_ALIGNED = 0x00;
 	private static final int INT_BYTES = Integer.SIZE/8;
 	private static final int LONG_BYTES = Long.SIZE/8;
-	private static final int ITEM_BYTES = LONG_BYTES + Float.SIZE/8;
+	private static final int ITEM_BYTES = LONG_BYTES + 2*Float.SIZE/8 ;
 	private static final int BUF_SIZE = 1024*1024;
 	
 	private final byte[] buf = new byte[BUF_SIZE];
 	private ByteBuffer bb = null;
-	private int COLPTR_LAST;
-	private int HEADER_BYTES;
+	private static int COLPTR_LAST;
+	private static int HEADER_BYTES;
 	
 	/**
 	 * 
@@ -49,13 +54,15 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	@Override
 	public void setConf(Configuration conf) {
 		super.setConf(conf);
-		NativeCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax);
+
+		NativeCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax,MCLConfigHelper.getDebug(conf));
 		
 		COLPTR_LAST = nsub * INT_BYTES + 1;
 		HEADER_BYTES = INT_BYTES * (nsub + 1) + 1;
 		
 		bb = ByteBuffer.allocateDirect(HEADER_BYTES + max_nnz * ITEM_BYTES);
 		bb.order(ByteOrder.nativeOrder());
+		logger.debug("allocated buffer = {}",bb);
 		clear();
 	}
 
@@ -64,7 +71,9 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void write(DataOutput out) throws IOException {
+		logger.debug("WRITE HEADER");
 		write(out, 0, HEADER_BYTES);
+		logger.debug("WRITE ITEMS");
 		write(out, itemBytesStart(), itemBytesLength());
 	}
 
@@ -73,7 +82,9 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public void readFields(DataInput in) throws IOException {
+		logger.debug("READ HEADER");
 		read(in, 0, HEADER_BYTES);
+		logger.debug("READ ITEMS");
 		read(in, itemBytesStart(), itemBytesLength());
 	}
 
@@ -128,9 +139,13 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 			
 			putItem(e.row, e.val);
 			last_row = e.row;
+			l++;
 		}
 		
-		fillColPtr(current_col, nsub, l);		
+		//logger.debug("{} items written",l);
+		//logger.debug("position = {}",bb.position());
+		
+		fillColPtr(current_col, nsub, l);
 		kmax = Math.max(kmax, l-cs);
 		
 		return kmax;
@@ -223,26 +238,33 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 		
 		public SubBlockIterator(SliceId id) {
 			this.id = id;
-			b.bb = NativeCSCSliceHelper.startIterateBlocks(bb);
+			b.set(NativeCSCSliceHelper.startIterateBlocks(bb));
+			//logger.debug("native returned");
 		}
 		
 		@Override
 		public boolean hasNext() {
 			check();
+			//logger.debug("has next");
 			return b.bb != null;
 		}
 
 		@Override
 		public NativeCSCSlice next() {
-			check(); 
+			check();
+			logger.debug("next");
 			ready = false;
 			id.set(b.id());
+			logger.debug("return id:{} , bb:{}",id,b.bb);
 			return b;
 		}
 		
 		private final void check() {
 			if(!ready){
-				b.bb = NativeCSCSliceHelper.nextBlock();
+				//logger.debug("get next");
+				if(!NativeCSCSliceHelper.nextBlock()){
+					b.bb = null;
+				}
 				ready = true;
 			}
 		}
@@ -254,6 +276,13 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	@Override
 	public void inflateAndPrune(MCLStats stats) {
 		NativeCSCSliceHelper.inflateAndPrune(bb, stats);
+	}
+
+	private void set(ByteBuffer bb) {
+		this.bb = bb;
+		if(bb == null)
+			return;
+		this.bb.order(ByteOrder.nativeOrder());
 	}
 
 	/* (non-Javadoc)
@@ -315,6 +344,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	}
 	
 	private final void write(DataOutput out, int off, int len) throws IOException {
+		
 //		if(bb.hasArray()){
 //			out.write(bb.array(), off, len);
 //			return;
@@ -363,6 +393,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 */
 	@Override
 	public int size() {
+		//logger.debug("read size from {} and {}",itemsEnd(), itemsStart());
 		return itemsEnd() - itemsStart();
 	}
 
@@ -417,10 +448,11 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> {
 	 * @param val
 	 */
 	private final void putItem(long row, float val){
-		bb.putLong(row).putFloat(val);
+		bb.putLong(row).putFloat(val).putInt(0);
 	}
 	
 	private final int id(){
+		logger.debug("read id from position {}",itemBytesEnd());
 		return bb.getInt(itemBytesEnd());
 	}
 }

@@ -2,6 +2,7 @@
 #include <math.h>
 #include "vector.h"
 #include "alloc.h"
+#include "logger.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -75,15 +76,21 @@ void vecAddLoops(mclv *v, rowInd d) {
     value max = 0.0;
     mcli *i, *t;
 
+    //logDebug("vecAddLoops: v->n = %d, d = %ld\n", v->n, (long) d);
+
     for(i = v->items, t = i + v->n; i != t; i++){
+        //logDebug("vecAddLoops: iterate[row = %ld/%f]\n",(long) i->id, i->val);
+
         if(i->id == d){
+            //logDebug("vecAddLoops: diag found\n");
             c = i;
         }
-        if(max < c->val) max = c->val;
+
+        if(max < i->val) max = i->val;
     }
 
     if(!c){
-        printf("column %ld does not contain diagonal element. exit!!!\n",(long) d);
+        logErr("column %ld does not contain diagonal element. exit!!!\n",(long) d);
         exit(1);
     }
 

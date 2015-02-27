@@ -1,5 +1,8 @@
+#include <inttypes.h>
 #include "slice.h"
 #include "alloc.h"
+#include "logger.h"
+#include "item.h"
 
 static dim _nsub;
 static dim _select;
@@ -33,16 +36,40 @@ colInd *colIdxFromByteBuffer(JNIEnv *env, jobject buf) {
     return (colInd*) (arr + 1);
 }
 
-mcls *sliceInit(mcls *slice, JNIEnv *env, jobject buf) {
-    if(!slice)
-        slice = mclAlloc(sizeof(mcls));
+mcls *sliceInitFromAdress(mcls *s, void *obj){
 
-    jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
+    mcls *slice = s ? s : mclAlloc(sizeof(mcls));
 
+    jbyte *arr = obj;
+    slice->data = obj;
     slice->align = *arr;
     slice->colPtr = (colInd *) (arr + 1);
     slice->items = (mcli*) (slice->colPtr + _nsub + 1);
+
+    if(loggerIsDebugEnabled()){
+        colInd *p = slice->colPtr;
+        mcli *st = slice->items + *p;
+        mcli *t = st + *(p +_nsub);
+        //logDebug("new slice [%d,%p,%p,%u]",slice->align,st,t,*(p+_nsub)-*p);
+    }
+
     return slice;
+}
+
+mcls *sliceInitFromBB(mcls *s, JNIEnv *env, jobject buf) {
+    mcls *slice = s ? s : mclAlloc(sizeof(mcls));
+
+    //logDebug("slice init from bb[%p]",buf);
+
+    void *obj= (*env)->GetDirectBufferAddress(env,buf);
+
+    if((*env)->ExceptionCheck(env)){
+        logErr("error getting the ByteBuffers adress");
+        (*env)->ExceptionDescribe(env);
+        return NULL;
+    }
+
+    return sliceInitFromAdress(slice, obj);
 }
 
 jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {
@@ -51,10 +78,13 @@ jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {
     mclv *v2 = NULL;
     colInd *c1 = s1->colPtr + _nsub;
     colInd *c2 = s2->colPtr + _nsub;
+    colInd *t1,*t2;
 
     for(i = _nsub - 1; i >= 0; --i) {
-        v1 = vecInit(v1, (dim) (*(c1--) - *c1), s1->items + *c1);
-        v2 = vecInit(v2, (dim) (*(c2--) - *c2), s2->items + *c2);
+        t1 = c1--;
+        t2 = c2--;
+        v1 = vecInit(v1, (dim) (*t1 - *c1), s1->items + *c1);
+        v2 = vecInit(v2, (dim) (*t2 - *c2), s2->items + *c2);
 
         if(!vecEquals(v1, v2)){
             mclFree(v1);
@@ -68,8 +98,8 @@ jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {
     return JNI_TRUE;
 }
 
-dim sliceGetDataSize(dim nsub, dim items){
-    return 1 + nsub * sizeof(colInd) + items * sizeof(mcli);
+dim sliceGetDataSize(dim nsub, dim kmax){
+    return sizeof(jbyte) + nsub * sizeof(colInd) + nsub * kmax * sizeof(mcli);
 }
 
 jdouble sliceSumSquaredDiffs(const mcls *s1, const mcls *s2) {
@@ -78,11 +108,14 @@ jdouble sliceSumSquaredDiffs(const mcls *s1, const mcls *s2) {
     mclv *v2 = NULL;
     colInd *c1 = s1->colPtr + _nsub;
     colInd *c2 = s2->colPtr + _nsub;
+    colInd *t1,*t2;
     jdouble sum = 0.0;
 
     for(i = _nsub - 1; i >= 0; --i) {
-        v1 = vecInit(v1, (dim) (*(c1--) - *c1), s1->items + *c1);
-        v2 = vecInit(v2, (dim) (*(c2--) - *c2), s2->items + *c2);
+        t1 = c1--;
+        t2 = c2--;
+        v1 = vecInit(v1, (dim) (*t1 - *c1), s1->items + *c1);
+        v2 = vecInit(v2, (dim) (*t2 - *c2), s2->items + *c2);
         sum += vecSumSquaredDiffs(v1,v2);
     }
 
@@ -94,11 +127,12 @@ jdouble sliceSumSquaredDiffs(const mcls *s1, const mcls *s2) {
 void sliceAddLoops(mcls *slice, jint id) {
     mclv *v = NULL;
     colInd *s = slice->colPtr;
-    colInd *c = s + _nsub;
+    colInd *c = s + _nsub, *t;
     rowInd d = (rowInd) id * (rowInd) _nsub + (rowInd) _nsub;
 
     while(c != s){
-        v = vecInit(v, (dim) (*(c--) - *c), slice->items + *c);
+        t = c--;
+        v = vecInit(v, (dim) (*t - *c), slice->items + *c);
         if(v->n) vecAddLoops(v,--d);
     }
 
@@ -107,10 +141,11 @@ void sliceAddLoops(mcls *slice, jint id) {
 
 void sliceMakeStochastic(mcls *slice) {
     mclv *v = NULL;
-    colInd *s, *c;
+    colInd *s, *c, *t;
 
     for(s = slice->colPtr, c = s + _nsub; c != s;) {
-        v = vecInit(v, (dim) (*(c--) - *c), slice->items + *c);
+        t = c--;
+        v = vecInit(v, (dim) (*t - *c), slice->items + *c);
         vecMakeStochastic(v);
     }
     mclFree(v);
@@ -188,7 +223,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
 }
 
 dim sliceSize(const mcls *slice){
-    return (dim) (slice->colPtr[_nsub]-slice->colPtr[0]);
+    return (dim) (slice->colPtr[_nsub] - slice->colPtr[0]);
 }
 
 void sliceAdd(mcls *s1, const mcls *s2){
@@ -245,6 +280,10 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
     // s1 left side read-only
     // s2 right side and destination
 
+    if(IS_TRACE){
+        logTrace("sliceMultiply");
+    }
+
     colInd *cs, *ct;
     colInd num_new_items;
     mclv *tmp = vecNew(_kmax);
@@ -286,6 +325,10 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
 
     mclFree(d);
     vecFree(&tmp);
+
+    if(IS_TRACE){
+        sliceDescribe(s2);
+    }
 }
 
 void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top){
@@ -321,4 +364,17 @@ void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, cons
 
     mclFree(v1);
     mclFree(v2);
+}
+
+void sliceDescribe(const mcls* self){
+    char* root = self->data;
+    colInd *cs = self->colPtr;
+    colInd *ct = cs + _nsub;
+    mcli *is = self->items + *cs;
+    mcli *it = self->items + (*ct - 1);
+
+    printf("mclSlice[p:%p, align:%i, colPtr[0:[%lu:%i] ... %i:[%lu:%i]], items[0:[%lu:(%" PRId64 "; %f)] ... %lu:[%lu:(%" PRId64 "; %f)]], %lu]\n",
+            self->data,self->align,
+            (char*)cs - root,*cs,_nsub,(char*)ct-root,*ct,
+            (char*)is-root,is->id,is->val,it-is,(char*)it-root,it->id,it->val,(char*)(it+1)-root);
 }

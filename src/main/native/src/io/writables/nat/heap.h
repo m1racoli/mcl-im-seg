@@ -33,4 +33,6 @@ void *heapRemove(mclh *h);
 
 void heapDump(const mclh *h, void *dst, size_t elem_size);
 
+void heapPrint(mclh *h);
+
 #endif

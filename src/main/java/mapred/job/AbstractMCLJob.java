@@ -44,9 +44,6 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 	@Parameter(names = "-zk")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "-local")
-	private boolean local = false;
-	
 	@Parameter(names = {"--help"}, help = true)
 	private boolean help = false;
 	
@@ -84,12 +81,6 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
-		}		
-		
-		if(local){
-			logger.info("run mapreduce in local mode");
-			getConf().set("mapreduce.framework.name", "local");
-			getConf().set("yarn.resourcemanager.address", "local");
 		}
 		
 		if (embeddedZkServer) {
