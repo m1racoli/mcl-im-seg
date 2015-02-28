@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "heap.h"
 #include "alloc.h"
 #include "logger.h"
@@ -6,6 +7,10 @@
 static inline int hpiCmp(mclh *h, const hpi *i1, const hpi *i2){
     //logDebug("hpiCmp[%p %p]",i1,i2);
     return h->cmp(i1->data,i2->data);
+}
+
+static inline dim maxRank(dim max_size){
+    return (dim) floor(log(max_size)/ log((1.0 + sqrt(5.0))/2.0));
 }
 
 static hpi *hpiNew(void *data, hpi *neighbor){
@@ -84,7 +89,8 @@ mclh *heapNew(mclh *h, dim max_size, int (*cmp)  (const void*, const void*)){
     *(dim*)&heap->max_size = max_size;
     heap->cmp = cmp;
     heap->n_inserted = 0;
-    //TODO log base phi (n)
+    *(dim*)&heap->max_rank = maxRank(max_size);
+
     return heap;
 }
 
@@ -141,9 +147,9 @@ void heapInsert(mclh *h, void *elem){
 static void consolidate(mclh* h){
 
     //logDebug("consolidate %u items",h->n_inserted);
-    hpi *arr[45];
+    hpi *arr[h->max_rank];
 
-    for(int i = 45; i>0;)
+    for(int i = h->max_rank; i>0;)
         arr[--i] = NULL;
 
     hpi *s = h->root;
@@ -183,7 +189,7 @@ static void consolidate(mclh* h){
 
     h->root = s;
 
-    for(hpi **i = arr, **e = arr + 45; i != e; ++i){
+    for(hpi **i = arr, **e = arr + h->max_rank; i != e; ++i){
         //logDebug("check in for loop");
         if(*i && hpiCmp(h, *i, h->root) < 0){
             h->root = *i;

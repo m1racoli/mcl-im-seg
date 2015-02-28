@@ -55,8 +55,6 @@ final class NativeCSCSliceHelper {
 	static native void makeStochastic(ByteBuffer bb);
 
 	static native void inflateAndPrune(ByteBuffer bb, MCLStats stats);
-
-	static native int size(ByteBuffer bb);
 	
 	/**
 	 * starts iteration over the blocks in a slice
@@ -64,7 +62,7 @@ final class NativeCSCSliceHelper {
 	 * @param bb matrix slice to iterate over
 	 * @return block of matrix slice or null if islice 
 	 */
-	static native ByteBuffer startIterateBlocks(ByteBuffer bb);
+	static native boolean startIterateBlocks(ByteBuffer src, ByteBuffer dst);
 	
 	static native boolean nextBlock();
 	

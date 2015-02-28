@@ -1,5 +1,8 @@
+#include <inttypes.h>
 #include "stats.h"
 #include "alloc.h"
+#include "logger.h"
+#include "exception.h"
 
 static jclass cls = NULL;
 static jfieldID CHAOS_ID;
@@ -24,34 +27,36 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
     if(!cls){
         jclass local_cls = (*env)->GetObjectClass(env,jstats);
         cls = (*env)->NewGlobalRef(env, local_cls);
-        CHAOS_ID = (*env)->GetFieldID(env,cls,"chaosMax","D");
+        CHAOS_ID = (*env)->GetFieldID(env,cls,"maxChaos","D");
         KMAX_ID = (*env)->GetFieldID(env,cls,"kmax","I");
-        PRUNE_ID = (*env)->GetFieldID(env,cls,"prune","I");
-        CUTOFF_ID = (*env)->GetFieldID(env,cls,"cutoff","I");
+        PRUNE_ID = (*env)->GetFieldID(env,cls,"prune","J");
+        CUTOFF_ID = (*env)->GetFieldID(env,cls,"cutoff","J");
         ATTRACTORS_ID = (*env)->GetFieldID(env,cls,"attractors","J");
         HOMOGEN_ID = (*env)->GetFieldID(env,cls,"homogen","J");
     }
 
     stats->chaos = (*env)->GetDoubleField(env,jstats,CHAOS_ID);
     stats->kmax = (*env)->GetIntField(env,jstats,KMAX_ID);
-    stats->prune = (*env)->GetIntField(env,jstats,PRUNE_ID);
-    stats->cutoff = (*env)->GetIntField(env,jstats,CUTOFF_ID);
+    stats->prune = (*env)->GetLongField(env,jstats,PRUNE_ID);
+    stats->cutoff = (*env)->GetLongField(env,jstats,CUTOFF_ID);
     stats->attractors = (*env)->GetLongField(env,jstats,ATTRACTORS_ID);
     stats->homogen = (*env)->GetLongField(env,jstats,HOMOGEN_ID);
 
-    if((*env)->ExceptionCheck){
-        (*env)->ExceptionDescribe(env);
-        return NULL;
-    }
+    checkException(env, true);
 
     return stats;
 }
 
 void statsDump(mclStats *stats, JNIEnv *env, jobject jstats) {
+
+    if(IS_TRACE){
+        logTrace("statsDump: chaos:%f, kmax:%lu, prune:%" PRId64 ", cutoff:%" PRId64 ", attractors:%" PRId64 ", homogen:%"PRId64);
+    }
+
     (*env)->SetDoubleField(env,jstats,CHAOS_ID,stats->chaos);
     (*env)->SetIntField(env,jstats,KMAX_ID,stats->kmax);
-    (*env)->SetIntField(env,jstats,PRUNE_ID,stats->prune);
-    (*env)->SetIntField(env,jstats,CUTOFF_ID,stats->cutoff);
+    (*env)->SetLongField(env,jstats,PRUNE_ID,stats->prune);
+    (*env)->SetLongField(env,jstats,CUTOFF_ID,stats->cutoff);
     (*env)->SetLongField(env,jstats,ATTRACTORS_ID,stats->attractors);
     (*env)->SetLongField(env,jstats,HOMOGEN_ID,stats->homogen);
 

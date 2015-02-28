@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include <inttypes.h>
 #include "vector.h"
 #include "alloc.h"
 #include "logger.h"
@@ -245,6 +246,12 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
 }
 
 void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+    if(IS_TRACE){
+        logTrace("vecAddMultForward");
+        vectorDescribe(v1);
+        vectorDescribe(v2);
+    }
+
     mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
     mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
 
@@ -270,8 +277,14 @@ void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
 }
 
 void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
-    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
-    mcli *s1 = i1 - v1->n, *s2 = i2 - v2->n;
+    if(IS_TRACE){
+        logTrace("vecAddMultBackward");
+        vectorDescribe(v1);
+        vectorDescribe(v2);
+    }
+
+    mcli *s1 = v1->items, *s2 = v2->items;
+    mcli *i1 = s1 + v1->n, *i2 = s2 + v2->n, *id = dst->items;
 
     while(i1 != s1 && i2 != s2){
         if(i1->id < i2->id){
@@ -292,4 +305,28 @@ void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
     }
 
     dst->n = dst->items - id;
+    dst->items = id;
+}
+
+void vectorDescribe(const mclv* self){
+    if(!self->n){
+        printf("mclVector[n:0, items:%p]\n",self->items);
+        return;
+    }
+
+    mcli *t = self->items + (self->n - 1);
+    printf("mclVector[0:(%" PRId64 "; %f) ... %lu:(%" PRId64 "; %f)]\n",
+            self->items->id,self->items->val,self->n-1,t->id,t->val);
+}
+
+void vectorValidate(const mclv* self){
+    logTrace("vectorValidate");
+    if(self->n < 0)
+        logFatal("vector dimension is negative");
+    if(!self->items)
+        logFatal("vector items are NULL");
+
+    for(mcli *i = self->items, *t = self->items + self->n; i != t; i++){
+        itemValidate(i);
+    }
 }

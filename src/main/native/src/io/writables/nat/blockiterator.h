@@ -21,18 +21,16 @@ int subBlockItemComp(const void *i1, const void *i2);
 typedef struct {
     mcls *slice;
     mcls *block;
-    jobject buf;
     mclh *h;
     sbi *blockItems;
-    void* data;
 } mclBlockIterator;
 
 #define mclit mclBlockIterator
 
-mclit *iteratorInit(mclit *it, JNIEnv *env, jobject buf, const dim nsub, const dim kmax);
+mclit *iteratorInit(mclit *it, JNIEnv *env, jobject src_buf, jobject dst_buf,const dim nsub);
 
 bool iteratorNext(mclit *it);
 
-void iteratorFree(mclit **it, JNIEnv *env);
+void iteratorFree(mclit **it);
 
 #endif

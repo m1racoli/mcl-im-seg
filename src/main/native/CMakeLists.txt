@@ -33,7 +33,7 @@ set(SOURCE_FILES
     src/io/writables/nat/heap.c
     src/io/writables/nat/blockiterator.c
     src/io/writables/nat/logger.c
-    src/io/writables/nat/exception.h
+    src/io/writables/nat/exception.c
     )
 
 add_library(mclnative SHARED ${SOURCE_FILES})

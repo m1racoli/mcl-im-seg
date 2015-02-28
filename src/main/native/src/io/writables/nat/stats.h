@@ -6,8 +6,8 @@
 typedef struct {
     jdouble chaos;
     jint kmax;
-    jint prune;
-    jint cutoff;
+    jlong prune;
+    jlong cutoff;
     jlong attractors;
     jlong homogen;
 } mclStats;

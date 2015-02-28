@@ -19,8 +19,6 @@ typedef struct {
 void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
         value cutoff, jdouble pruneA, jdouble pruneB, dim kmax);
 
-jint* colIdxFromByteBuffer(JNIEnv *env, jobject buf);
-
 mcls *sliceInitFromAdress(mcls *slice, void *obj);
 
 mclSlice *sliceInitFromBB(mcls *slice, JNIEnv *env, jobject buf);
@@ -46,5 +44,7 @@ void sliceMultiply(const mcls *s1, mcls *s2);
 void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top);
 
 void sliceDescribe(const mcls* self);
+
+void sliceValidate(const mcls *self, bool can_be_empty);
 
 #endif

@@ -37,4 +37,5 @@ public class MCLDefaults {
 	public static final double changeLimit = 0.0001;
 	public static final boolean autoPrune = false;
 	public static final int min_iterations = 10;
+	public static final boolean is_native = false;
 }

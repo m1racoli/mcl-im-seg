@@ -45,4 +45,8 @@ void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst);
 
 void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst);
 
+void vectorDescribe(const mclv* self);
+
+void vectorValidate(const mclv* self);
+
 #endif

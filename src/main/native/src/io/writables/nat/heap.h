@@ -14,6 +14,7 @@ typedef heapItem hpi;
 
 typedef struct {
     const dim max_size;
+    const dim max_rank;
     hpi *root;
     dim n_inserted;
     int (*cmp)(const void *i1, const void *i2);

@@ -5,9 +5,9 @@
 #include "alloc.h"
 #include "blockiterator.h"
 #include "logger.h"
+#include "exception.h"
 
 static dim _nsub;
-static dim _kmax;
 static mclit *_blockIterator = NULL;
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setParams
@@ -18,8 +18,11 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setParams
     }
 
     _nsub = (dim) nsub;
-    _kmax = (dim) kmax;
     sliceSetParams((dim) nsub, (dim) select, autoprune, inflation, cutoff, (jdouble) pruneA, (jdouble) pruneB, (dim) kmax);
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *env, jclass cls, jobject buf) {
@@ -27,11 +30,19 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_clear(JNIEnv *
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_clear");
     }
 
-    jint *colIdx = colIdxFromByteBuffer(env, buf);
+    jbyte *arr = (*env)->GetDirectBufferAddress(env,buf);
+
+    *arr = TOP_ALIGNED;
+
+    jint *colIdx = (jint*)(arr + 1);
     int i;
 
     for(i = _nsub; i >= 0; --i) {
         *(colIdx++) = 0;
+    }
+
+    if(IS_DEBUG){
+        checkException(env,true);
     }
 }
 
@@ -53,6 +64,11 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_add
 
     mclFree(s1);
     mclFree(s2);
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
+
     return JNI_TRUE;
 }
 
@@ -67,6 +83,11 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_equals
     jboolean v = sliceEquals(s1, s2);
     mclFree(s1);
     mclFree(s2);
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
+
     return v;
 }
 
@@ -81,6 +102,11 @@ JNIEXPORT jdouble JNICALL Java_io_writables_nat_NativeCSCSliceHelper_sumSquaredD
     jdouble sum = sliceSumSquaredDiffs(s1, s2);
     mclFree(s1);
     mclFree(s2);
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
+
     return sum;
 }
 
@@ -90,13 +116,13 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_addLoops
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_addLoops");
     }
 
-    //logDebug("init slice");
     mcls *slice = sliceInitFromBB(NULL, env, buf);
-    //logDebug("add loops");
     sliceAddLoops(slice, id);
-    //logDebug("free slice");
     mclFree(slice);
-    //logDebug("return");
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_makeStochastic
@@ -108,6 +134,10 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_makeStochastic
     mcls *slice = sliceInitFromBB(NULL, env, buf);
     sliceMakeStochastic(slice);
     mclFree(slice);
+
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_inflateAndPrune
@@ -117,39 +147,35 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_inflateAndPrun
     }
 
     mclStats *stats = statsInit(env, jstats);
-    if(!stats)return;
+
     mcls *slice = sliceInitFromBB(NULL, env, buf);
     sliceInflateAndPrune(slice, stats);
+    //TODO align top if not done already
     mclFree(slice);
     statsDump(stats, env, jstats);
-}
 
-JNIEXPORT jint JNICALL Java_io_writables_nat_NativeCSCSliceHelper_size
-        (JNIEnv *env, jclass cls, jobject buf) {
-    if(IS_TRACE){
-        logTrace("Java_io_writables_nat_NativeCSCSliceHelper_size");
+    if(IS_DEBUG){
+        checkException(env,true);
     }
-
-    colInd *colIdx = colIdxFromByteBuffer(env, buf);
-    return colIdx[_nsub]-colIdx[0];
 }
 
-JNIEXPORT jobject JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks
-        (JNIEnv *env, jclass cls, jobject buf) {
+JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks
+        (JNIEnv *env, jclass cls, jobject src_buf, jobject dst_buf) {
     if(IS_TRACE){
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_startIterateBlocks");
     }
 
-    //if(loggerIsDebugEnabled()){
-        //logDebug("start iterate subBlocks");
-    //}
-    _blockIterator = iteratorInit(_blockIterator, env, buf, _nsub, _kmax);
+    _blockIterator = iteratorInit(_blockIterator, env, src_buf, dst_buf, _nsub);
 
     if(!Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls)){
         return NULL;
     }
 
-    return _blockIterator->buf;
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
+
+    return Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls);
 }
 
 JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_nextBlock
@@ -158,21 +184,16 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_nextBlock
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_nextBlock");
     }
 
-
-    //logDebug("iterate next subBlocks");
-
     if(iteratorNext(_blockIterator)){
-        //logDebug("has next");
         return JNI_TRUE;
     }
 
-    iteratorFree(&_blockIterator, env);
-
+    iteratorFree(&_blockIterator);
     return JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_multiply
-        (JNIEnv *env, jclass cls, jobject b2, jobject b1) {
+        (JNIEnv *env, jclass cls, jobject b1, jobject b2) {
     if(IS_TRACE){
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_multiply");
     }
@@ -183,4 +204,7 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_multiply
     mclFree(s1);
     mclFree(s2);
 
+    if(IS_DEBUG){
+        checkException(env,true);
+    }
 }

@@ -7,14 +7,17 @@ import io.file.CSVWriter;
 import io.file.TextFormatWriter;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
+import mapred.MCLConfigHelper;
 import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
 import mapred.MCLInitParams;
@@ -33,6 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Counters;
+import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,6 +154,20 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		} else {
 			transposeJob = new TransposeJob();
 			stepJob = new MCLStep();
+		}
+		
+		//TODO somewhere else dynamic
+		if(!MCLConfigHelper.getLocal(getConf())){
+			
+			//int map.mb = getConf().getInt(name, defaultValue)
+			
+			logger.debug("deploy native libs");
+			DistributedCache.createSymlink(getConf());
+			DistributedCache.addCacheFile(new URI("file:///mnt/hgfs/mcl-im-seg/target/native/libmclnative.so"), getConf());
+			getConf().set("mapreduce.map.child.java.opts", "-Djava.library.path=.");
+			getConf().set("mapreduce.map.java.opts", "-Xmx256m");
+			getConf().set("mapreduce.reduce.java.opts", "-Xmx256m");
+			
 		}
 		
 		FileSystem outFS = output.getFileSystem(getConf());

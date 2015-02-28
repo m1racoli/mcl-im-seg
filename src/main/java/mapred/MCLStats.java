@@ -11,14 +11,14 @@ public final class MCLStats {
 
 	public double maxChaos = 0.0;
 	public int kmax = 0;
-	public int prune = 0;
-	public int cutoff = 0;
+	public long prune = 0;
+	public long cutoff = 0;
 	public long attractors = 0;
 	public long homogen = 0;
 	
 	@Override
 	public String toString() {
-		return String.format("[maxChaos: %2.1f, kmax: %d, prune: %d, cutoff: %d]", maxChaos, kmax, prune, cutoff);
+		return String.format("[maxChaos: %2.1f, kmax: %d, prune: %d, cutoff: %d, attractors: %d, homogen: %d]", maxChaos, kmax, prune, cutoff,attractors,homogen);
 	}
 
 	public void reset() {

@@ -27,4 +27,6 @@ mcli *itemNCopy(mcli *dst, const mcli *src, dim n);
 
 mcli *itemNMove(mcli *dst, const mcli *src, dim n);
 
+void itemValidate(const mcli *self);
+
 #endif

@@ -1,6 +1,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include "logger.h"
 
 #define LINE_END "\n"
@@ -21,14 +22,6 @@ static inline void header(FILE *__stream, const char* level){
 
 static inline void lineEnd(FILE *__stream){
     fprintf(__stream, LINE_END);
-}
-
-int loggerIsDebugEnabled(){
-    return IS_DEBUG;
-}
-
-int loggerIsTraceEnabled(){
-    return IS_TRACE;
 }
 
 void logDebug(char const *__format, ...){
@@ -79,4 +72,14 @@ void logTrace(char const *__format, ...){
     vfprintf(stdout ,__format, arglist);
     va_end(arglist);
     lineEnd(stdout);
+}
+
+void logFatal(char const *__format, ...){
+    header(stdout,"FATAL");
+    va_list arglist;
+    va_start(arglist, __format);
+    vfprintf(stdout ,__format, arglist);
+    va_end(arglist);
+    lineEnd(stdout);
+    exit(1);
 }

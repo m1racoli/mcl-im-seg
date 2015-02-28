@@ -35,8 +35,6 @@
 #define IS_ERROR 0
 #endif
 
-#define IS_FATAL 1
-
 /*
 TODO logging levels
 TRACE
@@ -45,10 +43,6 @@ INFO
 WARN
 ERROR
  */
-
-int loggerIsDebugEnabled();
-
-int loggerIsTraceEnabled();
 
 void logDebug(char const *__format, ...);
 
@@ -59,5 +53,7 @@ void logInfo(char const *__format, ...);
 void logWarn(char const *__format, ...);
 
 void logTrace(char const *__format, ...);
+
+void logFatal(char const *__format, ...);
 
 #endif
