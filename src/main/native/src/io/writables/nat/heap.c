@@ -79,9 +79,9 @@ static void hpiFree(hpi **node){
 mclh *heapNew(mclh *h, dim max_size, int (*cmp)  (const void*, const void*)){
     if(h) return h;
 
-//    if(loggerIsDebugEnabled()){
-//        logDebug("new heap [max_size= %u]",max_size);
-//    }
+    if(IS_TRACE){
+        logTrace("heapNew");
+    }
 
     mclh *heap = mclAlloc(sizeof(mclh));
 
@@ -103,6 +103,8 @@ void heapReset(mclh *h){
             n = i->right;
             hpiFree(&i);
         }
+
+        h->root = NULL;
     }
 }
 
@@ -242,7 +244,7 @@ static char *hpiDump(char * dst, const hpi *node, size_t elem_size){
 
     dst = hpiDump(dst, node->child, elem_size);
 
-    for(hpi *t = node->child, *i = t->right; i != t; i = i->right){
+    for(hpi *i = node->child->right; i != node->child; i = i->right){
         dst = hpiDump(dst, i, elem_size);
     }
 
@@ -255,7 +257,7 @@ void heapDump(const mclh *h, void *dst, size_t elem_size){
 
     char *it = hpiDump(dst, h->root, elem_size);
 
-    for(hpi *t = h->root, *i = t->right; i != t; i = i->right){
+    for(hpi *i = h->root->right; i != h->root; i = i->right){
         it = hpiDump(it, i, elem_size);
     }
 }

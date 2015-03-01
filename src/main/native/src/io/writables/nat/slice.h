@@ -9,7 +9,7 @@
 
 typedef struct {
     void* data;
-    alignment align;
+    alignment *align;
     colInd *colPtr;
     mcli *items;
 } mclSlice;

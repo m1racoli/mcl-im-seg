@@ -1,4 +1,5 @@
 #include "exception.h"
+#include "logger.h"
 
 jint throwOutOfMemoryError( JNIEnv *env, char *message )
 {

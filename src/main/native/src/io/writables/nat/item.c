@@ -23,11 +23,11 @@ bool itemEquals(mclItem const *i1, mclItem const *i2) {
 }
 
 int itemIdComp(const void *i1, const void *i2) {
-    return ((((mcli*)i1)->id > ((mcli*)i2)->id) - (((mcli*)i1)->id < ((mcli*)i2)->id));;
+    return ((mcli*)i1)->id > ((mcli*)i2)->id ? 1 : -1;
 }
 
 int itemValComp(const void *i1, const void * i2) {
-    return ((((mcli*)i1)->val > ((mcli*)i2)->val) - (((mcli*)i1)->val < ((mcli*)i2)->val));
+    return ((mcli*)i1)->val > ((mcli*)i2)->val ? 1 : -1;
 }
 
 void itemSet(mcli *item, const rowInd id, const value val) {
@@ -35,6 +35,25 @@ void itemSet(mcli *item, const rowInd id, const value val) {
     //    logTrace("itemSet: (%" PRId64 "; %f) -> %p",id,val,item);
     //}
     item->id = id; item->val = val;
+}
+
+void itemMultSet(mcli *dst, const value f, const mcli *src){
+    dst->id = src->id;
+    dst->val = f * src->val;
+}
+
+void itemAddSet(mcli *dst, const mcli *src, const value a){
+    dst->id = src->id;
+    dst->val = src->val + a;
+}
+
+void itemCopy(mcli *dst, const mcli *src){
+    *dst = *src;
+}
+
+void itemAddMultSet(mcli *dst, const value f, const mcli* src, const value c){
+    dst->id = src->id;
+    dst->val = f * src->val + c;
 }
 
 mcli *itemNCopy(mcli *dst, const mcli *src, dim n){

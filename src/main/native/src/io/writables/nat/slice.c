@@ -2,7 +2,6 @@
 #include "slice.h"
 #include "alloc.h"
 #include "logger.h"
-#include "vector.h"
 
 static dim _nsub;
 static dim _select;
@@ -37,9 +36,14 @@ mcls *sliceInitFromAdress(mcls *s, void *obj){
 
     jbyte *arr = obj;
     slice->data = obj;
-    slice->align = *arr;
+    slice->align = arr;
     slice->colPtr = (colInd *) (arr + 1);
     slice->items = (mcli*) (slice->colPtr + _nsub + 1);
+
+    //if(IS_TRACE){
+    //    logTrace("initSlice");
+    //    sliceDescribe(slice);
+    //}
 
     return slice;
 }
@@ -214,7 +218,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
         if(stats->chaos < chaos) stats->chaos = chaos;
         if(stats->kmax < v->n) stats->kmax = (jint) v->n;
     }
-    slice->align = TOP_ALIGNED;
+    *slice->align = TOP_ALIGNED;
     *cs = num_new_items;
     mclFree(v);
     heapFree(&h);
@@ -233,15 +237,29 @@ dim sliceSize(const mcls *slice){
 }
 
 void sliceAdd(mcls *s1, const mcls *s2){
+
+//    if(IS_TRACE){
+//        logTrace("sliceAdd");
+//        sliceDescribe(s1);
+//        sliceDescribe(s2);
+//    }
+
+    if(IS_DEBUG){
+        sliceValidate(s1, false);
+        sliceValidate(s2, false);
+    }
+
     mclv *v1 = NULL, *v2 = NULL, *vd = NULL;
     colInd *cs1, *cs2, *ct1, *ct2;
     colInd num_new_items;
 
-    if(s1->align){
+    if(*s1->align){
         //aligned at end
 
-        cs1 = s1->colPtr, ct1 = cs1 + 1;
-        cs2 = s2->colPtr, ct2 = cs1 + 1;
+        cs1 = s1->colPtr;
+        ct1 = cs1 + 1;
+        cs2 = s2->colPtr;
+        ct2 = cs2 + 1;
         num_new_items = 0;
 
         for(dim i = _nsub; i > 0; --i, cs1 = ct1++, cs2 = ct2++)
@@ -255,18 +273,20 @@ void sliceAdd(mcls *s1, const mcls *s2){
         }
 
         *cs1 = num_new_items;
-        s1->align = TOP_ALIGNED;
+        *s1->align = TOP_ALIGNED;
     } else {
         //aligned at beginning
 
-        ct1 = s1->colPtr + _nsub, cs1 = ct1 - 1;
-        ct2 = s2->colPtr + _nsub, cs2 = ct2 - 1;
+        ct1 = s1->colPtr + _nsub;
+        cs1 = ct1 - 1;
+        ct2 = s2->colPtr + _nsub;
+        cs2 = ct2 - 1;
         num_new_items = (colInd) (_nsub * _kmax);
 
         for(dim i = _nsub; i > 0; --i, ct1 = cs1--, ct2 = cs2--)
         {
-            v1 = vecInit(v1, (dim) (*ct1 - *cs1), s1->items + *ct1);
-            v2 = vecInit(v2, (dim) (*ct2 - *cs2), s2->items + *ct2);
+            v1 = vecInit(v1, (dim) (*ct1 - *cs1), s1->items + *cs1);
+            v2 = vecInit(v2, (dim) (*ct2 - *cs2), s2->items + *cs2);
             vd = vecInit(vd, 0, s1->items + num_new_items);
             vecAddBackward(v1, v2, vd);
             *ct1 = num_new_items;
@@ -274,23 +294,27 @@ void sliceAdd(mcls *s1, const mcls *s2){
         }
 
         *ct1 = num_new_items;
-        s1->align = BOTTOM_ALIGNED;
+        *s1->align = BOTTOM_ALIGNED;
     }
 
     mclFree(v1);
     mclFree(v2);
     mclFree(vd);
+
+    if(IS_DEBUG){
+        sliceValidate(s1, false);
+    }
 }
 
 void sliceMultiply(const mcls *s1, mcls *s2) {
     // s1 left side read-only
     // s2 right side and destination
 
-    if(IS_TRACE){
-        logTrace("sliceMultiply");
-        sliceDescribe(s1);
-        sliceDescribe(s2);
-    }
+//    if(IS_TRACE){
+//        logTrace("sliceMultiply");
+//        sliceDescribe(s1);
+//        sliceDescribe(s2);
+//    }
 
     if(IS_DEBUG){
         sliceValidate(s1,false);
@@ -300,13 +324,17 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
     colInd *cs, *ct;
     colInd num_new_items;
     mclv *tmp = vecNew(_kmax);
-    mclv *d = vecInit(NULL, 0, NULL); //fixme
+    num_new_items = *s2->align ? 0 : (colInd) _nsub * (colInd) _kmax;
+    mclv *d = vecInit(NULL, 0, s2->items);
 
-    if(s2->align){
+    if(*s2->align){
+        //if(IS_TRACE){
+        //    logTrace("bottom aligned => forward");
+        //}
         //bottom aligned => forward
 
-        cs = s2->colPtr, ct = cs + 1;
-        num_new_items = 0;
+        cs = s2->colPtr;
+        ct = cs + 1;
 
         for(dim i = _nsub; i > 0; --i, cs = ct++)
         {
@@ -321,12 +349,15 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
         }
 
         *cs = num_new_items;
-        s2->align = TOP_ALIGNED;
+        *s2->align = TOP_ALIGNED;
     } else {
+        //if(IS_TRACE){
+        //    logTrace("top aligned => backward");
+        //}
         //top aligned => backward
 
-        ct = s2->colPtr + _nsub, cs = ct - 1;
-        num_new_items = (colInd) (_nsub * _kmax);
+        ct = s2->colPtr + _nsub;
+        cs = ct - 1;
 
         for(dim i = _nsub; i > 0; --i, ct = cs--)
         {
@@ -341,15 +372,15 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
         }
 
         *ct = num_new_items;
-        s2->align = BOTTOM_ALIGNED;
+        *s2->align = BOTTOM_ALIGNED;
     }
 
     mclFree(d);
     vecFree(&tmp);
 
-    if(IS_TRACE){
-        sliceDescribe(s2);
-    }
+    //if(IS_TRACE){
+    //    sliceDescribe(s2);
+    //}
 
     if(IS_DEBUG){
         sliceValidate(s2,false);
@@ -358,41 +389,43 @@ void sliceMultiply(const mcls *s1, mcls *s2) {
 
 void sliceVecMult(const mcls *slice, const mclv *v, mclv *dst, mcli *items, const colInd s, const colInd t, bool top){
 
-    if(IS_TRACE){
-        logTrace("sliceVecMult");
-        sliceDescribe(slice);
-        vectorDescribe(v);
-    }
+//    if(IS_TRACE){
+//        logTrace("sliceVecMult[items: %p, s: %lu, t: %lu, top: %d]",items, s, t, top);
+//        sliceDescribe(slice);
+//        vectorDescribe(v);
+//        vectorDescribe(dst);
+//    }
 
     if(IS_DEBUG){
         sliceValidate(slice, false);
         vectorValidate(v);
     }
 
-    mcli *item = v->items;
+    //mcli *item = v->items;
     bool inorder = false;
     mclv *v1 = NULL, *v2 = NULL;
     colInd cs;
     dst->n = 0;
 
-    for(int i = v->n; i > 0; --i){
-        cs = slice->colPtr[item->id];
-        v1 = vecInit(v1, (dim) (slice->colPtr[item->id+1] - cs), slice->items + cs);
+    for(mcli *i = v->items, *e = v->items + v->n; i != e; ++i){
+        cs = slice->colPtr[i->id];
+        v1 = vecInit(v1, (dim) (slice->colPtr[i->id+1] - cs), slice->items + cs);
         v2 = vecInit(v2, dst->n, dst->items);
+        dst->n = 0;
 
         if(inorder){
             dst->items = items + t;
-            vecAddMultBackward(item->val, v1, v2, dst);
+            vecAddMultBackward(i->val, v1, v2, dst);
         } else {
             dst->items = items + s;
-            vecAddMultForward(item->val, v1, v2, dst);
+            vecAddMultForward(i->val, v1, v2, dst);
         }
 
         inorder = !inorder;
     }
 
     if(top != inorder){
-        if(IS_TRACE) logTrace("top:%d != inorder:%d",top,inorder);
+        //if(IS_TRACE) logTrace("top:%d != inorder:%d",top,inorder);
         if(top){
             dst->items = itemNMove(items + s, dst->items, dst->n);
         } else {
@@ -415,16 +448,16 @@ void sliceDescribe(const mcls* self){
     mcli *is = self->items + *cs;
     mcli *it = self->items + (*ct - 1);
 
-    printf("mclSlice[p:%p, align:%i, colPtr[0:[%lu:%i] ... %i:[%lu:%i]], items[0:[%lu:(%" PRId64 "; %f)] ... %lu:[%lu:(%" PRId64 "; %f)]], %lu]\n",
-            self->data,self->align,
+    printf("mclSlice[p:%p, align:%i, colPtr[0:[%lu:%i] ... %lu:[%lu:%i]], items[0:[%lu:(%" PRId64 "; %f)] ... %lu:[%lu:(%" PRId64 "; %f)]], %lu]\n",
+            self->data,*self->align,
             (char*)cs - root,*cs,_nsub,(char*)ct-root,*ct,
             (char*)is-root,is->id,is->val,it-is,(char*)it-root,it->id,it->val,(char*)(it+1)-root);
 }
 
 void sliceValidate(const mcls *self, bool can_be_empty) {
-    logTrace("sliceValidate");
-    if (self->align < 0 || self->align > 1)
-        logFatal("illegal allignment %i", self->align);
+    //logTrace("sliceValidate");
+    if (*self->align < 0 || *self->align > 1)
+        logFatal("illegal allignment %i", *self->align);
 
     colInd *colPtr = self->colPtr;
 
@@ -433,13 +466,16 @@ void sliceValidate(const mcls *self, bool can_be_empty) {
         return;
     }
 
+    dim max_nnz = _nsub * _kmax;
+
     if(*colPtr < 0)
         logFatal("colPtr[0] = %lu < 0",*colPtr);
 
-    dim max_nnz = _nsub * _kmax;
-
     if(*colPtr > max_nnz)
         logFatal("colPtr[0] = %lu > %lu = max_nnz",*colPtr,max_nnz);
+
+    if((*self->align && colPtr[_nsub] != max_nnz) || (!*self->align && colPtr[0] != 0))
+        logFatal("alignemtn & colPtr missmatch: align: %i, colPtr[0]: %lu, colPtr[%lu] = %lu",*self->align,self->colPtr[0],_nsub,colPtr[_nsub]);
 
     for(int i = 1, t = _nsub+1; i<t;i++){
         if(colPtr[i] < colPtr[i-1])
@@ -454,7 +490,18 @@ void sliceValidate(const mcls *self, bool can_be_empty) {
             logFatal("slice should not be empty");
     }
 
-    for(int i = colPtr[0], t = colPtr[_nsub]; i < t; i++){
-        itemValidate(self->items + i);
+    for(colInd *cs = colPtr, *ct = colPtr + 1, *end = colPtr + _nsub; cs != end; cs = ct++){
+        rowInd last_row = -1;
+
+        for(mcli *i = self->items + *cs, *t = self->items + *ct; i != t; i++){
+            itemValidate(i);
+
+            if(i->id <= last_row){
+                logFatal("items[%lu].row = %"PRId64" <= %"PRId64" = last row",i-(self->items + colPtr[0]),i->id,last_row);
+            }
+
+            last_row = i->id;
+        }
+
     }
 }

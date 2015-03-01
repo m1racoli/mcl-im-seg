@@ -168,6 +168,16 @@ void vecInflateMakeStochasticAndStats(mclv *v, double inf, double *center, doubl
 }
 
 void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
+
+    if(IS_TRACE){
+        logTrace("vecThresholdPrune");
+        vectorDescribe(v);
+    }
+
+    if(IS_DEBUG){
+        vectorValidate(v);
+    }
+
     dim n = 0;
     mcli *i, *t, *d;
 
@@ -181,152 +191,278 @@ void vecThresholdPrune(mclv *v, value threshold, mclStats *stats) {
     }
 
     v->n = n;
+
+    if(IS_DEBUG){
+        vectorValidate(v);
+    }
 }
 
 void vecSelectionPrune(mclv *v, mclh *h, dim _select) {
 
-    for(mcli *i = v->items, *t = i + v->n; i != t; i++){
-        heapInsert(h, i);
+    if(IS_TRACE){
+        logTrace("vecSelectionPrune");
+        vectorDescribe(v);
+    }
+
+    if(IS_DEBUG){
+        vectorValidate(v);
+    }
+
+    mcli *tmp = itemNNew(_select);
+
+    for(mcli *i = v->items, *t = i + v->n; i != t;){
+        heapInsert(h, i++);
     }
 
     v->n = _select;
-    heapDump(h, v->items, sizeof(mcli));
+    heapDump(h, tmp, sizeof(mcli));
+    itemNCopy(v->items, tmp, _select);
     qsort(v->items, _select, sizeof(mcli), itemIdComp);
     heapReset(h);
+
+    mclFree(tmp);
+
+    if(IS_DEBUG){
+        vectorValidate(v);
+    }
 }
 
 void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst){
+
+//    if(IS_TRACE){
+//        logTrace("vecAddForward");
+//        vectorDescribe(v1);
+//        vectorDescribe(v2);
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(v1);
+        vectorValidate(v2);
+    }
+
     mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
     mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
 
     while(i1 != t1 && i2 != t2){
         if(i1->id < i2->id){
-            *(id++) = *(i1++);
+            id->id = i1->id;
+            (id++)->val = (i1++)->val;
         } else if (i1->id > i2->id) {
-            *(id++) = *(i2++);
+            id->id = i2->id;
+            (id++)->val = (i2++)->val;
         } else {
-            itemSet(id++, i1->id, (i1++)->val + (i2++)->val);
+            id->id = i1->id;
+            (id++)->val = (i1++)->val + (i2++)->val;
         }
     }
 
     while(i1 != t1){
-        *(id++) = *(i1++);
+        id->id = i1->id;
+        (id++)->val = (i1++)->val;
     }
 
     while(i2 != t2){
-        *(id++) = *(i2++);
+        id->id = i2->id;
+        (id++)->val = (i2++)->val;
     }
 
     dst->n = id - dst->items;
+
+//    if(IS_TRACE){
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(dst);
+    }
 }
 
 void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
-    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
-    mcli *s1 = i1 - v1->n, *s2 = i2 - v2->n;
 
-    while(i1 != s1 && i2 != s2){
-        if(i1->id < i2->id){
-            *(--id) = *(--i2);
-        } else if (i1->id > i2->id) {
-            *(--id) = *(--i1);
-        } else {
-            itemSet(--id, (--i1)->id, i1->val + (--i2)->val);
-        }
-    }
+//    if(IS_TRACE){
+//        logTrace("vecAddBackward");
+//        vectorDescribe(v1);
+//        vectorDescribe(v2);
+//        vectorDescribe(dst);
+//    }
 
-    while(i1 != s1){
-        *(--id) = *(--i1);
-    }
-
-    while(i2 != s2){
-        *(--id) = *(--i2);
-    }
-
-    dst->n = dst->items - id;
-}
-
-void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
-    if(IS_TRACE){
-        logTrace("vecAddMultForward");
-        vectorDescribe(v1);
-        vectorDescribe(v2);
-    }
-
-    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
-    mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
-
-    while(i1 != t1 && i2 != t2){
-        if(i1->id < i2->id){
-            itemSet(id++, i1->id, val * (i1++)->val);
-        } else if (i1->id > i2->id) {
-            *(id++) = *(i2++);
-        } else {
-            itemSet(id++, i1->id, val * (i1++)->val + (i2++)->val);
-        }
-    }
-
-    while(i1 != t1){
-        itemSet(id++, i1->id, val * (i1++)->val);
-    }
-
-    while(i2 != t2){
-        *(id++) = *(i2++);
-    }
-
-    dst->n = id - dst->items;
-}
-
-void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
-    if(IS_TRACE){
-        logTrace("vecAddMultBackward");
-        vectorDescribe(v1);
-        vectorDescribe(v2);
+    if(IS_DEBUG){
+        vectorValidate(v1);
+        vectorValidate(v2);
     }
 
     mcli *s1 = v1->items, *s2 = v2->items;
-    mcli *i1 = s1 + v1->n, *i2 = s2 + v2->n, *id = dst->items;
+    mcli *i1 = s1 + v1->n - 1, *i2 = s2 + v2->n - 1, *id = dst->items;
 
-    while(i1 != s1 && i2 != s2){
+    while(i1 >= s1 && i2 >= s2){
         if(i1->id < i2->id){
-            *(--id) = *(--i2);
+            (--id)->id = i2->id;
+            id->val = (i2--)->val;
         } else if (i1->id > i2->id) {
-            itemSet(--id, (--i1)->id, val * i1->val);
+            (--id)->id = i1->id;
+            id->val = (i1--)->val;
         } else {
-            itemSet(--id, (--i1)->id, val * i1->val + (--i2)->val);
+            (--id)->id = i1->id;
+            id->val = (i1--)->val + (i2--)->val;
         }
     }
 
-    while(i1 != s1){
-        itemSet(--id, (--i1)->id, val * i1->val);
+    while(i1 >= s1){
+        (--id)->id = i1->id;
+        id->val = (i1--)->val;
     }
 
-    while(i2 != s2){
-        *(--id) = *(--i2);
+    while(i2 >= s2){
+        (--id)->id = i2->id;
+        id->val = (i2--)->val;
     }
 
     dst->n = dst->items - id;
     dst->items = id;
+
+//    if(IS_TRACE){
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(dst);
+    }
+}
+
+void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+//    if(IS_TRACE){
+//        logTrace("vecAddMultForward[val:%f]",val);
+//        vectorDescribe(v1);
+//        vectorDescribe(v2);
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(v1);
+        vectorValidate(v2);
+    }
+
+    mcli *i1 = v1->items, *i2 = v2->items, *id = dst->items;
+    mcli *t1 = i1 + v1->n, *t2 = i2 + v2->n;
+
+    while(i1 != t1 && i2 != t2){
+        if(i1->id < i2->id){
+            id->id = i1->id;
+            (id++)->val = val * (i1++)->val;
+        } else if (i1->id > i2->id) {
+            id->id = i2->id;
+            (id++)->val = (i2++)->val;
+        } else {
+            id->id = i1->id;
+            (id++)->val = val * (i1++)->val + (i2++)->val;
+        }
+    }
+
+    while(i1 != t1){
+        id->id = i1->id;
+        (id++)->val = val * (i1++)->val;
+    }
+
+    while(i2 != t2){
+        id->id = i2->id;
+        (id++)->val = (i2++)->val;
+    }
+
+    dst->n = id - dst->items;
+
+//    if(IS_TRACE){
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(dst);
+    }
+}
+
+void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+//    if(IS_TRACE){
+//        logTrace("vecAddMultBackward[val:%f]",val);
+//        vectorDescribe(v1);
+//        vectorDescribe(v2);
+//        vectorDescribe(dst);
+//    }
+
+    if(IS_DEBUG){
+        vectorValidate(v1);
+        vectorValidate(v2);
+    }
+
+    mcli *s1 = v1->items, *s2 = v2->items;
+    mcli *i1 = s1 + v1->n - 1, *i2 = s2 + v2->n - 1, *id = dst->items;
+
+    while(i1 >= s1 && i2 >= s2){
+        if(i1->id < i2->id){
+            (--id)->id = i2->id;
+            id->val = (i2--)->val;
+        } else if (i1->id > i2->id) {
+            (--id)->id = i1->id;
+            id->val = val * (i1--)->val;
+        } else {
+            (--id)->id = i1->id;
+            id->val = val * (i1--)->val + (i2--)->val;
+        }
+    }
+
+    while(i1 >= s1){
+        (--id)->id = i1->id;
+        id->val = val * (i1--)->val;
+    }
+
+    while(i2 >= s2){
+        (--id)->id = i2->id;
+        id->val = (i2--)->val;
+    }
+
+    dst->n = dst->items - id;
+    dst->items = id;
+
+    if(IS_DEBUG){
+        vectorValidate(dst);
+    }
 }
 
 void vectorDescribe(const mclv* self){
+
+    if(!self){
+        printf("mclVector[(nil)]\n");
+        return;
+    }
+
     if(!self->n){
-        printf("mclVector[n:0, items:%p]\n",self->items);
+        if(self->items)
+            printf("mclVector[n:0, items: %p]\n",self->items);
+        else
+            printf("mclVector[n:0, items: (nil)]\n");
         return;
     }
 
     mcli *t = self->items + (self->n - 1);
-    printf("mclVector[0:(%" PRId64 "; %f) ... %lu:(%" PRId64 "; %f)]\n",
-            self->items->id,self->items->val,self->n-1,t->id,t->val);
+    printf("mclVector[p:%p 0:(%" PRId64 "; %f) ... %lu:(%" PRId64 "; %f) p:%p]\n",
+            self->items,self->items->id,self->items->val,self->n-1,t->id,t->val,self->items + self->n);
 }
 
 void vectorValidate(const mclv* self){
-    logTrace("vectorValidate");
+    //logTrace("vectorValidate");
     if(self->n < 0)
         logFatal("vector dimension is negative");
     if(!self->items)
         logFatal("vector items are NULL");
 
+    rowInd last_row = -1;
+
     for(mcli *i = self->items, *t = self->items + self->n; i != t; i++){
         itemValidate(i);
+
+        if(i->id <= last_row){
+            logFatal("items[%lu].row = %"PRId64" <= %"PRId64" = last row",i-(self->items),i->id,last_row);
+        }
+
+        last_row = i->id;
     }
 }
