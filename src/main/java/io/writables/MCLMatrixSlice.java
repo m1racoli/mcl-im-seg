@@ -24,6 +24,7 @@ import mapred.PrintMatrix;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
+
 import com.beust.jcommander.IStringConverter;
 
 /**
@@ -213,14 +214,18 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	
 	public static class ClassConverter implements IStringConverter<Class<? extends MCLMatrixSlice<?>>> {
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Class<? extends MCLMatrixSlice<?>> convert(String str) {
-			try {
-				return (Class<? extends MCLMatrixSlice<?>>) Class.forName(str);
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(e);
-			}
+			return classFromString(str);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static final Class<? extends MCLMatrixSlice<?>> classFromString(String name){
+		try {
+			return (Class<? extends MCLMatrixSlice<?>>) Class.forName(name);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
