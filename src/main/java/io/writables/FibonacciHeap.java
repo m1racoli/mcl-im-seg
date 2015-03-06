@@ -36,7 +36,7 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 		}
 		
 		if(maxSize == inserted){			
-			if(e.compareTo((E) root.data) <= 0){
+			if(e.compareTo((E) root.data()) <= 0){
 				return false;
 			}			
 			poll();
@@ -54,7 +54,7 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 	
 	@SuppressWarnings("unchecked")
 	private final int compare(HeapItem e1, HeapItem e2){
-		return ((E) e1.data).compareTo((E) e2.data);
+		return ((E) e1.data()).compareTo((E) e2.data());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -66,21 +66,15 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 			return null;
 		}
 		
-		if(z.child != null){
-			HeapItem min_left = root.left;
-			HeapItem z_child_left = z.child.left;
-			root.left = z_child_left;
-			z_child_left.right = root;
-			z.child.left = min_left;
-			min_left.right = z.child;
+		if(z.hasChild()){
+			z.takeDownChildren();
 		}
 		
-		if(z == z.right){
+		if(!z.hasSiblings()){
 			root = null;
 		} else {
-			z.left.right = z.right;
-			z.right.left = z.left;
-			root = z.right;
+			z.decouple();
+			root = z.right();
 			consolidate();
 		}
 		
@@ -98,8 +92,8 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 		
 		do {
 			HeapItem x = w;
-			HeapItem nextW = w.right;
-			int d = x.degree;
+			HeapItem nextW = w.right();
+			int d = x.degree();
 			
 			while(arr[d] != null){
 				HeapItem y = arr[d];
@@ -111,11 +105,11 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 				}
 				
 				if(y == s){
-					s = s.right;
+					s = s.right();
 				}
 				
 				if(y == nextW){
-					nextW = nextW.right;
+					nextW = nextW.right();
 				}
 				
 				y.link(x);
@@ -139,7 +133,7 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public E peek() {
-		return root == null ? null : (E) root.data;
+		return root == null ? null : (E) root.data();
 	}
 
 	@Override
@@ -149,11 +143,11 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 		
 		LinkedList<E> list = new LinkedList<E>();
 		getItems(list, root);		
-		HeapItem next = root.right;
+		HeapItem next = root.right();
 		
 		while(next != root){
 			getItems(list, next);
-			next = next.right;
+			next = next.right();
 		}		
 		
 		return list.iterator();
@@ -161,15 +155,16 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 	
 	@SuppressWarnings("unchecked")
 	private final LinkedList<E> getItems(LinkedList<E> list, HeapItem item){
-		list.add((E) item.data);
+		list.add((E) item.data());
 		
-		if(item.child != null){
-			getItems(list, item.child);			
-			HeapItem next = item.child.right;
+		if(item.hasChild()){
+			HeapItem child = item.child();
+			getItems(list, child);			
+			HeapItem next = child.right();
 			
-			while(next != item.child){
+			while(next != child){
 				getItems(list, next);
-				next = next.right;
+				next = next.right();
 			}
 		}
 		
@@ -191,7 +186,7 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 		return (int) Math.floor(Math.log(size)/Math.log((1.0 + Math.sqrt(5.0))/2.0));
 	}
 
-	private static final class HeapItem {
+	public static final class HeapItem {
 	
 		private final Object data;
 		private HeapItem child = null;
@@ -213,6 +208,18 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 			}
 		}
 		
+		public int degree() {
+			return degree;
+		}
+
+		/**
+		 * remove node from its siblings
+		 */
+		public void decouple(){
+			left.right = right;
+			right.left = left;
+		}
+		
 		public void link(HeapItem parent){
 			left.right = right;
 			right.left = left;
@@ -229,6 +236,34 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 			}
 		}
 		
+		public boolean hasChild(){
+			return child != null;
+		}
+		
+		public HeapItem child(){
+			return child;
+		}
+		
+		public HeapItem right(){
+			return right;
+		}
+		
+		public void takeDownChildren(){
+			HeapItem min_left = left;
+			HeapItem z_child_left = child.left;
+			left = z_child_left;
+			z_child_left.right = this;
+			child.left = min_left;
+			min_left.right = child;
+		}
+		
+		public Object data(){
+			return data;
+		}
+		
+		public boolean hasSiblings(){
+			return this != right;
+		}
 	}
 
 }
