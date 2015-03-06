@@ -41,7 +41,7 @@ void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst);
 
 void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst);
 
-void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst);
+void vecAddMultForward(value f, const mclv* v1, const mclv *v2, mclv *dst);
 
 void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst);
 

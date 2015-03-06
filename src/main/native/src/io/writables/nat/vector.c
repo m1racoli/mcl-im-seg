@@ -4,6 +4,7 @@
 #include "vector.h"
 #include "alloc.h"
 #include "logger.h"
+#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -246,25 +247,22 @@ void vecAddForward(const mclv *v1, const mclv *v2, mclv *dst){
 
     while(i1 != t1 && i2 != t2){
         if(i1->id < i2->id){
-            id->id = i1->id;
-            (id++)->val = (i1++)->val;
+            *(id++) = *(i1++);
         } else if (i1->id > i2->id) {
-            id->id = i2->id;
-            (id++)->val = (i2++)->val;
+            *(id++) = *(i2++);
         } else {
+            //itemAddSet(id++, i1++, (i2++)->val);
             id->id = i1->id;
             (id++)->val = (i1++)->val + (i2++)->val;
         }
     }
 
     while(i1 != t1){
-        id->id = i1->id;
-        (id++)->val = (i1++)->val;
+        *(id++) = *(i1++);
     }
 
     while(i2 != t2){
-        id->id = i2->id;
-        (id++)->val = (i2++)->val;
+        *(id++) = *(i2++);
     }
 
     dst->n = id - dst->items;
@@ -297,11 +295,9 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
 
     while(i1 >= s1 && i2 >= s2){
         if(i1->id < i2->id){
-            (--id)->id = i2->id;
-            id->val = (i2--)->val;
+            *(--id) = *(i2--);
         } else if (i1->id > i2->id) {
-            (--id)->id = i1->id;
-            id->val = (i1--)->val;
+            *(--id) = *(i1--);
         } else {
             (--id)->id = i1->id;
             id->val = (i1--)->val + (i2--)->val;
@@ -309,13 +305,11 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
     }
 
     while(i1 >= s1){
-        (--id)->id = i1->id;
-        id->val = (i1--)->val;
+        *(--id) = *(i1--);
     }
 
     while(i2 >= s2){
-        (--id)->id = i2->id;
-        id->val = (i2--)->val;
+        *(--id) = *(i2--);
     }
 
     dst->n = dst->items - id;
@@ -330,7 +324,7 @@ void vecAddBackward(const mclv *v1, const mclv *v2, mclv *dst){
     }
 }
 
-void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
+void vecAddMultForward(value f, const mclv* v1, const mclv *v2, mclv *dst){
 //    if(IS_TRACE){
 //        logTrace("vecAddMultForward[val:%f]",val);
 //        vectorDescribe(v1);
@@ -349,24 +343,22 @@ void vecAddMultForward(value val, const mclv* v1, const mclv *v2, mclv *dst){
     while(i1 != t1 && i2 != t2){
         if(i1->id < i2->id){
             id->id = i1->id;
-            (id++)->val = val * (i1++)->val;
+            (id++)->val = f * (i1++)->val;
         } else if (i1->id > i2->id) {
-            id->id = i2->id;
-            (id++)->val = (i2++)->val;
+            *(id++) = *(i2++);
         } else {
             id->id = i1->id;
-            (id++)->val = val * (i1++)->val + (i2++)->val;
+            (id++)->val = f * (i1++)->val + (i2++)->val;
         }
     }
 
     while(i1 != t1){
         id->id = i1->id;
-        (id++)->val = val * (i1++)->val;
+        (id++)->val = f * (i1++)->val;
     }
 
     while(i2 != t2){
-        id->id = i2->id;
-        (id++)->val = (i2++)->val;
+        *(id++) = *(i2++);
     }
 
     dst->n = id - dst->items;
@@ -398,8 +390,7 @@ void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
 
     while(i1 >= s1 && i2 >= s2){
         if(i1->id < i2->id){
-            (--id)->id = i2->id;
-            id->val = (i2--)->val;
+            *(--id) = *(i2--);
         } else if (i1->id > i2->id) {
             (--id)->id = i1->id;
             id->val = val * (i1--)->val;
@@ -415,8 +406,7 @@ void vecAddMultBackward(value val, const mclv* v1, const mclv *v2, mclv *dst){
     }
 
     while(i2 >= s2){
-        (--id)->id = i2->id;
-        id->val = (i2--)->val;
+        *(--id) = *(i2--);
     }
 
     dst->n = dst->items - id;

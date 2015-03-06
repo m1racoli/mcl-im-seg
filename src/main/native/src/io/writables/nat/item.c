@@ -37,25 +37,6 @@ void itemSet(mcli *item, const rowInd id, const value val) {
     item->id = id; item->val = val;
 }
 
-void itemMultSet(mcli *dst, const value f, const mcli *src){
-    dst->id = src->id;
-    dst->val = f * src->val;
-}
-
-void itemAddSet(mcli *dst, const mcli *src, const value a){
-    dst->id = src->id;
-    dst->val = src->val + a;
-}
-
-void itemCopy(mcli *dst, const mcli *src){
-    *dst = *src;
-}
-
-void itemAddMultSet(mcli *dst, const value f, const mcli* src, const value c){
-    dst->id = src->id;
-    dst->val = f * src->val + c;
-}
-
 mcli *itemNCopy(mcli *dst, const mcli *src, dim n){
 //    if(IS_TRACE) {
 //        logTrace("itemNCopy %u items: [%p,%p) -> [%p,%p)",n,src,src+n,dst,dst+n);

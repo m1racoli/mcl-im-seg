@@ -48,6 +48,11 @@ mcls *sliceInitFromAdress(mcls *s, void *obj){
     return slice;
 }
 
+mcls *sliceInitFromArr(mcls *s, JNIEnv *env, jbyteArray arr) {
+    //TODO
+    return NULL;
+}
+
 mcls *sliceInitFromBB(mcls *s, JNIEnv *env, jobject buf) {
     mcls *slice = s ? s : mclAlloc(sizeof(mcls));
 

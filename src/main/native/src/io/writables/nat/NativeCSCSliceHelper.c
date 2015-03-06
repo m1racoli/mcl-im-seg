@@ -150,7 +150,6 @@ JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_inflateAndPrun
 
     mcls *slice = sliceInitFromBB(NULL, env, buf);
     sliceInflateAndPrune(slice, stats);
-    //TODO align top if not done already
     mclFree(slice);
     statsDump(stats, env, jstats);
 

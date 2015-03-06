@@ -27,17 +27,16 @@ import org.slf4j.LoggerFactory;
  * @author Cedrik
  *
  */
-public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> implements NativeSlice {
+public final class NativeArrayCSCSlice extends MCLMatrixSlice<NativeArrayCSCSlice> implements NativeSlice {
 
-	private static final Logger logger = LoggerFactory.getLogger(NativeCSCSlice.class);
+	private static final Logger logger = LoggerFactory.getLogger(NativeArrayCSCSlice.class);
 	
 	private static final byte TOP_ALIGNED = 0x00;
 	private static final int INT_BYTES = Integer.SIZE/8;
 	private static final int LONG_BYTES = Long.SIZE/8;
 	private static final int ITEM_BYTES = LONG_BYTES + 2*Float.SIZE/8 ;
-	private static final int BUF_SIZE = 1024*1024;
-	
-	private final byte[] buf = new byte[BUF_SIZE];
+
+	private byte[] arr = null;
 	private ByteBuffer bb = null;
 	private int COLPTR_LAST;
 	private int HEADER_BYTES;
@@ -45,13 +44,13 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	/**
 	 * 
 	 */
-	public NativeCSCSlice() {}
+	public NativeArrayCSCSlice() {}
 	
-	public NativeCSCSlice(Configuration conf){
+	public NativeArrayCSCSlice(Configuration conf){
 		setConf(conf);
 	}
 	
-	public NativeCSCSlice(Configuration conf, int size){
+	public NativeArrayCSCSlice(Configuration conf, int size){
 		super.setConf(conf);
 		init(conf, size);
 	}
@@ -67,13 +66,13 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		if(bb != null)
 			return;
 		
-		NativeCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax,MCLConfigHelper.getDebug(conf));
+		NativeArrayCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax,MCLConfigHelper.getDebug(conf));
 		COLPTR_LAST = nsub * INT_BYTES + 1;
 		HEADER_BYTES = INT_BYTES * (nsub + 1) + 1;
 		
-		bb = ByteBuffer.allocateDirect(HEADER_BYTES + size * ITEM_BYTES);
+		arr = new byte[HEADER_BYTES + size * ITEM_BYTES];
+		bb = ByteBuffer.wrap(arr);
 		bb.order(ByteOrder.nativeOrder());
-		//logger.debug("allocated buffer = {}",bb);
 		clear();
 	}
 
@@ -82,8 +81,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void write(DataOutput out) throws IOException {
-		writeHelper(out, 0, HEADER_BYTES);
-		writeHelper(out, itemBytesStart(), itemBytesLength());
+		out.write(arr, 0, HEADER_BYTES);
+		out.write(arr, itemBytesStart(), itemBytesLength());
 	}
 
 	/* (non-Javadoc)
@@ -91,8 +90,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void readFields(DataInput in) throws IOException {
-		readHelper(in, 0, HEADER_BYTES);
-		readHelper(in, itemBytesStart(), itemBytesLength());
+		in.readFully(arr, 0, HEADER_BYTES);
+		in.readFully(arr, itemBytesStart(), itemBytesLength());
 	}
 
 	/* (non-Javadoc)
@@ -100,7 +99,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void clear() {
-		NativeCSCSliceHelper.clear(bb);
+		NativeArrayCSCSliceHelper.clear(arr);
 	}
 
 	private final void setAlignment(byte align){
@@ -217,8 +216,11 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 * @see io.writables.MCLMatrixSlice#add(io.writables.MCLMatrixSlice)
 	 */
 	@Override
-	public void add(NativeCSCSlice m) {
-		if(!NativeCSCSliceHelper.add(bb, m.bb)){
+	public void add(NativeArrayCSCSlice m) {
+		if(!NativeArrayCSCSliceHelper.add(arr, m.arr)){
+			byte[] t = arr;
+			arr = m.arr;
+			m.arr = t;
 			ByteBuffer tmp = bb;
 			bb = m.bb;
 			m.bb = tmp;
@@ -229,8 +231,8 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 * @see io.writables.MCLMatrixSlice#multipliedBy(io.writables.MCLMatrixSlice, org.apache.hadoop.mapreduce.TaskAttemptContext)
 	 */
 	@Override
-	public NativeCSCSlice multipliedBy(NativeCSCSlice m) {
-		NativeCSCSliceHelper.multiply(m.bb, bb);
+	public NativeArrayCSCSlice multipliedBy(NativeArrayCSCSlice m) {
+		NativeArrayCSCSliceHelper.multiply(m.arr, arr);
 		return this;
 	}
 
@@ -238,14 +240,14 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 * @see io.writables.MCLMatrixSlice#getSubBlockIterator(io.writables.SliceId)
 	 */
 	@Override
-	protected ReadOnlyIterator<NativeCSCSlice> getSubBlockIterator(SliceId id) {
+	protected ReadOnlyIterator<NativeArrayCSCSlice> getSubBlockIterator(SliceId id) {
 		return new SubBlockIterator(id);
 	}
 	
-	private final class SubBlockIterator extends ReadOnlyIterator<NativeCSCSlice> {
+	private final class SubBlockIterator extends ReadOnlyIterator<NativeArrayCSCSlice> {
 		private final SliceId id;
-		private final NativeCSCSlice b = new NativeCSCSlice(getConf(),nsub * (kmax < nsub ? kmax : nsub));
-		private boolean has_next = NativeCSCSliceHelper.startIterateBlocks(bb,b.bb);
+		private final NativeArrayCSCSlice b = new NativeArrayCSCSlice(getConf(),nsub * (kmax < nsub ? kmax : nsub));
+		private boolean has_next = NativeArrayCSCSliceHelper.startIterateBlocks(arr,b.arr);
 		private boolean ready = true;
 		
 		public SubBlockIterator(SliceId id) {
@@ -259,7 +261,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		}
 
 		@Override
-		public NativeCSCSlice next() {
+		public NativeArrayCSCSlice next() {
 			check();
 			ready = false;
 			id.set(b.id());
@@ -268,7 +270,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		
 		private final void check() {
 			if(!ready){
-				has_next = NativeCSCSliceHelper.nextBlock();
+				has_next = NativeArrayCSCSliceHelper.nextBlock();
 				ready = true;
 			}
 		}
@@ -279,7 +281,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void inflateAndPrune(MCLStats stats) {
-		NativeCSCSliceHelper.inflateAndPrune(bb, stats);
+		NativeArrayCSCSliceHelper.inflateAndPrune(arr, stats);
 		logger.debug("returned stats: {}",stats);
 	}
 
@@ -288,7 +290,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void makeStochastic() {
-		NativeCSCSliceHelper.makeStochastic(bb);
+		NativeArrayCSCSliceHelper.makeStochastic(arr);
 	}
 
 	/* (non-Javadoc)
@@ -296,9 +298,9 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof NativeCSCSlice){
-			NativeCSCSlice o = (NativeCSCSlice) obj;
-			return nsub == o.nsub && NativeCSCSliceHelper.equals(bb, o.bb);
+		if(obj instanceof NativeArrayCSCSlice){
+			NativeArrayCSCSlice o = (NativeArrayCSCSlice) obj;
+			return nsub == o.nsub && NativeArrayCSCSliceHelper.equals(arr, o.arr);
 		}
 		return false;
 	}
@@ -308,20 +310,20 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	 */
 	@Override
 	public void addLoops(SliceIndex id) {
-		NativeCSCSliceHelper.addLoops(bb, id.getSliceId());
+		NativeArrayCSCSliceHelper.addLoops(arr, id.getSliceId());
 	}
 
 	/* (non-Javadoc)
 	 * @see io.writables.MCLMatrixSlice#sumSquaredDifferences(io.writables.MCLMatrixSlice)
 	 */
 	@Override
-	public double sumSquaredDifferences(NativeCSCSlice other) {
-		return NativeCSCSliceHelper.sumSquaredDifferences(bb, other.bb);
+	public double sumSquaredDifferences(NativeArrayCSCSlice other) {
+		return NativeArrayCSCSliceHelper.sumSquaredDifferences(arr, other.arr);
 	}
 	
 	@Override
-	public NativeCSCSlice deepCopy() {
-		NativeCSCSlice other = getInstance();
+	public NativeArrayCSCSlice deepCopy() {
+		NativeArrayCSCSlice other = getInstance();
 		other.bb.limit(other.bb.capacity());
 		
 		//header
@@ -339,51 +341,6 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		other.bb.put(bb);
 		
 		return other;
-	}
-	
-	private final void writeHelper(DataOutput out, int off, int len) throws IOException {
-		
-//		if(bb.hasArray()){
-//			out.write(bb.array(), off, len);
-//			return;
-//		}
-		
-		bb.position(off);
-		
-		while(true)
-		{
-			if(len <= BUF_SIZE){
-				bb.get(buf, 0, len);
-				out.write(buf, 0, len);
-				return;
-			}
-			
-			len -= BUF_SIZE;
-			bb.get(buf);
-			out.write(buf);
-		}
-	}
-	
-	private final void readHelper(DataInput in, int off, int len) throws IOException {
-//		if(bb.hasArray()){
-//			in.readFully(bb.array(), off, len);
-//			return;
-//		}
-		
-		bb.position(off);
-		
-		while(true)
-		{
-			if(len <= BUF_SIZE){
-				in.readFully(buf, 0, len);
-				bb.put(buf, 0, len);
-				return;
-			}
-			
-			len -= BUF_SIZE;
-			in.readFully(buf);
-			bb.put(buf);
-		}
 	}
 	
 	/* (non-Javadoc)

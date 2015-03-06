@@ -21,7 +21,9 @@ void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
 
 mcls *sliceInitFromAdress(mcls *slice, void *obj);
 
-mclSlice *sliceInitFromBB(mcls *slice, JNIEnv *env, jobject buf);
+mcls *sliceInitFromArr(mcls *s, JNIEnv *env, jbyteArray arr);
+
+mcls *sliceInitFromBB(mcls *slice, JNIEnv *env, jobject buf);
 
 dim sliceGetDataSize(dim nsub, dim kmax);
 

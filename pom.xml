@@ -166,6 +166,7 @@
   								<javahClassNames>
   									<javahClassName>io.test.NativeTest</javahClassName>
   									<javahClassName>io.writables.nat.NativeCSCSliceHelper</javahClassName>
+  									<javahClassName>io.writables.nat.NativeArrayCSCSliceHelper</javahClassName>
   								</javahClassNames>
   								<javahOutputDirectory>${project.build.directory}/native/javah</javahOutputDirectory>
   							</configuration>
@@ -243,6 +244,7 @@
   								<javahClassNames>
   									<javahClassName>io.test.NativeTest</javahClassName>
   									<javahClassName>io.writables.nat.NativeCSCSliceHelper</javahClassName>
+  									<javahClassName>io.writables.nat.NativeArrayCSCSliceHelper</javahClassName>
   								</javahClassNames>
   								<javahOutputDirectory>${project.build.directory}/native/javah</javahOutputDirectory>
   							</configuration>

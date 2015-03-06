@@ -119,10 +119,10 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
 			cpu_nanos += System.nanoTime() - start;
-			logger.debug("write slice with id={} and slice={}",id,product);
+			//logger.debug("write slice with id={} and slice={}",id,product);
 			
 			context.write(id, product);
-			logger.debug("MAP END");
+			//logger.debug("MAP END");
 		}
 		
 		@Override
