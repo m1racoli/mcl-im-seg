@@ -31,7 +31,7 @@ public class MCLInitParams implements Applyable {
 		MCLConfigHelper.setNumThreads(conf, te);
 		MCLConfigHelper.setUseVarints(conf, varints);
 		
-		if(use_native){
+		if(use_native || !nativeMatrixSlice.equals(MCLDefaults.nativeMatrixSliceClass)){
 			MCLConfigHelper.setMatrixSliceClass(conf, nativeMatrixSlice);
 		} else {
 			MCLConfigHelper.setMatrixSliceClass(conf, matrixSlice);

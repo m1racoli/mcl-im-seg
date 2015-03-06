@@ -20,7 +20,6 @@ import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
-import mapred.MCLInitParams;
 import mapred.MCLOut;
 import mapred.MCLAlgorithmParams;
 import mapred.MCLResult;
@@ -101,7 +100,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	private final MCLCoreParams coreParams = new MCLCoreParams();
 	private final MCLAlgorithmParams params = new MCLAlgorithmParams();
-	private final MCLInitParams initParams = new MCLInitParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	private Path transposePath = null;
@@ -121,7 +119,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		params.add(this);
 		params.add(coreParams);
 		params.add(this.params);
-		params.add(initParams);
 		params.add(compressionParams);
 		
 		
@@ -137,7 +134,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		coreParams.apply(getConf());
 		this.params.apply(getConf());
-		initParams.apply(getConf());
 		compressionParams.apply(getConf());
 		
 		for(Applyable p : getParams()) {
