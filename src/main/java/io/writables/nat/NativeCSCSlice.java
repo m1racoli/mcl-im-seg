@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
 
-import mapred.MCLConfigHelper;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
@@ -67,7 +66,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		if(bb != null)
 			return;
 		
-		NativeCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax,MCLConfigHelper.getDebug(conf));
+		NativeCSCSliceHelper.setParams(nsub,select,auto_prune,inflation,cutoff,pruneA,pruneB,kmax);
 		COLPTR_LAST = nsub * INT_BYTES + 1;
 		HEADER_BYTES = INT_BYTES * (nsub + 1) + 1;
 		

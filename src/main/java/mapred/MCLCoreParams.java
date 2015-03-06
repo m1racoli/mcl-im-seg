@@ -26,6 +26,9 @@ public class MCLCoreParams implements Applyable {
 	@Parameter(names = "--local", description = "run MapReduce in local mode")
 	private boolean local = false;
 	
+	@Parameter(names = "--java-queue", description = "use Java's PriorityQueue implementation instead of FibonacciHeap (non native)")
+	private boolean javaQueue = false;
+	
 	@Override
 	public void apply(Configuration conf) {
 		
@@ -54,6 +57,7 @@ public class MCLCoreParams implements Applyable {
 		}
 		
 		MCLConfigHelper.setPrintMatrix(conf, printMatrix);
+		MCLConfigHelper.setUseJavaQueue(conf, javaQueue);
 	}
 
 }

@@ -32,63 +32,49 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		}
 	}
 	
-	protected final int prune(float[] val, int s, int t, int[] selection, MCLStats stats, boolean auto) {
-		
-		final int k = t-s;
-		float sum = 0.0f;
-		float max = 0.0f;
-		final int S = select;
-		
-		if(auto){
-			for(int i = s; i < t; i++){
-				final float v = val[i];
-				sum += v;
-				if(max < v)
-					max = v;
-			}
-		}
-		
-		final float tresh = auto ? computeTreshold(sum/k, max) : cutoff;
+	protected static final int threshPrune(float[] val, int s, int t, int[] selection, MCLStats stats, float thresh) {
 		int selected = 0;
-		
 		for(int i = s; i < t; i++){
-			if(val[i] >= tresh){
+			if(val[i] >= thresh){
 				selection[selected++] = i;
 			} else {
 				stats.cutoff++;
-				//if(context != null) context.getCounter(Counters.CUTOFF).increment(1);
 			}
 		}
-		
-		if(selected > S){
-			stats.prune += selected - S;
-			//if(context != null) context.getCounter(Counters.PRUNE).increment(selected - S);
-			select(val, selection, selected, S);
-			selected = S;
-		}
-		
 		return selected;
 	}
 	
-	protected final void select(float[] val, int[] selection, int n, int s) {
+	protected final void selectionPrune(float[] val, int[] selection, int n, int s) {
 		
-		if(queue == null) {
-			queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select);
-		}
-		
-		for(int i = 0; i < s; i++) {
-			int sel = selection[i];
-			queue.add(new QueueItem(sel, val[sel]));
-		}
-		
-		for(int i = s; i < n; i++) {
-			int sel = selection[i];
-			float v = val[sel];
-			if(v > queue.peek().val){
-				queue.remove();
-				queue.add(new QueueItem(sel, v));
+		if(javaQueue){
+			if(queue == null)
+				queue = new PriorityQueue<FloatMatrixSlice.QueueItem>(select);
+			
+			for(int i = 0; i < s; i++) {
+				int sel = selection[i];
+				queue.offer(new QueueItem(sel, val[sel]));
+			}
+			
+			for(int i = s; i < n; i++) {
+				int sel = selection[i];
+				float v = val[sel];
+				
+				if(v > queue.peek().val){
+					queue.poll();
+					queue.add(new QueueItem(sel, v));
+				}
+			}
+		} else {
+			if(queue == null)
+				queue = new FibonacciHeap<FloatMatrixSlice.QueueItem>(select);
+			
+			
+			for(int i = 0; i < n; i++) {
+				int sel = selection[i];
+				queue.offer(new QueueItem(sel, val[sel]));
 			}
 		}
+		
 		
 		int selected = 0;
 		
@@ -114,10 +100,10 @@ public abstract class FloatMatrixSlice<M extends FloatMatrixSlice<M>> extends MC
 		}
 	}
 	
-	protected final float computeTreshold(float avg, float max) {
-		float tresh = pruneA*avg*(1.0f-pruneB*(max-avg));
+	protected final float computeTreshold(double avg, double max) {
+		double tresh = pruneA*avg*(1.0f-pruneB*(max-avg));
 		tresh = tresh < 1.0e-7f ? 1.0e-7f : tresh;
-		return tresh < max ? tresh : max;
+		return (float) (tresh < max ? tresh : max);
 	}
 	
 	protected final void normalize(float[] val, int s, int t) {

@@ -76,6 +76,35 @@ mclit *iteratorInit(mclit *it, JNIEnv *env, jobject src_buf, jobject dst_buf, co
     return it;
 }
 
+mclit *iteratorInitFromArr(mclit *it, JNIEnv *env, jbyteArray src_buf, jbyteArray dst_buf, const dim nsub) {
+
+    if(IS_TRACE){
+        logTrace("iteratorInit");
+    }
+
+    if (!it)
+        it = mclAlloc(sizeof(mclit));
+
+    _nsub = nsub;
+
+    it->slice = sliceInitFromArr(NULL, env, src_buf);
+    it->block = sliceInitFromArr(NULL, env, dst_buf);
+
+    if(IS_DEBUG){
+        sliceValidate(it->slice, false);
+        sliceValidate(it->slice, true);
+    }
+
+    it->blockItems = sbiNNew(nsub, it->slice);
+    it->h = heapNew(NULL, nsub, subBlockItemComp);
+
+    for(sbi *sbii = it->blockItems + nsub; sbii != it->blockItems;){
+        fetch(--sbii, it->h);
+    }
+
+    return it;
+}
+
 bool iteratorNext(mclit *it) {
 
     if(IS_TRACE){

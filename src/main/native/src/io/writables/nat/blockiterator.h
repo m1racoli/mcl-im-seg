@@ -29,6 +29,8 @@ typedef struct {
 
 mclit *iteratorInit(mclit *it, JNIEnv *env, jobject src_buf, jobject dst_buf,const dim nsub);
 
+mclit *iteratorInitFromArr(mclit *it, JNIEnv *env, jbyteArray src_buf, jbyteArray dst_buf,const dim nsub);
+
 bool iteratorNext(mclit *it);
 
 void iteratorFree(mclit **it);

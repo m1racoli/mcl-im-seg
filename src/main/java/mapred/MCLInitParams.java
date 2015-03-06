@@ -13,7 +13,7 @@ public class MCLInitParams implements Applyable {
 	@Parameter(names = "-matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "non native input: matrix slice implementation")
 	private Class<? extends MCLMatrixSlice<?>> matrixSlice = MCLDefaults.matrixSliceClass;
 	
-	@Parameter(names = "-native-matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "native input: matrix slice implementation")
+	@Parameter(names = "--native-matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "native input: matrix slice implementation")
 	private Class<? extends MCLMatrixSlice<?>> nativeMatrixSlice = MCLDefaults.nativeMatrixSliceClass;
 	
 	@Parameter(names = "-te", description = "non native input: number of partitions the data is split into")

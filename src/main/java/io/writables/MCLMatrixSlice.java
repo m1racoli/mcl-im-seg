@@ -41,6 +41,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	protected boolean auto_prune = MCLDefaults.autoPrune;
 	protected float pruneA = MCLDefaults.pruneA;
 	protected float pruneB = MCLDefaults.pruneB;
+	protected boolean javaQueue = MCLDefaults.javaQueue;
 	
 	/**
 	 *  clear contents

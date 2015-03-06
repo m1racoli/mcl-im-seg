@@ -187,7 +187,7 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeArrayCSCSliceHelper_start
         logTrace("Java_io_writables_nat_NativeArrayCSCSliceHelper_startIterateBlocks");
     }
 
-    _blockIterator = iteratorInit(_blockIterator, env, src_buf, dst_buf, _nsub);
+    _blockIterator = iteratorInitFromArr(_blockIterator, env, src_buf, dst_buf, _nsub);
 
     if(!Java_io_writables_nat_NativeArrayCSCSliceHelper_nextBlock(env, cls)){
         return NULL;

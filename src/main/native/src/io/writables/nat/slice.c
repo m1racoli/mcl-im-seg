@@ -49,21 +49,32 @@ mcls *sliceInitFromAdress(mcls *s, void *obj){
 }
 
 mcls *sliceInitFromArr(mcls *s, JNIEnv *env, jbyteArray arr) {
-    //TODO
-    return NULL;
+    mcls *slice = s ? s : mclAlloc(sizeof(mcls));
+
+    jboolean isCopy;
+
+    jbyte *a = (*env)->GetByteArrayElements(env,arr,&isCopy);
+
+    if((*env)->ExceptionCheck(env)){
+        (*env)->ExceptionDescribe(env);
+        (*env)->FatalError(env,"error getting the byte array pointer");
+    }
+
+    if(IS_DEBUG){
+        logDebug("array is copy: %s", isCopy ? "TRUE" : "FALSE");
+    }
+
+    return sliceInitFromAdress(slice, a);
 }
 
 mcls *sliceInitFromBB(mcls *s, JNIEnv *env, jobject buf) {
     mcls *slice = s ? s : mclAlloc(sizeof(mcls));
 
-    //logDebug("slice init from bb[%p]",buf);
-
     void *obj= (*env)->GetDirectBufferAddress(env,buf);
 
     if((*env)->ExceptionCheck(env)){
-        logErr("error getting the ByteBuffers adress");
         (*env)->ExceptionDescribe(env);
-        return NULL;
+        (*env)->FatalError(env,"error getting the ByteBuffers adress");
     }
 
     return sliceInitFromAdress(slice, obj);
@@ -179,7 +190,8 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
             case 0:
                 continue;
             case 1:
-                itemSet(new_items++, v->items->id, 1.0);
+                new_items->id = v->items->id;
+                (new_items++)->val = 1.0;
                 num_new_items++;
                 if(!stats->kmax) stats->kmax = 1;
                 stats->attractors++;
@@ -200,7 +212,19 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
 
         if(v->n > _select){
             h = heapNew(h, _select, itemValComp);
+            stats->prune += v->n + _select;
             vecSelectionPrune(v, h, _select);
+        }
+
+        if(stats->kmax < v->n) stats->kmax = (jint) v->n;
+
+        if(v->n == 1){
+            new_items->id = v->items->id;
+            (new_items++)->val = 1.0;
+            num_new_items++;
+            stats->attractors++;
+            stats->homogen++;
+            continue;
         }
 
         if(_autoprune){
@@ -209,19 +233,18 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
             vecInflateMakeStochasticAndStats(v, _inflation, &center, &max);
         }
 
-        /*
-        for(ii = v->items, it = new_items + v->n; new_items != it;){
-            *(new_items++) = *(ii++);
-        }*/
 
-        new_items = itemNMove(new_items, v->items, v->n) + v->n;
+        for(mcli *ii = v->items, *it = new_items + v->n; new_items != it;){
+            *(new_items++) = *(ii++);
+        }
+
+        //new_items = itemNMove(new_items, v->items, v->n) + v->n;
 
         num_new_items += v->n;
         chaos = (max - center) * v->n;
         if(max > 0.5) stats->attractors++;
         if(chaos < 1.0e-4) stats->homogen++;
         if(stats->chaos < chaos) stats->chaos = chaos;
-        if(stats->kmax < v->n) stats->kmax = (jint) v->n;
     }
     *slice->align = TOP_ALIGNED;
     *cs = num_new_items;

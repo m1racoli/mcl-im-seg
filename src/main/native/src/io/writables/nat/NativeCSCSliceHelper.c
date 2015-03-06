@@ -12,7 +12,7 @@ static mclit *_blockIterator = NULL;
 
 JNIEXPORT void JNICALL Java_io_writables_nat_NativeCSCSliceHelper_setParams
         (JNIEnv *env, jclass cls, jint nsub, jint select, jboolean autoprune, jdouble inflation,
-                jfloat cutoff, jfloat pruneA, jfloat pruneB, jint kmax, jboolean debug){
+                jfloat cutoff, jfloat pruneA, jfloat pruneB, jint kmax){
     if(IS_TRACE){
         logTrace("Java_io_writables_nat_NativeCSCSliceHelper_setParams");
     }

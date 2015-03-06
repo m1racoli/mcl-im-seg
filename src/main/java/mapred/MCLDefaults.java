@@ -38,4 +38,5 @@ public class MCLDefaults {
 	public static final boolean autoPrune = false;
 	public static final int min_iterations = 10;
 	public static final boolean is_native = false;
+	public static final boolean javaQueue = false;
 }

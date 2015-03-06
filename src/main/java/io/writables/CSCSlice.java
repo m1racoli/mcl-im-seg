@@ -424,16 +424,17 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
-		final double I = inflation;
-				
+		float threshold;
+		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
 			int cs = colPtr[col_start];
 			int ct = colPtr[col_end];
+			int v_n = ct-cs;
 			
 			colPtr[col_start] = valPtr;
 			
-			switch(ct-cs){
+			switch(v_n){
 			case 0:
 				continue;
 			case 1:				
@@ -448,16 +449,30 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			}
 			
 			if(auto_prune){
+				double s = 0.0;
+				double m = 0.0;
+				
 				for(int i = ct-1; i >= cs; --i) {
-					val[i] = (float) Math.pow(val[i], I);
+					float v = (float) Math.pow(val[i], inflation);
+					val[i] = v;
+					if(m < v) m = v;
+					s += v;
 				}
+				
+				threshold = computeTreshold(s/v_n, m);
+			} else {
+				threshold = cutoff;
 			}
 			
+			v_n = threshPrune(val, cs, ct, selection, stats, threshold);
 			
-			final int selected = prune(val, cs, ct, selection, stats, auto_prune);
-			if(stats.kmax < selected) stats.kmax = selected;
+			if(v_n > select){
+				stats.prune += v_n - select;
+				selectionPrune(val, selection, v_n, select);
+				v_n = select;
+			}
 			
-			if(selected == 1){
+			if(v_n == 1){
 				rowInd[valPtr] = rowInd[selection[0]];
 				val[valPtr++] = 1.0f;
 				stats.homogen++;
@@ -465,33 +480,45 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				continue;
 			}
 			
-			for(int i  = 0; i < selected; i++){
+			for(int i  = 0; i < v_n; i++){
 				final int idx = selection[i];
 				rowInd[valPtr] = rowInd[idx];
 				val[valPtr++] = val[idx];
 			}
 			
 			ct = valPtr;
-			cs = ct - selected;
+			cs = ct - v_n;
 			
-			normalize(val, cs, ct);
-			
-			double max = 0.0;
+			double max = 0.0f;
 			double new_center = 0.0;
-
-			for(int i = cs; i < ct; i++){
-				if(max < val[i]) max = val[i];
-				new_center += val[i]*val[i];
-			}			
+			double s = 0.0;
 			
-			double chaos = ((double) max - new_center) * (ct-cs);
+			if(auto_prune){
+				for(int i = cs; i < ct; i++){
+					s += val[i];
+				}
+			} else {
+				for(int i = cs; i < ct; i++){
+					float v = (float) Math.pow(val[i], inflation);
+					val[i] = v;
+					s += v;
+				}
+			}
+			
+			float sf = (float) s;
+			
+			for(int i = cs; i < ct; i++){
+				float v = val[i] / sf;
+				val[i] = v;
+				if(max < v) max = v;
+				new_center += v*v;
+			}
+			
+			double chaos = (max - new_center) * (ct-cs);
 			if(max > 0.5) stats.attractors++;
 			if(chaos < 1.0e-4) stats.homogen++;
 			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
-			
-			if(!auto_prune){
-				inflate(val, cs, ct);
-			}
+			if(stats.kmax < v_n) stats.kmax = v_n;
 		}
 		
 		colPtr[nsub] = valPtr;
@@ -555,11 +582,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		@Override
 		public CSCSlice next() {
 			
-			final SubBlockSlice first = queue.remove();
+			final SubBlockSlice first = queue.poll();
 			list.add(first);
 			
-			while(queue.peek() != null && first.id == queue.peek().id) {
-				list.add(queue.remove());
+			SubBlockSlice current = queue.peek();
+			while(current != null && first.id == current.id) {
+				list.add(queue.poll());
+				current = queue.peek();
 			}			
 			
 			for(SubBlockSlice slice : list) {
@@ -592,7 +621,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				i++;
 			}
 			
-			queue.add(new SubBlockSlice(column, i - s, id));
+			queue.offer(new SubBlockSlice(column, i - s, id));
 			offset[column] = i;
 		}
 	}

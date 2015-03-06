@@ -42,7 +42,7 @@ static inline void hpiLink(hpi *parent, hpi *node){
     node->left->right = node->right;
     node->right->left = node->left;
 
-    if(parent->child == NULL){
+    if(!parent->child){
         parent->child = node;
         node->right = node;
         node->left = node;
@@ -81,6 +81,10 @@ mclh *heapNew(mclh *h, dim max_size, int (*cmp)  (const void*, const void*)){
 
     if(IS_TRACE){
         logTrace("heapNew");
+    }
+
+    if(max_size <= 0){
+        logFatal("heap size must be positive! %d",max_size);
     }
 
     mclh *heap = mclAlloc(sizeof(mclh));
@@ -128,7 +132,7 @@ void heapInsert(mclh *h, void *elem){
         return;
     }
 
-    if(h->max_size && h->max_size == h->n_inserted){
+    if(h->max_size == h->n_inserted){
         //logDebug("pre check items");
         if(h->cmp(elem,h->root->data) <= 0){
             return;

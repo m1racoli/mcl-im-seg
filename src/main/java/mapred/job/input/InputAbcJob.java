@@ -24,18 +24,19 @@ import mapred.MCLInitParams;
 import mapred.MCLResult;
 import mapred.SlicePartitioner;
 import mapred.job.AbstractMCLJob;
-import model.nb.RadialPixelNeighborhood;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
@@ -43,6 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import zookeeper.DistributedInt;
 import zookeeper.DistributedIntMaximum;
+import zookeeper.DistributedLong;
+import zookeeper.DistributedLongMaximum;
 import zookeeper.ZkMetric;
 
 import com.beust.jcommander.Parameter;
@@ -55,25 +58,63 @@ public class InputAbcJob extends AbstractMCLJob {
 
 	private static final Logger logger = LoggerFactory.getLogger(InputAbcJob.class);
 	
-	private static final String NB_RADIUS_CONF = "nb.radius";
-	private static final String DIM_WIDTH_CONF = "dim.width";
-	private static final String DIM_HEIGHT_CONF = "dim.height";
 	private static final String SCALE_CONF = "scale";
 	private static final String KMAX = "/kmax";
-	
-	@Parameter(names = "-r")
-	private Float radius = 3.0f;
-	
-	@Parameter(names = "-w")
-	private int w = 480;
-
-	@Parameter(names = "-h")
-	private int h = 300;
+	private static final String DIM = "/dim";
 	
 	@Parameter(names = {"-s","--scale"})
 	private int scale = 1;
 	
 	private volatile MCLInitParams initParams = null;
+	
+	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, LongWritable> {
+		private final Pattern PATTERN = Pattern.compile("\t");
+		private final LongWritable col = new LongWritable();
+		private final LongWritable row = new LongWritable();
+		
+		@Override
+		protected void map(LongWritable key, Text value, Context context)
+				throws IOException, InterruptedException {
+			final String[] split = PATTERN.split(value.toString());
+			final float v = Float.parseFloat(split[2]);
+			
+			if (v <= 0.0f) return;
+						
+			col.set(Long.parseLong(split[0]));
+			row.set(Long.parseLong(split[1]));
+			
+			context.write(col, row);
+		}
+	}
+	
+	private static final class AnalyzeReducer extends Reducer<LongWritable, LongWritable, NullWritable, NullWritable> {
+		
+		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
+		private final DistributedLongMaximum n = new DistributedLongMaximum();
+		
+		@Override
+		protected void reduce(LongWritable key, Iterable<LongWritable> values, Context context)
+				throws IOException, InterruptedException {
+			n.set(key.get());
+			int cnt = 0;
+			
+			for(LongWritable value : values){
+				n.set(value.get());
+				cnt++;
+			}
+			
+			kmax.set(cnt);
+			
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
+			ZkMetric.set(context.getConfiguration(), DIM, n);
+			ZkMetric.close();
+		}
+	}
 	
 	private static final class AbcMapper extends Mapper<LongWritable, Text, Index, FloatWritable> {
 		
@@ -90,8 +131,7 @@ public class InputAbcJob extends AbstractMCLJob {
 				throws IOException, InterruptedException {
 			nsub = MCLConfigHelper.getNSub(context.getConfiguration());
 			scale = context.getConfiguration().getInt(SCALE_CONF, 1);
-			n = context.getConfiguration().getInt(DIM_HEIGHT_CONF, 0)
-					* context.getConfiguration().getInt(DIM_WIDTH_CONF, 0);
+			n = MCLConfigHelper.getN(context.getConfiguration());
 		}
 		
 		protected void map(LongWritable key, Text value, Context context)
@@ -188,10 +228,8 @@ public class InputAbcJob extends AbstractMCLJob {
 			throw new RuntimeException(String.format("invalid input/output: int=%s, out=%s", inputs,output));
 		}
 		
+		final Path input = inputs.get(0);
 		final Configuration conf = getConf();
-		conf.setFloat(NB_RADIUS_CONF, radius);
-		conf.setInt(DIM_HEIGHT_CONF, h);
-		conf.setInt(DIM_WIDTH_CONF, w);
 		
 		if(scale < 1){
 			logger.error("scale={} must be a positve integer",scale);
@@ -200,16 +238,48 @@ public class InputAbcJob extends AbstractMCLJob {
 		
 		conf.setInt(SCALE_CONF, scale);
 		
-		int kmax = RadialPixelNeighborhood.size(radius);
-		long n = (long) w * (long) h * (long) scale;		
+		// analyze job
+		
+		Job preJob = Job.getInstance(conf, "Analyse ABC Matrix: "+input);
+		preJob.setJarByClass(getClass());
+		
+		preJob.setInputFormatClass(TextInputFormat.class);
+		TextInputFormat.setInputPaths(preJob, input);
+		
+		preJob.setMapperClass(AnalyzeMapper.class);
+		preJob.setMapOutputKeyClass(LongWritable.class);
+		preJob.setMapOutputValueClass(LongWritable.class);
+		preJob.setOutputKeyClass(NullWritable.class);
+		preJob.setOutputValueClass(NullWritable.class);
+		preJob.setReducerClass(AnalyzeReducer.class);
+		preJob.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
+		preJob.setOutputFormatClass(NullOutputFormat.class);
+		
+		ZkMetric.init(conf, KMAX, true);
+		ZkMetric.init(conf, DIM, true);
+		
+		MCLResult result = new MCLResult();
+		result.run(preJob);
+		
+		if(!result.success) {
+			logger.error("analysis job failed");
+			return result;
+		}
+		
+		// matrix meta
+		
+		int kmax = ZkMetric.<DistributedInt>get(conf, KMAX).get();
+		long n = (ZkMetric.<DistributedLong>get(conf, DIM).get() + 1) * (long) scale;
 		
 		MatrixMeta meta = MatrixMeta.create(conf, n, kmax);
+		
+		// actual job
 		
 		Job job = Job.getInstance(conf, "Input to "+output.getName());
 		job.setJarByClass(getClass());
 		
 		job.setInputFormatClass(TextInputFormat.class);
-		TextInputFormat.setInputPaths(job, inputs.get(0));
+		TextInputFormat.setInputPaths(job, input);
 
 		job.setMapperClass(AbcMapper.class);
 		job.setMapOutputKeyClass(Index.class);
@@ -226,7 +296,7 @@ public class InputAbcJob extends AbstractMCLJob {
 		
 		ZkMetric.init(conf, KMAX, true);
 		
-		MCLResult result = new MCLResult();
+		result = new MCLResult();
 		result.run(job);
 		
 		if(!result.success) return result;

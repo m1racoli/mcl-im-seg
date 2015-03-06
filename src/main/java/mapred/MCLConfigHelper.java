@@ -30,6 +30,7 @@ public class MCLConfigHelper {
 	private static final String AUTO_PRUNE =		"mcl.auto.prune";
 	private static final String LOCAL_MODE =		"mcl.local.mode";
 	private static final String IS_NATIVE =			"mcl.is.native";
+	private static final String JAVA_QUEUE =		"mcl.java.queue";
 	
 	public static final void setKMax(Configuration conf, int kmax) {
 		conf.setInt(KMAX_CONF, kmax);
@@ -163,5 +164,13 @@ public class MCLConfigHelper {
 	
 	public static final boolean isNative(Configuration conf){
 		return conf.getBoolean(IS_NATIVE, MCLDefaults.is_native);
+	}
+	
+	public static final void setUseJavaQueue(Configuration conf, boolean value){
+		conf.setBoolean(JAVA_QUEUE, value);
+	}
+	
+	public static final boolean useJavaQueue(Configuration conf){
+		return conf.getBoolean(JAVA_QUEUE, MCLDefaults.javaQueue);
 	}
 }
