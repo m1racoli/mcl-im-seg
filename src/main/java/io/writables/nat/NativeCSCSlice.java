@@ -70,7 +70,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		COLPTR_LAST = nsub * INT_BYTES + 1;
 		HEADER_BYTES = INT_BYTES * (nsub + 1) + 1;
 		
-		bb = ByteBuffer.allocateDirect(HEADER_BYTES + size * ITEM_BYTES);
+		bb = ByteBuffer.allocateDirect(HEADER_BYTES + size * ITEM_BYTES + INT_BYTES);
 		bb.order(ByteOrder.nativeOrder());
 		//logger.debug("allocated buffer = {}",bb);
 		clear();
@@ -334,7 +334,7 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		bb.limit(t);
 		other.bb.position(s);
 		other.bb.put(bb);
-		
+		bb.limit(bb.capacity());
 		return other;
 	}
 	
