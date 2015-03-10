@@ -60,6 +60,7 @@ public abstract class TestMCLMatrixSlice<M extends MCLMatrixSlice<M>> {
 		MCLConfigHelper.setN(conf, n);
 		MCLConfigHelper.setNSub(conf, nsub);
 		MCLConfigHelper.setKMax(conf, kmax);
+		MCLConfigHelper.setMatrixSliceClass(conf, getSliceClass());
 		return MCLMatrixSlice.<M>getInstance(conf);
 	}
 	
