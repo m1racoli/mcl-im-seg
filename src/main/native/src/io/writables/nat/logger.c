@@ -66,12 +66,12 @@ void logWarn(char const *__format, ...){
 
 void logTrace(char const *__format, ...){
     if(!IS_TRACE) return;
-    header(stdout,"TRACE");
+    header(stderr,"TRACE");
     va_list arglist;
     va_start(arglist, __format);
-    vfprintf(stdout ,__format, arglist);
+    vfprintf(stderr ,__format, arglist);
     va_end(arglist);
-    lineEnd(stdout);
+    lineEnd(stderr);
 }
 
 void logFatal(char const *__format, ...){

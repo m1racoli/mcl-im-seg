@@ -32,17 +32,19 @@ static void fetch(sbi *sbi, mclh *heap){
 
     sbi->s += sbi->size;
 
-    if(sbi->s == sbi->t) return;
-
-    mcli *item = sbi->s;
-    sbi->id = (jint) ((item++)->id/_nsub);
-    rowInd end = (rowInd) (sbi->id + 1) * (rowInd) _nsub;
-
-    while(item != sbi->t && item->id < end){
-        item++;
+    if(sbi->s == sbi->t) {
+        return;
     }
 
-    sbi->size = item - sbi->s;
+    mcli *i = sbi->s;
+    sbi->id = (jint) ((i++)->id/_nsub);
+    rowInd end = (rowInd) (sbi->id + 1) * (rowInd) _nsub;
+
+    while(i != sbi->t && i->id < end){
+        i++;
+    }
+
+    sbi->size = i - sbi->s;
 
     heapInsert(heap, sbi);
 }
@@ -142,12 +144,13 @@ bool iteratorNext(mclit *it) {
     }
 
     for(mcli *i = it->block->items; i != items;){
-        i++->id += shift;
+        (i++)->id += shift;
     }
 
     *(jint*) items = id;
 
     if(IS_TRACE){
+        logTrace("subblock id: %i",id);
         sliceDescribe(it->block);
     }
 
