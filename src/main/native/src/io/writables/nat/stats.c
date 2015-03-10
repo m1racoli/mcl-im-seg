@@ -25,8 +25,17 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
     mclStats *stats = mclAlloc(sizeof(mclStats));
 
     if(!cls){
-        jclass local_cls = (*env)->GetObjectClass(env,jstats);
-        cls = (*env)->NewGlobalRef(env, local_cls);
+        jclass local_cls;
+        local_cls = (*env)->FindClass(env,"mapred/MCLStats");
+
+        if((*env)->ExceptionCheck(env)){
+            (*env)->ExceptionDescribe(env);
+            (*env)->FatalError(env, "could not find class mapred/MCLStats");
+        }
+
+        cls = (jclass) (*env)->NewGlobalRef(env, local_cls);
+        (*env)->DeleteLocalRef(env, local_cls);
+
         CHAOS_ID = (*env)->GetFieldID(env,cls,"maxChaos","D");
         KMAX_ID = (*env)->GetFieldID(env,cls,"kmax","I");
         PRUNE_ID = (*env)->GetFieldID(env,cls,"prune","J");
