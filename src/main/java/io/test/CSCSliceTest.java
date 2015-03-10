@@ -14,6 +14,7 @@ import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.PrintMatrix;
 
+@Deprecated
 public class CSCSliceTest extends MCLContext {
 
 	public static void main(String[] args) throws IOException {
@@ -31,7 +32,7 @@ public class CSCSliceTest extends MCLContext {
 		float[] val = new float[] {1.0f,0.5f,1.0f,3.0f,2.0f,1,2,3};
 		
 		CSCSlice slice = new CSCSlice(conf);
-		slice.fill(col,row,val);
+		//slice.fill(col,row,val);
 		System.out.println(slice);
 		SliceId id = new SliceId();
 		for(CSCSlice m : rewrite(slice,conf).getSubBlocks(id)){
