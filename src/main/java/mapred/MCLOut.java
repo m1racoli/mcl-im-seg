@@ -16,7 +16,7 @@ import org.apache.hadoop.fs.Path;
 public final class MCLOut {
 
 	private static final String HEADER = " ite --------------------  chaos   time expa expb expc   kmax change      ";
-	private static final String STATS_HEADER = "out_blocks in_blocks in_nnz in_block_nnz mid_out_nnz delta_nnz mid_in_nnz out_nnz";
+	private static final String STATS_HEADER = "prune cutoff out_blocks in_blocks in_nnz in_block_nnz mid_out_nnz delta_nnz mid_in_nnz out_nnz";
 	
 	private static PrintStream out;
 	
@@ -67,7 +67,8 @@ public final class MCLOut {
 	}
 	
 	public static void moreStats(MCLResult transpose, MCLResult mclstep) {
-		out.printf(" [%,10d / %,5d -> %,5d] [%,10d x %,10d -> %,10d - %,10d -> %,10d -> %,10d]",
+		out.printf("%,10d %,10d [%,10d / %,5d -> %,5d] [%,10d x %,10d -> %,10d - %,10d -> %,10d -> %,10d]",
+				mclstep.prune, mclstep.cutoff,
 				transpose == null ? 0L : transpose.counters.findCounter(Counters.MAP_OUTPUT_VALUES).getValue(),
 				transpose == null ? 0L : transpose.counters.findCounter(Counters.MAP_OUTPUT_BLOCKS).getValue(),
 				mclstep.counters.findCounter(Counters.MAP_INPUT_BLOCKS).getValue(),
