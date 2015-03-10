@@ -166,10 +166,6 @@ JNIEXPORT jboolean JNICALL Java_io_writables_nat_NativeCSCSliceHelper_startItera
 
     _blockIterator = iteratorInit(_blockIterator, env, src_buf, dst_buf, _nsub);
 
-    if(!Java_io_writables_nat_NativeCSCSliceHelper_nextBlock(env, cls)){
-        return NULL;
-    }
-
     if(IS_DEBUG){
         checkException(env,true);
     }

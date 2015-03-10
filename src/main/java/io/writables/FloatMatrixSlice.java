@@ -3,6 +3,8 @@
  */
 package io.writables;
 
+import io.heap.FibonacciHeap;
+
 import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;

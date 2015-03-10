@@ -10,12 +10,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-
 import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
 import mapred.MCLInstance;
@@ -63,8 +60,6 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * @param m to add to this
 	 */
 	public abstract void add(final M m);
-	
-	//TODO column -> slice matcher
 	
 	/**
 	 * @param m to multiply with
@@ -135,26 +130,6 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 				return getSubBlockIterator(id);
 			}
 		};
-	}
-	
-	/**
-	 *  for testing. input does not need to be sorted.
-	 */
-	public void fill(int[] col, long[] row, float[] val) {
-		
-		int l = col.length;
-		
-		if(l != row.length || l != val.length) {
-			throw new IllegalArgumentException("dimension missmatch of input arrays col,row,val");
-		}
-		
-		List<SliceEntry> entries = new ArrayList<SliceEntry>(l);
-		for(int i = 0; i < l; i++) {
-			entries.add(SliceEntry.get(col[i], row[i], val[i]));
-		}
-		Collections.sort(entries);
-		
-		fill(entries);
 	}
 
 	@Override

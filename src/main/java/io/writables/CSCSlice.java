@@ -3,6 +3,7 @@
  */
 package io.writables;
 
+import io.heap.FibonacciHeap;
 import iterators.ReadOnlyIterator;
 
 import java.io.DataInput;
@@ -561,7 +562,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private final class SubBlockIterator extends ReadOnlyIterator<CSCSlice>{
 		private final int nsub = CSCSlice.this.nsub;
 		private SliceId id = null;
-		private final Queue<SubBlockSlice> queue = new PriorityQueue<CSCSlice.SubBlockSlice>(nsub);
+		private final Queue<SubBlockSlice> queue = javaQueue ?
+						new PriorityQueue<CSCSlice.SubBlockSlice>(nsub):
+						new FibonacciHeap<CSCSlice.SubBlockSlice>(nsub);
 		private final List<SubBlockSlice> list = new ArrayList<CSCSlice.SubBlockSlice>(nsub);
 		private final int[] offset = new int[nsub];
 		
@@ -617,7 +620,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			int id = (int) (rowInd[s] / nsub), i = s + 1;
 			long end = (long) (id + 1) * (long) nsub;
 			
-			while(i < t && rowInd[i] < end){
+			while(i != t && rowInd[i] < end){
 				i++;
 			}
 			

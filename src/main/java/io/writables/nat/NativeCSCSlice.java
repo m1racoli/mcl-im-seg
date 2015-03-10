@@ -253,23 +253,21 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 		
 		@Override
 		public boolean hasNext() {
-			check();
+			if(!ready) check();
 			return has_next;
 		}
 
 		@Override
 		public NativeCSCSlice next() {
-			check();
+			if(!ready) check();
 			ready = false;
 			id.set(b.id());
 			return b;
 		}
 		
 		private final void check() {
-			if(!ready){
-				has_next = NativeCSCSliceHelper.nextBlock();
-				ready = true;
-			}
+			has_next = NativeCSCSliceHelper.nextBlock();
+			ready = true;
 		}
 	}
 
