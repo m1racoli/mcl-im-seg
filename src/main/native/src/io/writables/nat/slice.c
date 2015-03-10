@@ -212,7 +212,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
 
         if(v->n > _select){
             h = heapNew(h, _select, itemValComp);
-            stats->prune += v->n + _select;
+            stats->prune += v->n - _select;
             vecSelectionPrune(v, h, _select);
         }
 
