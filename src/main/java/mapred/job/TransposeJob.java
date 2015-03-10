@@ -22,6 +22,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Cedrik
@@ -29,6 +31,8 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class TransposeJob extends AbstractMCLJob {
 
+	private static final Logger logger = LoggerFactory.getLogger(TransposeJob.class);
+	
 	private static final class TransposeMapper<M extends MCLMatrixSlice<M>> extends
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
 
@@ -48,10 +52,10 @@ public class TransposeJob extends AbstractMCLJob {
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 			long start = System.nanoTime();
-//			context.getCounter(Counters.MAP_INPUT_VALUES).increment(value.size());
 			subBlock.id = key.get();
 			for (M m : value.getSubBlocks(id)) {
 				subBlock.subBlock = m;
+				context.getCounter(Counters.MAP_OUTPUT_BLOCKS).increment(1);
 				context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(m.size());
 				cpu_nanos += System.nanoTime() - start;
 				context.write(id, subBlock);

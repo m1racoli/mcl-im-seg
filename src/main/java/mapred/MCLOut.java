@@ -15,7 +15,8 @@ import org.apache.hadoop.fs.Path;
  */
 public final class MCLOut {
 
-	private static final String HEADER = " ite --------------------  chaos   time expa expb expc   kmax change";
+	private static final String HEADER = " ite --------------------  chaos   time expa expb expc   kmax change      ";
+	private static final String STATS_HEADER = "out_blocks in_blocks in_nnz in_block_nnz mid_out_nnz delta_nnz mid_in_nnz out_nnz";
 	
 	private static PrintStream out;
 	
@@ -37,9 +38,11 @@ public final class MCLOut {
 		}
 	}
 	
-	public static void start(long n, int nsub, int te, int kmax){
+	public static void start(long n, int nsub, int te, int kmax, boolean stats){
 		out.printf("n: %d, nsub: %d, paralellism: %d, kmax: %d\n",n,nsub,te,kmax);
-		out.println(HEADER);
+		out.print(HEADER);
+		if(stats) out.print(STATS_HEADER);
+		out.println();
 	}
 	
 	public static void startIteration(int i) {
@@ -63,12 +66,30 @@ public final class MCLOut {
 		out.printf("%7.2f %6.2f %4.2f %4.2f %4.2f %6d", vals);
 	}
 	
+	public static void moreStats(MCLResult transpose, MCLResult mclstep) {
+		out.printf(" [%,10d / %,5d -> %,5d] [%,10d x %,10d -> %,10d - %,10d -> %,10d -> %,10d]",
+				transpose == null ? 0L : transpose.counters.findCounter(Counters.MAP_OUTPUT_VALUES).getValue(),
+				transpose == null ? 0L : transpose.counters.findCounter(Counters.MAP_OUTPUT_BLOCKS).getValue(),
+				mclstep.counters.findCounter(Counters.MAP_INPUT_BLOCKS).getValue(),
+				mclstep.counters.findCounter(Counters.MAP_INPUT_VALUES).getValue(),
+				mclstep.counters.findCounter(Counters.MAP_INPUT_BLOCK_VALUES).getValue(),
+				mclstep.counters.findCounter(Counters.MAP_OUTPUT_VALUES).getValue(),
+				mclstep.counters.findCounter(Counters.COMBINE_INPUT_VALUES).getValue()
+				- mclstep.counters.findCounter(Counters.COMBINE_OUTPUT_VALUES).getValue(),
+				mclstep.counters.findCounter(Counters.REDUCE_INPUT_VALUES).getValue(),
+				mclstep.counters.findCounter(Counters.REDUCE_OUTPUT_VALUES).getValue()
+				);
+	}
+
 	public static void change(double change) {
 		out.printf(" %f",change);
 	}
 	
-	public static void transpose(){
-		out.printf("  transpose");
+	public static void transpose(boolean transpose){
+		if(transpose)
+			out.printf(" transp");
+		else
+			out.printf("       ");
 	}
 	
 	public static void finishIteration() {

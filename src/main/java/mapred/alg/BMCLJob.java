@@ -34,11 +34,11 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		Path m_i_1 = getTmp("tmp_1");
 		Path m_i   = getTmp("tmp_2");
 		
-		MCLResult result = inputJob(input, m_i_1);
-		if(result == null) return 1;
+		MCLResult inputResult = inputJob(input, m_i_1);
+		if(inputResult == null) return 1;
 		
-		logger.info("{}",result);
-		long n = result.n;
+		logger.info("{}",inputResult);
+		long n = inputResult.n;
 		double chaos = Double.MAX_VALUE;
 		double changeInNorm = Double.POSITIVE_INFINITY;
 		Long init_nnz = null; //result.out_nnz;
@@ -49,7 +49,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		final boolean pure_mcl = balance == 1.0;
 		
 		MCLOut.init(getLogStream());
-		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),result.kmax);
+		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),inputResult.kmax,showStats());
 		
 		long total_tic = System.currentTimeMillis();
 		
@@ -57,23 +57,26 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 			logger.debug("iteration i = {}",iter());
 			MCLOut.startIteration(iter());
 			
+			MCLResult transposeResult = null;
+			MCLResult mclResult = null;
+			
 			long step_tic = System.currentTimeMillis();
 			
 			final boolean do_transpose = weigth <= 0;
 			if(do_transpose){
-				result = transposeJob(m_i_1);
-				if(result == null) return 1;
+				transposeResult = transposeJob(m_i_1);
+				if(transposeResult == null) return 1;
 				
 				if(increment == 0) weigth = Integer.MAX_VALUE;
 				else weigth += increment;
 			}
 			
-			result = stepJob(iter() == 1 || pure_mcl ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);
-			if(result == null) return 1;
+			mclResult = stepJob(iter() == 1 || pure_mcl ? Arrays.asList(m_i_1, transposedPath()) : Arrays.asList(m_i_1, transposedPath(), m_i_2), m_i);
+			if(mclResult == null) return 1;
 			
 			long step_toc = System.currentTimeMillis() - step_tic;
-			chaos = result.chaos;
-			changeInNorm = result.changeInNorm;
+			chaos = mclResult.chaos;
+			changeInNorm = mclResult.changeInNorm;
 			
 			Path tmp = m_i_2;
 			m_i_2 = m_i_1;
@@ -82,20 +85,25 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 
 			MCLOut.progress(0.0f, 1.0f);
 			
-			if(init_nnz == null) init_nnz = result.in_nnz;
-			final long last_nnz = result.in_nnz;
-			final long nnz_final = result.out_nnz;
-			final long nnz_expand = nnz_final + result.cutoff + result.prune;
+			if(init_nnz == null) init_nnz = mclResult.in_nnz;
+			final long last_nnz = mclResult.in_nnz;
+			final long nnz_final = mclResult.out_nnz;
+			final long nnz_expand = nnz_final + mclResult.cutoff + mclResult.prune;
 			
 			MCLOut.stats(chaos
 					, step_toc/1000.0
 					, (double) nnz_expand / (last_nnz + 1L)
 					, (double) nnz_final  / (last_nnz + 1L)
 					, (double) nnz_final  / (init_nnz + 1L)
-					, (int) result.kmax);
+					, (int) mclResult.kmax);
 
 			MCLOut.change(changeInNorm);
-			if(do_transpose) MCLOut.transpose();
+			MCLOut.transpose(do_transpose);
+			
+			if(showStats()){
+				MCLOut.moreStats(transposeResult, mclResult);
+			}
+			
 			MCLOut.finishIteration();
 			weigth--;
 			if(getFixedIterations() > 0 && getFixedIterations() < iter()){
@@ -109,10 +117,10 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 
 		Path res = new Path(output,"clustering");
 		
-		result = outputJob(m_i_1, res);
-		if(result == null) return 1;
+		MCLResult outResult = outputJob(m_i_1, res);
+		if(outResult == null) return 1;
 		
-		MCLOut.clusters(result.clusters);
+		MCLOut.clusters(outResult.clusters);
 		MCLOut.result(res);
 		
 		return 0;

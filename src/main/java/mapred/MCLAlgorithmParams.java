@@ -24,9 +24,6 @@ public class MCLAlgorithmParams implements Applyable {
 	@Parameter(names = "-S", description = "retain S highest entries during pruning")
 	private int selection = MCLDefaults.selection;
 	
-	@Parameter(names = "-selector", converter = Selector.ClassConverter.class, description = "Java implementation for selection pruning")
-	private Class<? extends Selector> selectorClass = MCLDefaults.selectorClass;
-	
 	@Parameter(names = {"-a","--auto-prune"}, description = "enable auto prune. overrides manual pruning options")
 	private boolean auto_prune = MCLDefaults.autoPrune;
 	
@@ -41,7 +38,6 @@ public class MCLAlgorithmParams implements Applyable {
 		}
 		
 		MCLConfigHelper.setSelection(conf, selection);
-		MCLConfigHelper.setSelectorClass(conf, selectorClass);
 		MCLConfigHelper.setAutoPrune(conf, auto_prune);
 	}
 }

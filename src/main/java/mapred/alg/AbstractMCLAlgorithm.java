@@ -98,6 +98,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = {"-h","--help"}, help = true, description = "show this help")
 	private boolean help = false;
 	
+	@Parameter(names = {"--stats"}, description = "show more stats")
+	private boolean stats = false;
+	
 	private final MCLCoreParams coreParams = new MCLCoreParams();
 	private final MCLAlgorithmParams params = new MCLAlgorithmParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
@@ -194,6 +197,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	 */
 	protected Collection<? extends Applyable> getParams() {
 		return Collections.emptyList();
+	}
+	
+	protected final boolean showStats(){
+		return stats;
 	}
 	
 	protected abstract int run(Path input, Path output) throws Exception;
