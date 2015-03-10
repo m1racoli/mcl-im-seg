@@ -13,7 +13,7 @@ import java.util.LinkedList;
  * @author Cedrik
  *
  */
-public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
+public final class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 
 	private final int maxRank;
 	private final int maxSize;
@@ -80,7 +80,7 @@ public class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
 		
 		inserted--;
 		
-		return (E) z.data;
+		return (E) z.data();
 	}
 
 	private final void consolidate() {

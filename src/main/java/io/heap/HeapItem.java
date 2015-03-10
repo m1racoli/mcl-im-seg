@@ -2,7 +2,7 @@ package io.heap;
 
 public final class HeapItem {
 
-	final Object data;
+	private final Object data;
 	private HeapItem child = null;
 	private HeapItem left;
 	private HeapItem right;
