@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+
 import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
 import mapred.MCLInstance;
@@ -144,6 +145,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		auto_prune = MCLConfigHelper.getAutoPrune(conf);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Configuration getConf() {
 		Configuration conf = super.getConf();
@@ -151,7 +153,8 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		MCLConfigHelper.setCutoff(conf, cutoff);
 		MCLConfigHelper.setSelection(conf, select);
 		MCLConfigHelper.setPrintMatrix(conf, print_matrix);
-		MCLConfigHelper.setAutoPrune(conf, auto_prune);		
+		MCLConfigHelper.setAutoPrune(conf, auto_prune);
+		MCLConfigHelper.setMatrixSliceClass(conf, (Class<? extends MCLMatrixSlice<?>>) getClass());
 		return conf;
 	}
 	
