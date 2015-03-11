@@ -4,7 +4,7 @@
 #define stats_h
 
 typedef struct {
-    jdouble chaos;
+    double chaos;
     jint kmax;
     jlong prune;
     jlong cutoff;

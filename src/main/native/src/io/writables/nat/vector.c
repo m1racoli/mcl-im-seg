@@ -92,8 +92,7 @@ void vecAddLoops(mclv *v, rowInd d) {
     }
 
     if(!c){
-        logErr("column %ld does not contain diagonal element. exit!!!\n",(long) d);
-        exit(1);
+        logFatal("column %ld does not contain diagonal element. exit!!!\n",(long) d);
     }
 
     c->val = max;
@@ -112,26 +111,6 @@ void vecMakeStochastic(mclv *v) {
     }
 }
 
-void vecMakeStochasticAndStats(mclv *v, double *center, double *max) {
-    double c = 0.0;
-    double m = 0.0;
-    double s = 0.0;
-    mcli *i, *t;
-
-    for(i = v->items, t = i + v->n; i != t; ++i){
-        s += i->val;
-    }
-
-    for(i = v->items, t = i + v->n; i != t; ++i){
-        i->val /= s;
-        if(m < i->val) m = i->val;
-        c += i->val*i->val;
-    }
-
-    *center = c;
-    *max = m;
-}
-
 void vecInflateAndStats(mclv *v, double inf, double *sum, double *max) {
     double s = 0.0;
     double m = 0.0;
@@ -144,27 +123,6 @@ void vecInflateAndStats(mclv *v, double inf, double *sum, double *max) {
     }
 
     *sum = s;
-    *max = m;
-}
-
-void vecInflateMakeStochasticAndStats(mclv *v, double inf, double *center, double *max) {
-    double s = 0.0;
-    double m = 0.0;
-    double c = 0.0;
-    mcli *i, *t;
-
-    for(i = v->items, t = i + v->n; i != t; ++i){
-        i->val = (value) pow(i->val, inf);
-        s += i->val;
-    }
-
-    for(i = v->items, t = i + v->n; i != t; ++i){
-        i->val /= s;
-        if(m < i->val) m = i->val;
-        c += i->val*i->val;
-    }
-
-    *center = c;
     *max = m;
 }
 

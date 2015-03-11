@@ -36,7 +36,7 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
         cls = (jclass) (*env)->NewGlobalRef(env, local_cls);
         (*env)->DeleteLocalRef(env, local_cls);
 
-        CHAOS_ID = (*env)->GetFieldID(env,cls,"maxChaos","D");
+        CHAOS_ID = (*env)->GetFieldID(env,cls,"chaos","D");
         KMAX_ID = (*env)->GetFieldID(env,cls,"kmax","I");
         PRUNE_ID = (*env)->GetFieldID(env,cls,"prune","J");
         CUTOFF_ID = (*env)->GetFieldID(env,cls,"cutoff","J");
@@ -44,7 +44,7 @@ mclStats *statsInit(JNIEnv *env, jobject jstats) {
         HOMOGEN_ID = (*env)->GetFieldID(env,cls,"homogen","J");
     }
 
-    stats->chaos = (*env)->GetDoubleField(env,jstats,CHAOS_ID);
+    stats->chaos = (double)(*env)->GetDoubleField(env,jstats,CHAOS_ID);
     stats->kmax = (*env)->GetIntField(env,jstats,KMAX_ID);
     stats->prune = (*env)->GetLongField(env,jstats,PRUNE_ID);
     stats->cutoff = (*env)->GetLongField(env,jstats,CUTOFF_ID);
@@ -62,7 +62,7 @@ void statsDump(mclStats *stats, JNIEnv *env, jobject jstats) {
         logTrace("statsDump: chaos:%f, kmax:%lu, prune:%" PRId64 ", cutoff:%" PRId64 ", attractors:%" PRId64 ", homogen:%"PRId64);
     }
 
-    (*env)->SetDoubleField(env,jstats,CHAOS_ID,stats->chaos);
+    (*env)->SetDoubleField(env,jstats,CHAOS_ID,(jdouble) stats->chaos);
     (*env)->SetIntField(env,jstats,KMAX_ID,stats->kmax);
     (*env)->SetLongField(env,jstats,PRUNE_ID,stats->prune);
     (*env)->SetLongField(env,jstats,CUTOFF_ID,stats->cutoff);

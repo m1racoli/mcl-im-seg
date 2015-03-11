@@ -217,7 +217,7 @@ public class InMemoryMCLStep extends AbstractMCLJob {
 //		result.homogenous_columns = job.getCounters().findCounter(Counters.HOMOGENEOUS_COLUMNS).getValue();
 //		result.cutoff = job.getCounters().findCounter(Counters.CUTOFF).getValue();
 //		result.prune = job.getCounters().findCounter(Counters.PRUNE).getValue();
-		result.chaos = runner.stats.maxChaos;
+		result.chaos = runner.stats.chaos;
 		result.changeInNorm = prev != null ? Math.sqrt(runner.sqd)/meta.getN() : Double.POSITIVE_INFINITY;
 		return result;
 	}

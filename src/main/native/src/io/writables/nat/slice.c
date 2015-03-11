@@ -1,7 +1,9 @@
 #include <inttypes.h>
+#include <math.h>
 #include "slice.h"
 #include "alloc.h"
 #include "logger.h"
+#include "item.h"
 
 static dim _nsub;
 static dim _select;
@@ -174,7 +176,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
     colInd *cs, *ct, *t;
     colInd num_new_items = 0;
     mcli *new_items = slice->items;
-    //mcli *it, *ii;
+    mcli *i, *it;
     value threshold;
     double center;
     double max;
@@ -227,15 +229,26 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
             continue;
         }
 
+        sum = 0.0;
+        max = 0.0;
+        center = 0.0;
+
         if(_autoprune){
-            vecMakeStochasticAndStats(v, &center, &max);
+            for(i = v->items, it = i + v->n; i != it; ++i){
+                sum += i->val;
+            }
         } else {
-            vecInflateMakeStochasticAndStats(v, _inflation, &center, &max);
+            for(i = v->items, it = i + v->n; i != it; ++i){
+                i->val = (value) pow(i->val, _inflation);
+                sum += i->val;
+            }
         }
 
-
-        for(mcli *ii = v->items, *it = new_items + v->n; new_items != it;){
-            *(new_items++) = *(ii++);
+        for(i = v->items, it = new_items + v->n; new_items != it; ++i, ++new_items){
+            new_items->id = i->id;
+            new_items->val = (value) (i->val / sum);
+            if(max < new_items->val) max = new_items->val;
+            center += new_items->val*new_items->val;
         }
 
         //new_items = itemNMove(new_items, v->items, v->n) + v->n;
@@ -246,6 +259,7 @@ void sliceInflateAndPrune(mcls *slice, mclStats *stats) {
         if(chaos < 1.0e-4) stats->homogen++;
         if(stats->chaos < chaos) stats->chaos = chaos;
     }
+
     *slice->align = TOP_ALIGNED;
     *cs = num_new_items;
     mclFree(v);

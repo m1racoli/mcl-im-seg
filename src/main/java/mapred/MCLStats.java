@@ -9,7 +9,7 @@ package mapred;
  */
 public final class MCLStats {
 
-	public double maxChaos = 0.0;
+	public double chaos = 0.0;
 	public int kmax = 0;
 	public long prune = 0;
 	public long cutoff = 0;
@@ -18,11 +18,11 @@ public final class MCLStats {
 	
 	@Override
 	public String toString() {
-		return String.format("[maxChaos: %2.1f, kmax: %d, prune: %d, cutoff: %d, attractors: %d, homogen: %d]", maxChaos, kmax, prune, cutoff,attractors,homogen);
+		return String.format("[maxChaos: %2.1f, kmax: %d, prune: %d, cutoff: %d, attractors: %d, homogen: %d]", chaos, kmax, prune, cutoff,attractors,homogen);
 	}
 
 	public void reset() {
-		maxChaos = 0.0;
+		chaos = 0.0;
 		kmax = 0;
 		prune = 0;
 		cutoff = 0;

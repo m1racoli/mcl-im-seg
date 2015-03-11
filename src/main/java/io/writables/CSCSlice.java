@@ -490,8 +490,8 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			ct = valPtr;
 			cs = ct - v_n;
 			
-			double max = 0.0f;
-			double new_center = 0.0;
+			double max = 0.0;
+			double center = 0.0;
 			double s = 0.0;
 			
 			if(auto_prune){
@@ -512,13 +512,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 				float v = val[i] / sf;
 				val[i] = v;
 				if(max < v) max = v;
-				new_center += v*v;
+				center += v*v;
 			}
 			
-			double chaos = (max - new_center) * (ct-cs);
+			double chaos = (max - center) * (ct-cs);
 			if(max > 0.5) stats.attractors++;
 			if(chaos < 1.0e-4) stats.homogen++;
-			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
+			if(stats.chaos < chaos) stats.chaos = chaos;
 			if(stats.kmax < v_n) stats.kmax = v_n;
 		}
 		

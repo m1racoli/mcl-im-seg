@@ -213,7 +213,7 @@ public class MCLStep extends AbstractMCLJob {
 			start = System.nanoTime();
 			vec.inflateAndPrune(stats);
 			k_max.set(stats.kmax);
-			chaos.set(stats.maxChaos);
+			chaos.set(stats.chaos);
 			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
 			cpu_nanos += System.nanoTime() - start;
 			context.write(col, vec);
