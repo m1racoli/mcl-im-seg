@@ -230,6 +230,7 @@ public class MatrixMeta implements Writable, Applyable {
 		MCLConfigHelper.setUseVarints(conf, varints);
 		MCLConfigHelper.setNumThreads(conf, te);
 		MCLConfigHelper.setMatrixSliceClass(conf, matrixSliceClass);
+		MCLConfigHelper.applyNative(conf);
 		logger.debug("apply {}",this);
 	}
 }

@@ -7,8 +7,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
+import mapred.MCLConfigHelper;
 import mapred.MCLCoreParams;
 import mapred.MCLResult;
 import mapred.alg.MCLOperation;
@@ -85,6 +87,11 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 		
 		if (embeddedZkServer) {
 			EmbeddedZkServer.init(getConf());
+		}
+		
+		if(MCLConfigHelper.hasNativeLib(getConf())){
+			logger.debug("has native lib");
+			getConf().set("mapreduce.map.child.java.opts", "-Djava.library.path=.");
 		}
 		
 		FileSystem outFs = output.getFileSystem(getConf());

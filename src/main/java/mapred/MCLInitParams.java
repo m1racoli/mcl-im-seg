@@ -3,6 +3,7 @@ package mapred;
 import io.writables.MCLMatrixSlice;
 
 import org.apache.hadoop.conf.Configuration;
+
 import com.beust.jcommander.Parameter;
 
 public class MCLInitParams implements Applyable {
@@ -10,11 +11,8 @@ public class MCLInitParams implements Applyable {
 	@Parameter(names = "-nsub", description = "non native input: width of matrix slice")
 	private int nsub = MCLDefaults.nsub;
 	
-	@Parameter(names = "-matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "non native input: matrix slice implementation")
+	@Parameter(names = "--matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "matrix slice implementation")
 	private Class<? extends MCLMatrixSlice<?>> matrixSlice = MCLDefaults.matrixSliceClass;
-	
-	@Parameter(names = "--native-matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "native input: matrix slice implementation")
-	private Class<? extends MCLMatrixSlice<?>> nativeMatrixSlice = MCLDefaults.nativeMatrixSliceClass;
 	
 	@Parameter(names = "-te", description = "non native input: number of partitions the data is split into")
 	private int te = MCLDefaults.te;
@@ -31,10 +29,12 @@ public class MCLInitParams implements Applyable {
 		MCLConfigHelper.setNumThreads(conf, te);
 		MCLConfigHelper.setUseVarints(conf, varints);
 		
-		if(use_native || !nativeMatrixSlice.equals(MCLDefaults.nativeMatrixSliceClass)){
-			MCLConfigHelper.setMatrixSliceClass(conf, nativeMatrixSlice);
+		if(use_native){
+			MCLConfigHelper.setMatrixSliceClass(conf, MCLDefaults.nativeMatrixSliceClass);
 		} else {
 			MCLConfigHelper.setMatrixSliceClass(conf, matrixSlice);
 		}
+		
+		MCLConfigHelper.applyNative(conf);
 	}
 }

@@ -277,7 +277,6 @@ public final class NativeCSCSlice extends MCLMatrixSlice<NativeCSCSlice> impleme
 	@Override
 	public void inflateAndPrune(MCLStats stats) {
 		NativeCSCSliceHelper.inflateAndPrune(bb, stats);
-		logger.debug("returned stats: {}",stats);
 	}
 
 	/* (non-Javadoc)

@@ -39,4 +39,8 @@ public class MCLDefaults {
 	public static final int min_iterations = 10;
 	public static final boolean is_native = false;
 	public static final boolean javaQueue = false;
+	
+	//framework
+	public static final int nat_map_xmxm = 256;
+	public static final int nat_reduce_xmxm = 256;
 }

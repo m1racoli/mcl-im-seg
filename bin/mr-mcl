@@ -13,17 +13,18 @@ natlib="$nat/libmclnative.so"
 
 if [ -e "$natlib" ]
 then
-	ADDNAT="-files $natlib"
+	ADDNAT="-files $natlib -Dmcl.has.native.lib=true"
 	export JAVA_LIBRARY_PATH="$nat"
 else
 	ADDNAT=""
 fi
 
 COMMAND="$1"
+shift
 
 if [ "$COMMAND" = "checknative" ] ; then
-	exec hadoop jar $JAR "io.test.NativeTest" "$ADDNAT"
+	exec hadoop jar $JAR "io.test.NativeTest" $ADDNAT
 	exit 0
 fi
 
-exec hadoop jar $JAR "$@" "ADDNAT"
+exec hadoop jar $JAR "$COMMAND" $ADDNAT "$@"
