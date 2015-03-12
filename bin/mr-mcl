@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
-#
-# Inspired by the hadoop start script
 # 
 # Cedrik Neumann
 #
-
 
 bin=`which $0`
 bin=`dirname ${bin}`
 bin=`cd "$bin"; pwd`
 
 JAR="$bin"/../mcl-im-seg-jar-with-dependencies.jar
-nat="$bin"/../native #/libnativetest.so
+nat="$bin"/../native
+natlib="$nat/libmclnative.so"
+
+if [ -e "$natlib" ]
+then
+	ADDNAT="-files $natlib"
+	export JAVA_LIBRARY_PATH="$nat"
+else
+	ADDNAT=""
+fi
 
 COMMAND="$1"
 
-#export HADOOP_OPTS="$HADOOP_OPTS":"$NATIVE"
-export JAVA_LIBRARY_PATH="$nat"
-
 if [ "$COMMAND" = "checknative" ] ; then
-	exec hadoop jar $JAR "io.test.NativeTest" #-files "$nat"
+	exec hadoop jar $JAR "io.test.NativeTest" "$ADDNAT"
 	exit 0
 fi
 
-
-
-exec hadoop jar $JAR "$@"
+exec hadoop jar $JAR "$@" "ADDNAT"
