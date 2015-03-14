@@ -5,7 +5,7 @@ This repository contains an implementation of the Markov Clustering (MCL) Algori
 ### Requirements ###
 
 * Linux (although not tested on Mac OS X)
-* Java 7, 64-bit
+* Java 7+, 64-bit
 * Hadoop 2.4+
 * Maven 3+ (for building)
 * Cmake and gcc (for building native)
