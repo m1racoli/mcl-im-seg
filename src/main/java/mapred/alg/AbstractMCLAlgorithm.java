@@ -47,6 +47,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 /**
+ * Core class of an MCL algortihm
+ * 
  * @author Cedrik
  *
  */
@@ -87,7 +89,7 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-zk", description = "run an embedded zookeeper server on <THIS_NODES_IP>:2181 for the distributed metrics")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode")
+	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode (experimental)")
 	private boolean in_memory;
 	
 	@Parameter(names = "--force-iter", description = "force the number of iterations")
@@ -99,80 +101,88 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = {"--stats"}, description = "show more stats")
 	private boolean stats = false;
 	
+	// further parameters
 	private final MCLCoreParams coreParams = new MCLCoreParams();
 	private final MCLAlgorithmParams params = new MCLAlgorithmParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
+	// path of the transposed used within the algorithm
 	private Path transposePath = null;
 	
+	// implementation of transpose and mcl job
 	private MCLOperation transposeJob = null;
 	private MCLOperation stepJob = null;
 	
+	// counter for conducted iterations starting with the 1th iteration
 	private int iteration = 1;
 	
-	/* (non-Javadoc)
+	/*
 	 * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
 	 */
 	@Override
 	public final int run(String[] args) throws Exception {
 		
+		// collection of parameter objects
 		List<Object> params = new LinkedList<Object>();
 		params.add(this);
 		params.add(coreParams);
 		params.add(this.params);
 		params.add(compressionParams);
 		
-		
-		//params.add(getParams());
+		// parse and evaluate parameters using JCommander
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
 		
 		if(help){
+			// display help and exit
 			cmd.usage();
 			return 1;
 		}
 		
+		// apply parameters to Configuration
 		coreParams.apply(getConf());
 		this.params.apply(getConf());
 		compressionParams.apply(getConf());
-		
-		for(Applyable p : getParams()) {
-			p.apply(getConf());
-		}
+		for(Applyable p : getParams()) p.apply(getConf());
 		
 		if (embeddedZkServer) {
+			// launch embedded ZooKeeper server
 			EmbeddedZkServer.init(getConf());
 		}
 		
 		if(in_memory){
+			// use direct implementations of the jobs runnig in heap
 			transposeJob = new InMemoryTransposeJob();
 			stepJob = new InMemoryMCLStep();
 		} else {
+			// use MapReduce implementations of the jobs
 			transposeJob = new TransposeJob();
 			stepJob = new MCLStep();
 		}
 		
 		if(MCLConfigHelper.hasNativeLib(getConf())){
+			// if native library is provided (set by launch script)
 			logger.debug("has native lib");
 			getConf().set("mapreduce.map.child.java.opts", "-Djava.library.path=.");
 		}
 		
+		// prepare output folder
 		FileSystem outFS = output.getFileSystem(getConf());
-		if (outFS.exists(output)) {
-			outFS.delete(output, true);
-		}
-		
+		if (outFS.exists(output)) outFS.delete(output, true);
 		outFS.mkdirs(output);
 		
+		// set transpose path
 		transposePath = getTmp("t");
 		
+		// init
 		initCounters();
-		
 		initLog();
 		
+		// call run method of algortihm implementation
 		int rc = run(input, output);
 		
+		// cleanup
 		closeCounters();
 		closeLog();
 		closeTmps();
@@ -188,25 +198,35 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return Collections.emptyList();
 	}
 	
+	/**
+	 * @return true if verbose stats
+	 */
 	protected final boolean showStats(){
 		return stats;
 	}
 	
+	/**
+	 * run the algorithm
+	 * 
+	 * @param input path of input matrix
+	 * @param output path of output clustering
+	 * @return 0 if success
+	 * @throws Exception
+	 */
 	protected abstract int run(Path input, Path output) throws Exception;
 	
+	/**
+	 * initialize first iterant
+	 * 
+	 * @param input path of src matrix
+	 * @param output path of first matrix
+	 * @return MCLresult of job
+	 * @throws Exception
+	 */
 	protected final MCLResult inputJob(Path input, Path output) throws Exception {
 		MCLResult result = null;
 		
 		result = new NativeInputJob().run(getConf(), input, output);
-		
-//		old stuff
-//		if(!use_native){
-//			logger.debug("run InputJob on {} => {}",input,output);
-//			result = is_abc 
-//					? new InputAbcJob().run(getConf(), input, output)
-//					: new SequenceInputJob().run(getConf(), input, output);
-//			
-//		}
 		
 		if (result == null || !result.success) {
 			MCLOut.println("input failed");
@@ -217,6 +237,14 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
+	/**
+	 * perform block transpose
+	 * 
+	 * @param input path if input matrix
+	 * @param output path of output block matrix
+	 * @return MCLResult of the job
+	 * @throws Exception
+	 */
 	protected final MCLResult transposeJob(Path input) throws Exception {
 		
 		logger.debug("run TransposeJob on {} => {}",input,transposePath);
@@ -234,6 +262,14 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
+	/**
+	 * perform MCL step
+	 * 
+	 * @param paths list of input matrices (M_i,Rb,[M_i-1])
+	 * @param output path of output matrix M_i+1
+	 * @return MCLResult of the job
+	 * @throws Exception
+	 */
 	protected final MCLResult stepJob(List<Path> paths, Path output) throws Exception{
 		
 		logger.debug("run MCLStep on {}  => {}",paths,output);		
@@ -251,6 +287,14 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
+	/**
+	 * interprete clusters from the final iterant
+	 * 
+	 * @param src path of the final iterant
+	 * @param dest output of the clustering
+	 * @return MCLResult of the job
+	 * @throws Exception
+	 */
 	protected final MCLResult outputJob(Path src, Path dest) throws Exception {
 		
 		logger.debug("run ReadClusters: {} => {}",src,dest);
@@ -269,30 +313,45 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return result;
 	}
 	
-	public static final Path suffix(Path path, Object suffix){
-		return new Path(path.getParent(),String.format("%s_%s", path.getName(),suffix));
-	}
-	
-	public final int getMaxIterations() {
+	/**
+	 * @return maximum number iterations to perform
+	 */
+	protected final int getMaxIterations() {
 		return max_iterations;
 	}
 	
-	public final int getMinIterations() {
+	/**
+	 * @return mininum number iterations to perform
+	 */
+	protected final int getMinIterations() {
 		return min_iterations;
 	}
 	
-	public final double getChaosLimit() {
+	/**
+	 * @return termination threshold for chaos
+	 */
+	protected final double getChaosLimit() {
 		return chaos_limit;
 	}
 	
-	public final double getChangeLimit() {
+	/**
+	 * @return termination threshold for change ratio
+	 */
+	protected final double getChangeLimit() {
 		return change_limit;
 	}
 
-	public final Path transposedPath(){
+	/**
+	 * @return path of the transposed
+	 */
+	protected final Path transposedPath(){
 		return transposePath;
 	}
 	
+	/**
+	 * initialize counters output if set
+	 * @throws IOException
+	 */
 	private final void initCounters() throws IOException {
 		if(counters == null){
 			return;
@@ -304,6 +363,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		logger.info("log counters to {}",counters);
 	}
 	
+	/**
+	 * initialize log output if set
+	 * @throws IOException
+	 */
 	private void initLog() throws IOException {
 		if(log == null){
 			return;
@@ -315,10 +378,20 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		logger.info("log output to {}",log);		
 	}
 
+	/**
+	 * provide logfile output
+	 * @return logfile outout, null if not exists
+	 */
 	protected FSDataOutputStream getLogStream(){
 		return logStream;
 	}
 	
+	/**
+	 * write counters to counters output of exists
+	 * @param counters to be written
+	 * @param job name
+	 * @throws IOException
+	 */
 	private final void writeCounters(Counters counters, String job) throws IOException {
 		if(this.counters == null){
 			return;
@@ -336,6 +409,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		}
 	}
 	
+	/**
+	 * closes counters output if exists
+	 * @throws IOException
+	 */
 	private final void closeCounters() throws IOException {
 		if(counters == null){
 			return;
@@ -345,6 +422,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		countersFS.close();
 	}
 	
+	/**
+	 * closes the logfile output if exists
+	 * @throws IOException
+	 */
 	private void closeLog() throws IOException {
 		if(log == null){
 			return;
@@ -355,15 +436,23 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	}
 
 	/**
-	 * current iteration >= 1
+	 * @return current iteration >= 1
 	 */
 	protected final int iter(){
 		return iteration;
 	}
 	
-	private transient Map<String,Path> tmps = null;
+	// tmp reference map and tmp file system
+	private transient Map<String,Path> tmps = null; 
 	private transient FileSystem tmpFS = null;
 	
+	/**
+	 * create from tmp path from name or get reference of already created
+	 * 
+	 * @param name of the tmp path
+	 * @return tmp path
+	 * @throws IOException
+	 */
 	protected Path getTmp(String name) throws IOException{
 		if(tmps == null){
 			tmps = new LinkedHashMap<String, Path>();
@@ -382,6 +471,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return tmp;
 	}
 	
+	/**
+	 * cleanup tmp FilySystem and Path references
+	 * 
+	 * @throws IOException
+	 */
 	private void closeTmps() throws IOException{
 		if(tmps == null){
 			return;
@@ -393,7 +487,10 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		tmps = null;
 	}
 	
-	public final int getFixedIterations(){
+	/**
+	 * @return number of fixed iterations to run, 0 otherwise
+	 */
+	protected final int getFixedIterations(){
 		return fixed_iterations;
 	}
 	

@@ -30,6 +30,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 /**
+ * Core class for an MCL job
+ * 
  * @author Cedrik
  *
  */

@@ -28,6 +28,8 @@ is sufficient to build the Java implementation. For being able to run the native
 mvn clean install -Pnative
 ```
 
+The executables and packaged files can then be found the the **target** folder.
+
 ## Running ##
 The whole procedure of segmenting an image consists of four steps. Except for the first step, running HDFS recommended. For the second and third step a running ZooKeeper server is required (where the embedded server can be run via the -zk flag) for distributed metrics. If the embedded server is not used, then the Hadoop configuration should contain the options **mcl.zk.hosts** and **zk.metric.path**.
 
@@ -36,7 +38,7 @@ First the pixel similarity information has to be extracted from the image materi
 ```
 #!Shell
 
-mr-mcl load-img -i <input> -o <output> [-r <radius>] [-sF <sigmaF>] [-sX <sigmax>] [-cielab] [-te <threading>]
+bin/mr-mcl load-img -i <input> -o <output> [-r <radius>] [-sF <sigmaF>] [-sX <sigmax>] [-cielab] [-te <threading>]
 ```
 reads the image(s) and generates a matrix representation in ABC format with the following options:
 
@@ -55,7 +57,7 @@ Furthermore are time of flight images (ToF) in *.mat files supported, where the 
 ```
 #!Shell
 
-mr-mcl load-mat -i <input> -o <output> [-r <radius>] [-sF <sigmaF>] [-sX <sigmaX>]
+bin/mr-mcl load-mat -i <input> -o <output> [-r <radius>] [-sF <sigmaF>] [-sX <sigmaX>]
 ```
 
 ### Create a distributed column matrix ###
@@ -64,7 +66,7 @@ Given a matrix representation in ABC format, the matrix need to be converted int
 ```
 #!Shell
 
-mr-mcl abc -i <input> -o <output> [-n] [-nsub <nsub>] [-te <te>] [--matrix-slice] [-vint] [-s <scale>] [--local] [-cm] [-co] [-zk] [-d] [-v]
+bin/mr-mcl abc -i <input> -o <output> [-n] [-nsub <nsub>] [-te <te>] [--matrix-slice] [-vint] [-s <scale>] [--local] [-cm] [-co] [-zk] [-d] [-v]
 ```
 
 #### Initialization parameters for the distributed matrix ####
@@ -88,7 +90,7 @@ The actual clustering algorithm running on the distributed slice matrix in HDFS/
 ```
 #!Shell
 
-mr-mcl bmcl -i <input> -o <output> [-a] [-I <inflation>] [-P <1/cutoff> | -p <cutoff>] [-S <select>] [-b <balance>] [-c <counters>] [-l <log>] [--stats] [--local] [-cm] [-co] [-zk] [-d] [-v]
+bin/mr-mcl bmcl -i <input> -o <output> [-a] [-I <inflation>] [-P <1/cutoff> | -p <cutoff>] [-S <select>] [-b <balance>] [-c <counters>] [-l <log>] [--stats] [--local] [-cm] [-co] [-zk] [-d] [-v]
 ```
 generates a text file in the output folder, where each line contains a TAB delimited list of indices belonging to the same cluster.
 
@@ -116,7 +118,7 @@ To render an output of the clustering call
 ```
 #!Shell
 
-mr-mcl result -i <source> -c <clustering> -o <output> [-f <format>] [-lc <linecolour>] [--component <component>] [--imin <imin>] [--imax <imax>]
+bin/mr-mcl result -i <source> -c <clustering> -o <output> [-f <format>] [-lc <linecolour>] [--component <component>] [--imin <imin>] [--imax <imax>]
 ```
 with following parameters:
 

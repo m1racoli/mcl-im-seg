@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
+ * implementation for both MCL and R-MCL algorithm using a balance parameter for upadte ratio of transpose block matrix
+ * 
  * @author Cedrik
  *
  */
@@ -30,31 +32,37 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 	@Override
 	public int run(Path input, Path output) throws Exception {
 
+		// tmp paths
 		Path m_i_2 = getTmp("tmp_0");
 		Path m_i_1 = getTmp("tmp_1");
 		Path m_i   = getTmp("tmp_2");
 		
+		// init first iterant
 		MCLResult inputResult = inputJob(input, m_i_1);
 		if(inputResult == null) return 1;
-		
 		logger.info("{}",inputResult);
+		
 		long n = inputResult.n;
 		double chaos = Double.MAX_VALUE;
 		double changeInNorm = Double.POSITIVE_INFINITY;
-		Long init_nnz = null; //result.out_nnz;
-		
+		Long init_nnz = null;		
 		balance = Math.min(1.0, Math.max(0.0, balance));
 		final int increment = balance == 0.0 ? 0 : (int) (1.0/balance);
 		int weigth = 0;
 		final boolean pure_mcl = balance == 1.0;
 		
+		// init output stream
 		MCLOut.init(getLogStream());
-		MCLOut.start(n,MCLConfigHelper.getNSub(getConf()),MCLConfigHelper.getNumThreads(getConf()),inputResult.kmax,showStats());
+		// write header
+		MCLOut.start(n, MCLConfigHelper.getNSub(getConf()), MCLConfigHelper.getNumThreads(getConf()), inputResult.kmax, showStats());
 		
 		long total_tic = System.currentTimeMillis();
 		
+		// iterate
 		while( getFixedIterations() > 0 || (chaos >= getChaosLimit() && (pure_mcl || iter() <= getMinIterations() || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations())){
 			logger.debug("iteration i = {}",iter());
+			
+			// log iteration start
 			MCLOut.startIteration(iter());
 			
 			MCLResult transposeResult = null;
