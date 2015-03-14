@@ -28,7 +28,7 @@ is sufficient to build the Java implementation. For being able to run the native
 mvn clean install -Pnative
 ```
 
-The executables and packaged files can then be found the the **target** folder.
+The executables and packaged files can then be found in the **target** folder.
 
 ## Running ##
 The whole procedure of segmenting an image consists of four steps. Except for the first step, running HDFS recommended. For the second and third step a running ZooKeeper server is required (where the embedded server can be run via the -zk flag) for distributed metrics. If the embedded server is not used, then the Hadoop configuration should contain the options **mcl.zk.hosts** and **zk.metric.path**.
@@ -129,7 +129,7 @@ with following parameters:
 * -lc: gray scale line colour if the rendered clusters (default: 1.0)
 * --component: for .mat files the component to render (default: I)
 * --imin: for .mat files min threshold to render pixel value (default: 0.0)
-* --imax: for .mat files maX threshold to render pixel value (default: 1.0)
+* --imax: for .mat files max threshold to render pixel value (default: 65535.0)
 
 ## Project structure ##
 
@@ -139,6 +139,6 @@ The matrix slice implementations providing methods for serialization and oparati
 
 ## Contact ##
 
-This project is part of the diploma thesis "Large Scale Image Segmentation Using Markov Flows" of @miracoli at the Technical University of Berlin.
+This project is part of the diploma thesis "Large Scale Image Segmentation Using Markov Flows" of Cedrik Neumann at the Technical University of Berlin.
 
 //TODO license

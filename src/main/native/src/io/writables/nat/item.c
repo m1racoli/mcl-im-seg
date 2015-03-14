@@ -4,16 +4,6 @@
 #include "alloc.h"
 #include "logger.h"
 
-mcli* itemInit (mcli* item, rowInd id, value val) {
-    if(!item)
-        item = mclAlloc(sizeof(mcli));
-
-    item->id = id;
-    item->val = val;
-
-    return item;
-}
-
 mcli *itemNNew(dim size){
     return mclAlloc(size * sizeof(mcli));
 }
@@ -28,13 +18,6 @@ int itemIdComp(const void *i1, const void *i2) {
 
 int itemValComp(const void *i1, const void * i2) {
     return ((mcli*)i1)->val > ((mcli*)i2)->val ? 1 : -1;
-}
-
-void itemSet(mcli *item, const rowInd id, const value val) {
-    //if(IS_TRACE){
-    //    logTrace("itemSet: (%" PRId64 "; %f) -> %p",id,val,item);
-    //}
-    item->id = id; item->val = val;
 }
 
 mcli *itemNCopy(mcli *dst, const mcli *src, dim n){

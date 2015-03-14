@@ -3,7 +3,6 @@
 #include "slice.h"
 #include "alloc.h"
 #include "logger.h"
-#include "item.h"
 
 static dim _nsub;
 static dim _select;
@@ -32,7 +31,7 @@ void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
     _kmax = kmax;
 }
 
-mcls *sliceInitFromAdress(mcls *s, void *obj){
+mcls *sliceInitFromAddress(mcls *s, void *obj){
 
     mcls *slice = s ? s : mclAlloc(sizeof(mcls));
 
@@ -66,7 +65,7 @@ mcls *sliceInitFromArr(mcls *s, JNIEnv *env, jbyteArray arr) {
         logDebug("array is copy: %s", isCopy ? "TRUE" : "FALSE");
     }
 
-    return sliceInitFromAdress(slice, a);
+    return sliceInitFromAddress(slice, a);
 }
 
 mcls *sliceInitFromBB(mcls *s, JNIEnv *env, jobject buf) {
@@ -79,7 +78,7 @@ mcls *sliceInitFromBB(mcls *s, JNIEnv *env, jobject buf) {
         (*env)->FatalError(env,"error getting the ByteBuffers adress");
     }
 
-    return sliceInitFromAdress(slice, obj);
+    return sliceInitFromAddress(slice, obj);
 }
 
 jboolean sliceEquals(mclSlice const *s1, mclSlice const *s2) {

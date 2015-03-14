@@ -1,6 +1,15 @@
 #ifndef heap_h
 #define heap_h
 
+/*
+* The Original Software is GraphMaker. The Initial Developer of the Original
+* Software is Nathan L. Fiedler. Portions created by Nathan L. Fiedler
+* are Copyright (C) 1999-2008. All Rights Reserved.
+*
+* Parts Nathan Fiedler's Java implementation of a Fibonacci Heap has been used for this implementation.
+*
+*/
+
 #include "types.h"
 
 typedef struct heapItem {

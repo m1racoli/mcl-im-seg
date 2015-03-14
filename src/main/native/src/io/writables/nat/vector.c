@@ -4,7 +4,6 @@
 #include "vector.h"
 #include "alloc.h"
 #include "logger.h"
-#include "item.h"
 
 mclv *vecInit(mclv *vec, dim n, mcli *items) {
 
@@ -93,6 +92,7 @@ void vecAddLoops(mclv *v, rowInd d) {
 
     if(!c){
         logFatal("column %ld does not contain diagonal element. exit!!!\n",(long) d);
+        exit(1);
     }
 
     c->val = max;

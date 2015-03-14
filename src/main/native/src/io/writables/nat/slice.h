@@ -19,7 +19,7 @@ typedef struct {
 void sliceSetParams(dim nsub, dim select, jboolean autoprune, jdouble inflation,
         value cutoff, jdouble pruneA, jdouble pruneB, dim kmax);
 
-mcls *sliceInitFromAdress(mcls *slice, void *obj);
+mcls *sliceInitFromAddress(mcls *slice, void *obj);
 
 mcls *sliceInitFromArr(mcls *s, JNIEnv *env, jbyteArray arr);
 

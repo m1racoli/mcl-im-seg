@@ -1,5 +1,9 @@
 /**
- * 
+ * The Original Software is GraphMaker. The Initial Developer of the Original
+ * Software is Nathan L. Fiedler. Portions created by Nathan L. Fiedler
+ * are Copyright (C) 1999-2008. All Rights Reserved.
+ *
+ * Parts Nathan Fiedler's implementation of a Fibonacci Heap has been taken for implementation.
  */
 package io.heap;
 
@@ -10,7 +14,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * @author Cedrik
+ * @author Cedrik Neumann
  *
  */
 public final class FibonacciHeap<E extends Comparable<E>> extends AbstractQueue<E> {
