@@ -53,7 +53,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 		
 		long total_tic = System.currentTimeMillis();
 		
-		while( getFixedIterations() > 0 || (chaos >= getChaosLimit() && (pure_mcl || iter() <= getMinIterations() || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations())){ //TODO chaos
+		while( getFixedIterations() > 0 || (chaos >= getChaosLimit() && (pure_mcl || iter() <= getMinIterations() || changeInNorm >= getChangeLimit()) && iter() <= getMaxIterations())){
 			logger.debug("iteration i = {}",iter());
 			MCLOut.startIteration(iter());
 			

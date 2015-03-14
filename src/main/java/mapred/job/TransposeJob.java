@@ -22,16 +22,12 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Cedrik
  *
  */
 public class TransposeJob extends AbstractMCLJob {
-
-	private static final Logger logger = LoggerFactory.getLogger(TransposeJob.class);
 	
 	private static final class TransposeMapper<M extends MCLMatrixSlice<M>> extends
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
