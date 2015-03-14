@@ -11,7 +11,7 @@ This repository contains an implementation of the Markov Clustering (MCL) Algori
 * Cmake and gcc (for building native)
 * Zookeeper 3.4.5+ (only of not using embedded Zookeeper server)
 
-Furthermore in general do file and folder parameters denote files and folders in the Hadoop FileSystem (HDFS). Thus paths in Amazon S3 are supported using **s3://<bucket>/<key>** (or **s3://<bucket>/<key>**) and local files need to be referred to using **file://<path>**.
+Furthermore in general do file and folder parameters denote files and folders in the Hadoop FileSystem (HDFS). Thus paths in Amazon S3 are supported using **s3://<bucket>/<key>** (or **s3n://<bucket>/<key>**) and local files need to be referred to using **file://<path>**.
 
 ## Building ##
 
@@ -129,9 +129,13 @@ with following parameters:
 * --imin: for .mat files min threshold to render pixel value (default: 0.0)
 * --imax: for .mat files maX threshold to render pixel value (default: 1.0)
 
-## Core project structure ##
+## Project structure ##
 
-### Contact ###
+The main algorithm is implemented by *mapred.alg.BMCLAlgortihm* extending *mapred.alg.AbstractMCLAlgorithm*.
+The transpose and mcl job are implemented by *mapred.job.TransposeJob* and *mapred.job.MCLStep* respectively extending *mapred.job.AbstractMCLJob*.
+The matrix slice implementations providing methods for serialization and oparations on the slice matrix must extend *io.writables.MCLMatrixSlice*. *io.writables.CSCslice* and *io.writables.nat.NativeCSCSlice* (with native code in src/main/native/src/io/writables/nat) are the provided matrix slice implementations in this project.
+
+## Contact ##
 
 This project is part of the diploma thesis "Large Scale Image Segmentation Using Markov Flows" of @miracoli at the Technical University of Berlin.
 
