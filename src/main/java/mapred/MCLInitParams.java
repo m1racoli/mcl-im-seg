@@ -8,19 +8,19 @@ import com.beust.jcommander.Parameter;
 
 public class MCLInitParams implements Applyable {
 	
-	@Parameter(names = "-nsub", description = "non native input: width of matrix slice")
+	@Parameter(names = "-nsub", description = "width of matrix slice")
 	private int nsub = MCLDefaults.nsub;
 	
 	@Parameter(names = "--matrix-slice", converter = MCLMatrixSlice.ClassConverter.class, description = "matrix slice implementation")
 	private Class<? extends MCLMatrixSlice<?>> matrixSlice = MCLDefaults.matrixSliceClass;
 	
-	@Parameter(names = "-te", description = "non native input: number of partitions the data is split into")
+	@Parameter(names = "-te", description = "number of partitions the data is split into")
 	private int te = MCLDefaults.te;
 	
-	@Parameter(names = "-vint", description = "non native input: variable length encoding for int and longs")
+	@Parameter(names = "-vint", description = "non native: variable length encoding for int and longs")
 	private boolean varints = MCLDefaults.varints;
 	
-	@Parameter(names = {"-n","--native"}, description= "native computation engine")
+	@Parameter(names = {"-n","--native"}, description= "use NativeCSCSlice as matrix slice implementation")
 	private boolean use_native = false;
 	
 	@Override

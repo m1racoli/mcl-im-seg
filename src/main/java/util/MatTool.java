@@ -71,6 +71,13 @@ public class MatTool extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 
+		JCommander cmd = new JCommander(this, args);
+		
+		if(help){
+			cmd.usage();
+			System.exit(1);
+		}
+		
 		if(debug){
 			org.apache.log4j.Logger.getRootLogger().setLevel(Level.DEBUG);
 		}
@@ -150,16 +157,7 @@ public class MatTool extends Configured implements Tool {
 	}
 
 	public static void main(String[] args) throws Exception {
-		MatTool tool = new MatTool();
-		JCommander cmd = new JCommander(tool);
-		cmd.parse(args);
-		
-		if(tool.help){
-			cmd.usage();
-			System.exit(1);
-		}
-		
-		System.exit(ToolRunner.run(tool, args));
+		System.exit(ToolRunner.run(new MatTool(), args));
 	}
 
 	public static void writeABC(File file, Frame frame, RadialPixelNeighborhood nb, double a, double b) throws Exception {

@@ -39,9 +39,6 @@ public class VisualizeClusters extends AbstractUtil {
 	
 	private static final Logger logger = LoggerFactory.getLogger(VisualizeClusters.class);
 	
-	@Parameter(names = "-te")
-	private int te = 1;
-	
 	@Parameter(names = "-c", required = true, converter = PathConverter.class, description = "clustering")
 	private Path clusteringFile = null;
 	

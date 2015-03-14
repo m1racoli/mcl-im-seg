@@ -56,6 +56,8 @@ public class Launcher {
 			System.exit(ToolRunner.run(new ImageTool(), args));
 		case "load-mat":
 			System.exit(ToolRunner.run(new MatTool(), args));
+		case "result":
+			VisualizeClusters.main(args);
 		default:
 			break;
 		}
