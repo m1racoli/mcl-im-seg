@@ -52,6 +52,10 @@ public class Launcher {
 			System.exit(ToolRunner.run(new BMCLJob(), args));
 		case "test":
 			TestRunner.main(args);
+		case "load-img":
+			System.exit(ToolRunner.run(new ImageTool(), args));
+		case "load-mat":
+			System.exit(ToolRunner.run(new MatTool(), args));
 		default:
 			break;
 		}

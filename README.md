@@ -29,6 +29,10 @@ mvn clean install -Pnative
 The whole procedure of segmenting an image consists of four steps.
 
 ### Extract Pixel similarities ###
+First the pixel similarity information has to be extracted from the image material. Possible image formats are Java supported image formats (i.e. jpg, png, ...). 
+
+#### ToF Images ####
+Furthermore are time of flight images (ToF) in a Matlab *.mat file supported, where the Z coordinates (representing the depth of the pixel within the spatial space of the image) are stored on a numeric array named "Z"
 
 ### Create a distributed column matrix ###
 
