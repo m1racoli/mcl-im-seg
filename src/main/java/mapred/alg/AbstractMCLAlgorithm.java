@@ -13,21 +13,18 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
+import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
-import mapred.MCLInitParams;
 import mapred.MCLOut;
-import mapred.MCLParams;
+import mapred.MCLAlgorithmParams;
 import mapred.MCLResult;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
-import mapred.job.input.InputAbcJob;
 import mapred.job.input.NativeInputJob;
-import mapred.job.input.SequenceInputJob;
 import mapred.job.output.ReadClusters;
 
 import org.apache.hadoop.conf.Configured;
@@ -37,9 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Counters;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,12 +59,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "-o", required = true, description = "output folder for the clustering result")
 	private Path output = null;
-	
-	@Parameter(names = "-debug", description = "DEBUG logging level for MCL")
-	private boolean debug = false;
-	
-	@Parameter(names = "-verbose", description = "show MapReduce job progress")
-	private boolean verbose = false;
 	
 	@Parameter(names = "--max-iter", description = "set max number of iterations")
 	private int max_iterations = MCLDefaults.max_iterations;
@@ -98,23 +87,20 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	@Parameter(names = "-zk", description = "run an embedded zookeeper server on <THIS_NODES_IP>:2181 for the distributed metrics")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "--local", description = "run MapReduce in local mode")
-	private boolean local = false;
-	
 	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode")
 	private boolean in_memory;
 	
 	@Parameter(names = "--force-iter", description = "force the number of iterations")
 	private int fixed_iterations = 0;
 	
-	@Parameter(names = {"-n","--native-input"}, description= "input matrix is matrix slice") //TODO default
-	private boolean native_input = false;
-	
 	@Parameter(names = {"-h","--help"}, help = true, description = "show this help")
 	private boolean help = false;
 	
-	private final MCLParams params = new MCLParams();
-	private final MCLInitParams initParams = new MCLInitParams();
+	@Parameter(names = {"--stats"}, description = "show more stats")
+	private boolean stats = false;
+	
+	private final MCLCoreParams coreParams = new MCLCoreParams();
+	private final MCLAlgorithmParams params = new MCLAlgorithmParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	private Path transposePath = null;
@@ -132,10 +118,12 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		
 		List<Object> params = new LinkedList<Object>();
 		params.add(this);
+		params.add(coreParams);
 		params.add(this.params);
-		params.add(initParams);
 		params.add(compressionParams);
-		params.add(getParams());
+		
+		
+		//params.add(getParams());
 		JCommander cmd = new JCommander(params);
 		cmd.addConverterFactory(new PathConverter.Factory());
 		cmd.parse(args);
@@ -145,41 +133,12 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			return 1;
 		}
 		
+		coreParams.apply(getConf());
 		this.params.apply(getConf());
-		initParams.apply(getConf());
 		compressionParams.apply(getConf());
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
-		}
-		
-		org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
-		
-		if (verbose) {
-			org.apache.log4j.Logger.getLogger(Job.class).setLevel(Level.INFO);
-		}
-
-		if (debug) {
-			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);			
-			
-			if(embeddedZkServer){
-				//org.apache.log4j.Logger.getLogger("org.apache.zookeeper.server").setLevel(Level.DEBUG);
-			}
-			
-			//TODO package
-			MCLConfigHelper.setDebug(getConf(), true);
-			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
-				logger.debug("{}: {}",e.getKey(),e.getValue());
-			}
-		}
-		
-		if(local){
-			logger.info("run mapreduce in local mode");
-			getConf().set("mapreduce.framework.name", "local");
-			getConf().set("yarn.resourcemanager.address", "local");
-			MCLConfigHelper.setLocal(getConf(), local);
 		}
 		
 		if (embeddedZkServer) {
@@ -192,6 +151,11 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		} else {
 			transposeJob = new TransposeJob();
 			stepJob = new MCLStep();
+		}
+		
+		if(MCLConfigHelper.hasNativeLib(getConf())){
+			logger.debug("has native lib");
+			getConf().set("mapreduce.map.child.java.opts", "-Djava.library.path=.");
 		}
 		
 		FileSystem outFS = output.getFileSystem(getConf());
@@ -224,20 +188,25 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 		return Collections.emptyList();
 	}
 	
+	protected final boolean showStats(){
+		return stats;
+	}
+	
 	protected abstract int run(Path input, Path output) throws Exception;
 	
 	protected final MCLResult inputJob(Path input, Path output) throws Exception {
 		MCLResult result = null;
 		
-		if(!native_input){
-			logger.debug("run InputJob on {} => {}",input,output);
-			result = is_abc 
-					? new InputAbcJob().run(getConf(), input, output)
-					: new SequenceInputJob().run(getConf(), input, output);
-			
-		} else {
-			result = new NativeInputJob().run(getConf(), input, output);
-		}
+		result = new NativeInputJob().run(getConf(), input, output);
+		
+//		old stuff
+//		if(!use_native){
+//			logger.debug("run InputJob on {} => {}",input,output);
+//			result = is_abc 
+//					? new InputAbcJob().run(getConf(), input, output)
+//					: new SequenceInputJob().run(getConf(), input, output);
+//			
+//		}
 		
 		if (result == null || !result.success) {
 			MCLOut.println("input failed");

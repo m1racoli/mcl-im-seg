@@ -1,8 +1,7 @@
 #include <jni.h>
 #include <stdio.h>
 #include "io_test_NativeTest.h"
- 
-// Implementation of native method sayHello() of HelloJNI class
+
 JNIEXPORT void JNICALL Java_io_test_NativeTest_hello(JNIEnv *env, jclass cls, jobject buf) {
    jbyte *dBuf = (*env)->GetDirectBufferAddress(env, buf);
    printf("c int: %i\n",((jint*) dBuf)[0]);

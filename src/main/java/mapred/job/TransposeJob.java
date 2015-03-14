@@ -28,7 +28,7 @@ import org.apache.hadoop.util.ToolRunner;
  *
  */
 public class TransposeJob extends AbstractMCLJob {
-
+	
 	private static final class TransposeMapper<M extends MCLMatrixSlice<M>> extends
 			Mapper<SliceId, M, SliceId, SubBlock<M>> {
 
@@ -48,10 +48,10 @@ public class TransposeJob extends AbstractMCLJob {
 		protected void map(SliceId key, M value, Context context)
 				throws IOException, InterruptedException {
 			long start = System.nanoTime();
-//			context.getCounter(Counters.MAP_INPUT_VALUES).increment(value.size());
 			subBlock.id = key.get();
 			for (M m : value.getSubBlocks(id)) {
 				subBlock.subBlock = m;
+				context.getCounter(Counters.MAP_OUTPUT_BLOCKS).increment(1);
 				context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(m.size());
 				cpu_nanos += System.nanoTime() - start;
 				context.write(id, subBlock);

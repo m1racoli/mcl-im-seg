@@ -7,8 +7,6 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -25,7 +23,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 public class ImageRecordReader extends RecordReader<Path,RenderedImage> {
 
 	private FSDataInputStream fileIn;
-	private ImageReader in;
 	private Path file;
 	private RenderedImage image;
 	

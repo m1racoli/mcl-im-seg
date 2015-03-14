@@ -34,6 +34,7 @@ public class ImageClusterings extends Clusterings {
 		return new DefaultImageClustering(file, w, h);
 	}
 	
+	@SuppressWarnings("unused")
 	public static void testInverse(ImageClustering clustering){
 		Integer total = null;
 		for(ImageCluster cluster : clustering){

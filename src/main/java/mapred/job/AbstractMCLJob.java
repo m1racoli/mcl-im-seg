@@ -7,12 +7,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
 
 import mapred.Applyable;
 import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
-import mapred.MCLParams;
+import mapred.MCLCoreParams;
 import mapred.MCLResult;
 import mapred.alg.MCLOperation;
 
@@ -20,9 +19,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
-import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,28 +37,19 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 	
 	private static final Logger logger = LoggerFactory.getLogger(AbstractMCLJob.class);
 	
-	@Parameter(names = "-i", required = true)
+	@Parameter(names = "-i", required = true, description = "input path")
 	private List<Path> inputs = null;
 	
-	@Parameter(names = "-o", required = true)
+	@Parameter(names = "-o", required = true, description = "output path")
 	private Path output = null;
-	
-	@Parameter(names = "-debug")
-	private boolean debug = false;
-	
-	@Parameter(names = "-verbose")
-	private boolean verbose = false;
 	
 	@Parameter(names = "-zk")
 	private boolean embeddedZkServer = false;
 	
-	@Parameter(names = "-local")
-	private boolean local = false;
-	
 	@Parameter(names = {"--help"}, help = true)
 	private boolean help = false;
 	
-	private final MCLParams params = new MCLParams();
+	private final MCLCoreParams coreParams = new MCLCoreParams();
 	private final MCLCompressionParams compressionParams = new MCLCompressionParams();
 	
 	/* (non-Javadoc)
@@ -72,8 +60,12 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 		
 		List<Object> params = new LinkedList<Object>();
 		params.add(this);
-		params.add(this.params);
+		params.add(this.coreParams);
 		params.add(this.compressionParams);
+		
+//		for(Object o : getParams()){
+//			params.add(o);
+//		}
 		
 		//params.add(getParams());
 		setCommander(params);
@@ -86,38 +78,20 @@ public abstract class AbstractMCLJob extends Configured implements Tool, MCLOper
 			return 1;
 		}
 		
-		this.params.apply(getConf());
+		this.coreParams.apply(getConf());
 		this.compressionParams.apply(getConf());
 		
 		for(Applyable p : getParams()) {
 			p.apply(getConf());
 		}
 		
-		org.apache.log4j.Logger.getRootLogger().setLevel(Level.ERROR);
-		
-		if (verbose) {
-			org.apache.log4j.Logger.getLogger(Job.class).setLevel(Level.INFO);
-		}
-
-		if (debug) {
-			org.apache.log4j.Logger.getLogger("mapred").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("io.writables").setLevel(Level.DEBUG);
-			org.apache.log4j.Logger.getLogger("zookeeper").setLevel(Level.DEBUG);
-			//TODO package
-			MCLConfigHelper.setDebug(getConf(), true);
-			for(Entry<String, String> e : getConf().getValByRegex("mcl.*").entrySet()){
-				logger.debug("{}: {}",e.getKey(),e.getValue());
-			}
-		}
-		
-		if(local){
-			logger.info("run mapreduce in local mode");
-			getConf().set("mapreduce.framework.name", "local");
-			getConf().set("yarn.resourcemanager.address", "local");
-		}
-		
 		if (embeddedZkServer) {
 			EmbeddedZkServer.init(getConf());
+		}
+		
+		if(MCLConfigHelper.hasNativeLib(getConf())){
+			logger.debug("has native lib");
+			getConf().set("mapreduce.map.child.java.opts", "-Djava.library.path=.");
 		}
 		
 		FileSystem outFs = output.getFileSystem(getConf());

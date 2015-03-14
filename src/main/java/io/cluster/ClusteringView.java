@@ -7,8 +7,6 @@ import iterators.IteratorView;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
-import java.util.Set;
-
 import transform.Transformation;
 
 /**

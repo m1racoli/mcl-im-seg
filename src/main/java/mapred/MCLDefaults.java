@@ -2,6 +2,7 @@ package mapred;
 
 import io.writables.CSCSlice;
 import io.writables.MCLMatrixSlice;
+import io.writables.nat.NativeCSCSlice;
 
 public class MCLDefaults {
 	
@@ -11,6 +12,8 @@ public class MCLDefaults {
 	public static final int te = 1;
 	public static final boolean varints = false;
 	public static final Class<? extends MCLMatrixSlice<?>> matrixSliceClass = CSCSlice.class;
+	public static final Class<? extends MCLMatrixSlice<?>> nativeMatrixSliceClass = NativeCSCSlice.class;
+	
 	//w/o default value
 	public static final int kmax = -1;
 	public static final long n = -1;
@@ -34,4 +37,10 @@ public class MCLDefaults {
 	public static final double changeLimit = 0.0001;
 	public static final boolean autoPrune = false;
 	public static final int min_iterations = 10;
+	public static final boolean is_native = false;
+	public static final boolean javaQueue = false;
+	
+	//framework
+	public static final int nat_map_xmxm = 256;
+	public static final int nat_reduce_xmxm = 256;
 }

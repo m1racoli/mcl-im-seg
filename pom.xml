@@ -64,6 +64,14 @@
 					</archive>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.10</version>
+				<configuration>
+					<argLine>-Djava.library.path=${project.build.directory}/native</argLine>
+				</configuration>
+			</plugin>
   	</plugins>
   </build>
   <dependencies>
@@ -110,5 +118,166 @@
   </dependencies>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  	<C_LOGGING_LEVEL>ERROR</C_LOGGING_LEVEL>
+  	<CMAKE_C_FLAGS>-Ofast</CMAKE_C_FLAGS>
   </properties>
+  
+  <profiles>
+  	<profile>
+  		<id>native</id>
+  		<activation>
+  			<activeByDefault>false</activeByDefault>
+  		</activation>
+  		<build>
+  			<plugins>
+  				<plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-enforcer-plugin</artifactId>
+  					<version>1.4</version>
+  					<executions>
+  						<execution>
+  							<id>enforce-os</id>
+  							<goals>
+  								<goal>enforce</goal>
+  							</goals>
+  							<configuration>
+  								<rules>
+  									<requireOS>
+  										<family>unix</family>
+  										<message>native build only supported on Unix</message>
+  									</requireOS>
+  								</rules>
+  								<fail>true</fail>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>
+  				<plugin>
+  					<groupId>org.codehaus.mojo</groupId>
+  					<artifactId>native-maven-plugin</artifactId>
+  					<version>1.0-alpha-8</version>		
+  					<executions>
+  						<execution>
+  							<phase>compile</phase>
+  							<goals>
+  								<goal>javah</goal>
+  							</goals>
+  							<configuration>
+  								<javahPath>${env.JAVA_HOME}/bin/javah</javahPath>
+  								<javahClassNames>
+  									<javahClassName>io.test.NativeTest</javahClassName>
+  									<javahClassName>io.writables.nat.NativeCSCSliceHelper</javahClassName>
+  									<javahClassName>io.writables.nat.NativeArrayCSCSliceHelper</javahClassName>
+  								</javahClassNames>
+  								<javahOutputDirectory>${project.build.directory}/native/javah</javahOutputDirectory>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>
+  				<plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-antrun-plugin</artifactId>
+  					<version>1.8</version>
+  					<executions>
+  						<execution>
+							<id>cmake</id>
+  							<phase>compile</phase>
+  							<goals>
+  								<goal>run</goal>
+  							</goals>
+  							<configuration>
+  								<target>
+  									<exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
+										<arg line="${basedir}/src/main/native -DPF=linux -DC_LOGGING_LEVEL=${C_LOGGING_LEVEL} -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJNI_INCLUDE=${env.JAVA_HOME}/include -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}"/>
+									</exec>
+									<exec executable="make" dir="${project.build.directory}/native" failonerror="true">
+										<arg line="VERBOSE=1"/>
+									</exec>
+  								</target>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>
+  			</plugins>
+  		</build>
+  	</profile>
+  	<profile>
+  		<id>javah</id>
+  		<activation>
+  			<activeByDefault>false</activeByDefault>
+  		</activation>
+  		<build>
+  			<plugins>
+  				<!--  <plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-enforcer-plugin</artifactId>
+  					<version>1.4</version>
+  					<executions>
+  						<execution>
+  							<id>enforce-os</id>
+  							<goals>
+  								<goal>enforce</goal>
+  							</goals>
+  							<configuration>
+  								<rules>
+  									<requireOS>
+  										<family>windows</family>
+  										<message>native-win build only supported on Windows</message>
+  									</requireOS>
+  								</rules>
+  								<fail>true</fail>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>-->
+  				<plugin>
+  					<groupId>org.codehaus.mojo</groupId>
+  					<artifactId>native-maven-plugin</artifactId>
+  					<version>1.0-alpha-8</version>
+  					<executions>
+  						<execution>
+  							<phase>compile</phase>
+  							<goals>
+  								<goal>javah</goal>
+  							</goals>
+  							<configuration>
+  								<javahPath>${env.JAVA_HOME}/bin/javah</javahPath>
+  								<javahClassNames>
+  									<javahClassName>io.test.NativeTest</javahClassName>
+  									<javahClassName>io.writables.nat.NativeCSCSliceHelper</javahClassName>
+  									<javahClassName>io.writables.nat.NativeArrayCSCSliceHelper</javahClassName>
+  								</javahClassNames>
+  								<javahOutputDirectory>${project.build.directory}/native/javah</javahOutputDirectory>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin>
+  				<!-- <plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-antrun-plugin</artifactId>
+  					<version>1.8</version>
+  					<executions>
+  						<execution>
+							<id>cmake</id>
+  							<phase>compile</phase>
+  							<goals>
+  								<goal>run</goal>
+  							</goals>
+  							<configuration>
+  								<target>
+  									<exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
+										<arg line="${basedir}/src/main/native -DPF=linux -DGENERATED_JAVAH=${project.build.directory}/native/javah -DJNI_INCLUDE=${env.JAVA_HOME}/include"/>
+									</exec>
+									<exec executable="make" dir="${project.build.directory}/native" failonerror="true">
+										<arg line="VERBOSE=1"/>
+									</exec>
+  								</target>
+  							</configuration>
+  						</execution>
+  					</executions>
+  				</plugin> -->
+  			</plugins>
+  		</build>
+  	</profile>
+  </profiles>
 </project>
