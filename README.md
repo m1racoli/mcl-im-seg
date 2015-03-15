@@ -133,7 +133,7 @@ with following parameters:
 
 ## Project structure ##
 
-The main algorithm is implemented by *mapred.alg.BMCLAlgortihm* extending *mapred.alg.AbstractMCLAlgorithm*.
+The main algorithm is implemented by *mapred.alg.BMCLJob* extending *mapred.alg.AbstractMCLAlgorithm*.
 The transpose and mcl job are implemented by *mapred.job.TransposeJob* and *mapred.job.MCLStep* respectively extending *mapred.job.AbstractMCLJob*.
 The matrix slice implementations providing methods for serialization and oparations on the slice matrix must extend *io.writables.MCLMatrixSlice*. *io.writables.CSCslice* and *io.writables.nat.NativeCSCSlice* (with native code in src/main/native/src/io/writables/nat) are the provided matrix slice implementations in this project.
 

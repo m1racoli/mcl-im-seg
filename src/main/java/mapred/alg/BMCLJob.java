@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 /**
- * implementation for both MCL and R-MCL algorithm using a balance parameter for upadte ratio of transpose block matrix
+ * implementation for both MCL and R-MCL algorithm using a balance parameter for the update ratio of the transpose block matrix.
  * 
- * @author Cedrik
+ * @author Cedrik Neumann
  *
  */
 public class BMCLJob extends AbstractMCLAlgorithm {
