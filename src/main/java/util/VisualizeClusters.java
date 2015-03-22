@@ -68,17 +68,17 @@ public class VisualizeClusters extends AbstractUtil {
 		MatTool.setIMin(getConf(), imin);
 		MatTool.setIMax(getConf(), imax);
 		
-		FileSystem fs = clusteringFile.getFileSystem(getConf());
+		FileSystem fs = hdfsOutput ? FileSystem.getLocal(getConf()) : clusteringFile.getFileSystem(getConf());
 		clusteringFile = fs.makeQualified(clusteringFile);
 		Clustering<Integer> clustering = new ArrayClustering(new InputStreamReader(fs.open(clusteringFile)));
 		logger.info("clustering with {} clusters loaded",clustering.size());
 		
 		// load input images
-		final BufferedImage[] images = loadImages(getConf(), input.getFileSystem(getConf()), input);		
+		final BufferedImage[] images = loadImages(getConf(), hdfsOutput ? FileSystem.getLocal(getConf()) : input.getFileSystem(getConf()), input);		
 		if(images == null || images.length == 0){return 1;}
 		
 		// prepare output
-		FileSystem outFS = output.getFileSystem(getConf());		
+		FileSystem outFS = hdfsOutput ? FileSystem.getLocal(getConf()) : output.getFileSystem(getConf());		
 		if(outFS.exists(output)){outFS.delete(output, true);}
 		outFS.mkdirs(output);
 		
@@ -104,7 +104,7 @@ public class VisualizeClusters extends AbstractUtil {
 		
 		final double[] tmp = new double[nc];
 		final double[] line_pixel = new double[nc];
-		Arrays.fill(line_pixel, 0.0);
+		Arrays.fill(line_pixel, line_color);
 		
 		for(Cluster<Integer> cl : clustering){
 			
