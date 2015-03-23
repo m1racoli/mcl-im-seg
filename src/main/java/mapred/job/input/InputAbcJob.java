@@ -3,8 +3,6 @@
  */
 package mapred.job.input;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,14 +32,13 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.reduce.IntSumReducer;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,52 +68,11 @@ public class InputAbcJob extends AbstractMCLJob {
 	
 	private volatile MCLInitParams initParams = null;
 	
-	private static final class AnalyzeItem implements Writable {
-		
-		private int cnt = 0;
-		private long row = 0L;
-		
-		void set(long row){
-			cnt = 1;
-			this.row = row;
-		}
-		
-		void reset(){
-			cnt = 0;
-			row = 0L;
-		}
-		
-		void merge(AnalyzeItem item){
-			cnt += item.cnt;
-			row = row >= item.row ? row : item.row;
-		}
-		
-		int cnt(){
-			return cnt;
-		}
-		
-		long row(){
-			return row;
-		}
-
-		@Override
-		public void write(DataOutput out) throws IOException {
-			WritableUtils.writeVInt(out, cnt);
-			WritableUtils.writeVLong(out, row);			
-		}
-
-		@Override
-		public void readFields(DataInput in) throws IOException {
-			cnt = WritableUtils.readVInt(in);
-			row = WritableUtils.readVLong(in);			
-		}
-		
-	}
-	
-	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, AnalyzeItem> {
+	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, IntWritable> {
 		private final Pattern PATTERN = Pattern.compile("\t");
+		private final DistributedLongMaximum n = new DistributedLongMaximum();
 		private final LongWritable col = new LongWritable();
-		private final AnalyzeItem item = new AnalyzeItem();
+		private final IntWritable cnt = new IntWritable(1);
 		
 		@Override
 		protected void map(LongWritable key, Text value, Context context)
@@ -125,57 +81,43 @@ public class InputAbcJob extends AbstractMCLJob {
 			final float v = Float.parseFloat(split[2]);
 			
 			if (v <= 0.0f) return;
-						
-			col.set(Long.parseLong(split[0]));
-			item.set(Long.parseLong(split[1]));
 			
-			context.write(col, item);
+			col.set(Long.parseLong(split[0]));
+			n.set(col.get());
+			n.set(Long.parseLong(split[1]));
+			
+			context.write(col, cnt);
 		}
-	}
-	
-	private static final class AnalyzeCombiner extends Reducer<LongWritable, AnalyzeItem, LongWritable, AnalyzeItem> {
-		
-		private final AnalyzeItem item = new AnalyzeItem();
 		
 		@Override
-		protected void reduce(LongWritable key, Iterable<AnalyzeItem> items, Context context)
+		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
-			item.reset();
-			
-			for(AnalyzeItem i : items){
-				item.merge(i);
-			}
-			
-			context.write(key, item);
+			ZkMetric.set(context.getConfiguration(), DIM, n);
+			ZkMetric.close();
 		}
-		
 	}
 	
-	private static final class AnalyzeReducer extends Reducer<LongWritable, AnalyzeItem, NullWritable, NullWritable> {
+	private static final class AnalyzeReducer extends Reducer<LongWritable, IntWritable, NullWritable, NullWritable> {
 		
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
-		private final DistributedLongMaximum n = new DistributedLongMaximum();
 		
 		@Override
-		protected void reduce(LongWritable key, Iterable<AnalyzeItem> values, Context context)
+		protected void reduce(LongWritable key, Iterable<IntWritable> values, Context context)
 				throws IOException, InterruptedException {
-			n.set(key.get());
+			
 			int cnt = 0;
 			
-			for(AnalyzeItem value : values){
-				n.set(value.row());
-				cnt += value.cnt();
+			for(IntWritable val : values){
+				cnt += val.get();
 			}
 			
-			kmax.set(cnt);
-			
+			kmax.set(cnt);			
 		}
 		
 		@Override
 		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
-			ZkMetric.set(context.getConfiguration(), DIM, n);
 			ZkMetric.close();
 		}
 	}
@@ -312,10 +254,10 @@ public class InputAbcJob extends AbstractMCLJob {
 		
 		preJob.setMapperClass(AnalyzeMapper.class);
 		preJob.setMapOutputKeyClass(LongWritable.class);
-		preJob.setMapOutputValueClass(AnalyzeItem.class);
+		preJob.setMapOutputValueClass(IntWritable.class);
 		preJob.setOutputKeyClass(NullWritable.class);
 		preJob.setOutputValueClass(NullWritable.class);
-		preJob.setCombinerClass(AnalyzeCombiner.class);
+		preJob.setCombinerClass(IntSumReducer.class);
 		preJob.setReducerClass(AnalyzeReducer.class);
 		preJob.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		preJob.setOutputFormatClass(NullOutputFormat.class);
