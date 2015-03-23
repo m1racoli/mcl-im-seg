@@ -3,6 +3,8 @@
  */
 package mapred.job.input;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +34,8 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -67,10 +71,52 @@ public class InputAbcJob extends AbstractMCLJob {
 	
 	private volatile MCLInitParams initParams = null;
 	
-	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, LongWritable> {
+	private static final class AnalyzeItem implements Writable {
+		
+		private int cnt = 0;
+		private long row = 0L;
+		
+		void set(long row){
+			cnt = 1;
+			this.row = row;
+		}
+		
+		void reset(){
+			cnt = 0;
+			row = 0L;
+		}
+		
+		void merge(AnalyzeItem item){
+			cnt += item.cnt;
+			row = row >= item.row ? row : item.row;
+		}
+		
+		int cnt(){
+			return cnt;
+		}
+		
+		long row(){
+			return row;
+		}
+
+		@Override
+		public void write(DataOutput out) throws IOException {
+			WritableUtils.writeVInt(out, cnt);
+			WritableUtils.writeVLong(out, row);			
+		}
+
+		@Override
+		public void readFields(DataInput in) throws IOException {
+			cnt = WritableUtils.readVInt(in);
+			row = WritableUtils.readVLong(in);			
+		}
+		
+	}
+	
+	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, AnalyzeItem> {
 		private final Pattern PATTERN = Pattern.compile("\t");
 		private final LongWritable col = new LongWritable();
-		private final LongWritable row = new LongWritable();
+		private final AnalyzeItem item = new AnalyzeItem();
 		
 		@Override
 		protected void map(LongWritable key, Text value, Context context)
@@ -81,26 +127,44 @@ public class InputAbcJob extends AbstractMCLJob {
 			if (v <= 0.0f) return;
 						
 			col.set(Long.parseLong(split[0]));
-			row.set(Long.parseLong(split[1]));
+			item.set(Long.parseLong(split[1]));
 			
-			context.write(col, row);
+			context.write(col, item);
 		}
 	}
 	
-	private static final class AnalyzeReducer extends Reducer<LongWritable, LongWritable, NullWritable, NullWritable> {
+	private static final class AnalyzeCombiner extends Reducer<LongWritable, AnalyzeItem, LongWritable, AnalyzeItem> {
+		
+		private final AnalyzeItem item = new AnalyzeItem();
+		
+		@Override
+		protected void reduce(LongWritable key, Iterable<AnalyzeItem> items, Context context)
+				throws IOException, InterruptedException {
+			item.reset();
+			
+			for(AnalyzeItem i : items){
+				item.merge(i);
+			}
+			
+			context.write(key, item);
+		}
+		
+	}
+	
+	private static final class AnalyzeReducer extends Reducer<LongWritable, AnalyzeItem, NullWritable, NullWritable> {
 		
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
 		private final DistributedLongMaximum n = new DistributedLongMaximum();
 		
 		@Override
-		protected void reduce(LongWritable key, Iterable<LongWritable> values, Context context)
+		protected void reduce(LongWritable key, Iterable<AnalyzeItem> values, Context context)
 				throws IOException, InterruptedException {
 			n.set(key.get());
 			int cnt = 0;
 			
-			for(LongWritable value : values){
-				n.set(value.get());
-				cnt++;
+			for(AnalyzeItem value : values){
+				n.set(value.row());
+				cnt += value.cnt();
 			}
 			
 			kmax.set(cnt);
@@ -248,9 +312,10 @@ public class InputAbcJob extends AbstractMCLJob {
 		
 		preJob.setMapperClass(AnalyzeMapper.class);
 		preJob.setMapOutputKeyClass(LongWritable.class);
-		preJob.setMapOutputValueClass(LongWritable.class);
+		preJob.setMapOutputValueClass(AnalyzeItem.class);
 		preJob.setOutputKeyClass(NullWritable.class);
 		preJob.setOutputValueClass(NullWritable.class);
+		preJob.setCombinerClass(AnalyzeCombiner.class);
 		preJob.setReducerClass(AnalyzeReducer.class);
 		preJob.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		preJob.setOutputFormatClass(NullOutputFormat.class);
