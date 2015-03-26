@@ -38,6 +38,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.reduce.IntSumReducer;
 import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,10 +68,18 @@ public class InputAbcJob extends AbstractMCLJob {
 	
 	private volatile MCLInitParams initParams = null;
 	
-	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, LongWritable> {
+	private static final class AnalyzeMapper extends Mapper<LongWritable, Text, LongWritable, IntWritable> {
 		private final Pattern PATTERN = Pattern.compile("\t");
+		private final DistributedLongMaximum n = new DistributedLongMaximum();
 		private final LongWritable col = new LongWritable();
-		private final LongWritable row = new LongWritable();
+		private final IntWritable cnt = new IntWritable(1);
+		private boolean local;
+		
+		@Override
+		protected void setup(Context context)
+				throws IOException, InterruptedException {
+			local = MCLConfigHelper.getLocal(context.getConfiguration());
+		}
 		
 		@Override
 		protected void map(LongWritable key, Text value, Context context)
@@ -79,40 +88,51 @@ public class InputAbcJob extends AbstractMCLJob {
 			final float v = Float.parseFloat(split[2]);
 			
 			if (v <= 0.0f) return;
-						
-			col.set(Long.parseLong(split[0]));
-			row.set(Long.parseLong(split[1]));
 			
-			context.write(col, row);
+			col.set(Long.parseLong(split[0]));
+			n.set(col.get());
+			n.set(Long.parseLong(split[1]));
+			
+			context.write(col, cnt);
+		}
+		
+		@Override
+		protected void cleanup(Context context)
+				throws IOException, InterruptedException {
+			ZkMetric.set(context.getConfiguration(), DIM, n);
+			if(!local) ZkMetric.close();
 		}
 	}
 	
-	private static final class AnalyzeReducer extends Reducer<LongWritable, LongWritable, NullWritable, NullWritable> {
+	private static final class AnalyzeReducer extends Reducer<LongWritable, IntWritable, NullWritable, NullWritable> {
 		
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
-		private final DistributedLongMaximum n = new DistributedLongMaximum();
+		private boolean local;
 		
 		@Override
-		protected void reduce(LongWritable key, Iterable<LongWritable> values, Context context)
+		protected void setup(Context context)
 				throws IOException, InterruptedException {
-			n.set(key.get());
+			local = MCLConfigHelper.getLocal(context.getConfiguration());
+		}
+		
+		@Override
+		protected void reduce(LongWritable key, Iterable<IntWritable> values, Context context)
+				throws IOException, InterruptedException {
+			
 			int cnt = 0;
 			
-			for(LongWritable value : values){
-				n.set(value.get());
-				cnt++;
+			for(IntWritable val : values){
+				cnt += val.get();
 			}
 			
-			kmax.set(cnt);
-			
+			kmax.set(cnt);			
 		}
 		
 		@Override
 		protected void cleanup(Context context)
 				throws IOException, InterruptedException {
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
-			ZkMetric.set(context.getConfiguration(), DIM, n);
-			ZkMetric.close();
+			if(!local) ZkMetric.close();
 		}
 	}
 	
@@ -156,6 +176,7 @@ public class InputAbcJob extends AbstractMCLJob {
 	private static final class AbcReducer<M extends MCLMatrixSlice<M>> extends Reducer<Index, FloatWritable, SliceId, M>{
 		private M col = null;
 		private final DistributedIntMaximum kmax = new DistributedIntMaximum();
+		private boolean local;
 		
 		@Override
 		protected void setup(Context context)
@@ -163,6 +184,7 @@ public class InputAbcJob extends AbstractMCLJob {
 			if(col == null){
 				col = MCLContext.getMatrixSliceInstance(context.getConfiguration());
 			}
+			local = MCLConfigHelper.getLocal(context.getConfiguration());
 		}
 		
 		@Override
@@ -189,7 +211,7 @@ public class InputAbcJob extends AbstractMCLJob {
 		protected void cleanup(Reducer<Index, FloatWritable, SliceId, M>.Context context)
 				throws IOException, InterruptedException {
 			ZkMetric.set(context.getConfiguration(), KMAX, kmax);
-			ZkMetric.close();
+			if(!local) ZkMetric.close();
 		}
 		
 		private final class ValueIterator extends ReadOnlyIterator<SliceEntry> {
@@ -248,9 +270,10 @@ public class InputAbcJob extends AbstractMCLJob {
 		
 		preJob.setMapperClass(AnalyzeMapper.class);
 		preJob.setMapOutputKeyClass(LongWritable.class);
-		preJob.setMapOutputValueClass(LongWritable.class);
+		preJob.setMapOutputValueClass(IntWritable.class);
 		preJob.setOutputKeyClass(NullWritable.class);
 		preJob.setOutputValueClass(NullWritable.class);
+		preJob.setCombinerClass(IntSumReducer.class);
 		preJob.setReducerClass(AnalyzeReducer.class);
 		preJob.setNumReduceTasks(MCLConfigHelper.getNumThreads(conf));
 		preJob.setOutputFormatClass(NullOutputFormat.class);

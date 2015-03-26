@@ -3,6 +3,7 @@
  */
 package util;
 
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.Raster;
@@ -43,7 +44,7 @@ public class VisualizeClusters extends AbstractUtil {
 	private Path clusteringFile = null;
 	
 	@Parameter(names = {"-f","--format"}, description = "format to save result in")
-	private String output_format = "jpg";
+	private String output_format = "png";
 	
 	@Parameter(names = {"-lc","--line-color"})
 	private double line_color = 1.0;
@@ -57,6 +58,12 @@ public class VisualizeClusters extends AbstractUtil {
 	@Parameter(names = {"--imax"}, description = "I max threshold of mat file component")
 	private double imax = 65535.0;
 	
+	@Parameter(names = {"-q","--high-quality"}, description = "create higher quality images with increased resolution")
+	private boolean high_quality = false;
+	
+	@Parameter(names = {"-t","--thumbnail"}, description = "create additionally a jpg thumbnail (only if format is not jpg)")
+	private boolean thumbnail = false;
+	
 	/* (non-Javadoc)
 	 * @see util.AbstractUtil#run(org.apache.hadoop.fs.Path, org.apache.hadoop.fs.Path, boolean)
 	 */
@@ -68,17 +75,20 @@ public class VisualizeClusters extends AbstractUtil {
 		MatTool.setIMin(getConf(), imin);
 		MatTool.setIMax(getConf(), imax);
 		
-		FileSystem fs = clusteringFile.getFileSystem(getConf());
+		FileSystem fs = hdfsOutput ? FileSystem.getLocal(getConf()) : clusteringFile.getFileSystem(getConf());
 		clusteringFile = fs.makeQualified(clusteringFile);
 		Clustering<Integer> clustering = new ArrayClustering(new InputStreamReader(fs.open(clusteringFile)));
 		logger.info("clustering with {} clusters loaded",clustering.size());
 		
 		// load input images
-		final BufferedImage[] images = loadImages(getConf(), input.getFileSystem(getConf()), input);		
-		if(images == null || images.length == 0){return 1;}
+		final BufferedImage[] images = loadImages(getConf(), hdfsOutput ? FileSystem.getLocal(getConf()) : input.getFileSystem(getConf()), input);		
+		if(images == null || images.length == 0){
+			fs.close();
+			return 1;
+		}
 		
 		// prepare output
-		FileSystem outFS = output.getFileSystem(getConf());		
+		FileSystem outFS = hdfsOutput ? FileSystem.getLocal(getConf()) : output.getFileSystem(getConf());		
 		if(outFS.exists(output)){outFS.delete(output, true);}
 		outFS.mkdirs(output);
 		
@@ -91,7 +101,9 @@ public class VisualizeClusters extends AbstractUtil {
 			BufferedImage im = images[i];
 			rasters[i] = im.getRaster();
 			cms[i] = im.getColorModel();
-			outRasters[i] = im.getRaster().createCompatibleWritableRaster();
+			int w = high_quality ? im.getWidth()  * 2 : im.getWidth();
+			int h = high_quality ? im.getHeight() * 2 : im.getHeight();
+			outRasters[i] = im.getRaster().createCompatibleWritableRaster(w, h);
 		}
 		
 		final int w = images[0].getWidth();
@@ -104,21 +116,62 @@ public class VisualizeClusters extends AbstractUtil {
 		
 		final double[] tmp = new double[nc];
 		final double[] line_pixel = new double[nc];
-		Arrays.fill(line_pixel, 0.0);
+		Arrays.fill(line_pixel, line_color);
 		
-		for(Cluster<Integer> cl : clustering){
-			
-			for(Integer i : cl){
+		if(!high_quality){
+			for(Cluster<Integer> cl : clustering){
 				
-				final int f = i / n;
-				final int sub_i = i % n;
-				final int y = sub_i % h;
-				final int x = sub_i / h;
-				
-				if(nbtest.isInner(sub_i, x, y, cl, clustering)){
-					outRasters[f].setPixel(x, y, rasters[f].getPixel(x, y, tmp));
-				} else {
-					outRasters[f].setPixel(x, y, line_pixel);
+				for(Integer i : cl){
+					
+					final int f = i / n;
+					final int sub_i = i % n;
+					final int y = sub_i % h;
+					final int x = sub_i / h;
+					
+					if(nbtest.isInner(sub_i, x, y, cl, clustering)){
+						outRasters[f].setPixel(x, y, rasters[f].getPixel(x, y, tmp));
+					} else {
+						outRasters[f].setPixel(x, y, line_pixel);
+					}
+				}
+			}
+		} else {
+			for(int f = 0; f < l; f++){
+				for(int x = 0; x < w; x++){
+					for(int y = 0; y < h; y++){
+						
+						final int id = y + x * h + f * n;
+						final Cluster<Integer> cl = clustering.getCluster(id);
+						
+						final boolean N = y == h-1 || cl.equals(clustering.getCluster(id + 1));
+						final boolean S = y == 0   || cl.equals(clustering.getCluster(id - 1));
+						final boolean W = x == 0   || cl.equals(clustering.getCluster(id - h));
+						final boolean E = x == w-1 || cl.equals(clustering.getCluster(id + h));
+						
+						final int hx = x*2;
+						final int hy = y*2;
+						
+						if(!N || !W)
+							outRasters[f].setPixel(hx, hy+1, line_pixel);
+						else
+							outRasters[f].setPixel(hx, hy+1, rasters[f].getPixel(x, y, tmp));
+						
+						if(!N || !E)
+							outRasters[f].setPixel(hx+1, hy+1, line_pixel);
+						else
+							outRasters[f].setPixel(hx+1, hy+1, rasters[f].getPixel(x, y, tmp));
+						
+						if(!S || !W)
+							outRasters[f].setPixel(hx, hy, line_pixel);
+						else
+							outRasters[f].setPixel(hx, hy, rasters[f].getPixel(x, y, tmp));
+						
+						if(!S || !E)
+							outRasters[f].setPixel(hx+1, hy, line_pixel);
+						else
+							outRasters[f].setPixel(hx+1, hy, rasters[f].getPixel(x, y, tmp));
+
+					}
 				}
 			}
 		}
@@ -131,10 +184,26 @@ public class VisualizeClusters extends AbstractUtil {
 			FSDataOutputStream out = outFS.create(outfile, true);
 			ImageIO.write(im, output_format, out);
 			logger.info("output {} written",outfile);
+			
+			if(thumbnail && !"jpg".equals(output_format.toLowerCase())){
+				int tw = im.getWidth()/4;
+				int th = im.getHeight()/4;
+				final Image t_im = im.getScaledInstance(tw, th, Image.SCALE_SMOOTH);
+				final Path t_outfile = outFS.makeQualified(new Path(output,String.format("part-%05d.jpg",f)));
+				BufferedImage t_bim = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
+				t_bim.createGraphics().drawImage(t_im, 0, 0, null);
+				FSDataOutputStream t_out = outFS.create(t_outfile, true);
+				ImageIO.write(t_bim, "jpg", t_out);
+				logger.info("thumbnail {} written",t_outfile);
+			}
+			
 			out.close();
 		}
 		
 		logger.info("visualizations saved");
+		
+		fs.close();
+		outFS.close();
 		
 		return 0;
 	}
