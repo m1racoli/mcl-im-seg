@@ -188,6 +188,9 @@ public class VisualizeClusters extends AbstractUtil {
 			if(thumbnail && !"jpg".equals(output_format.toLowerCase())){
 				int tw = im.getWidth()/4;
 				int th = im.getHeight()/4;
+				
+				tw = Math.max(tw, 144);
+				th = Math.max(th, 176);
 				final Image t_im = im.getScaledInstance(tw, th, Image.SCALE_SMOOTH);
 				final Path t_outfile = outFS.makeQualified(new Path(output,String.format("part-%05d.jpg",f)));
 				BufferedImage t_bim = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
