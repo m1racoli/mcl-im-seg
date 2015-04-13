@@ -208,4 +208,12 @@ public class ImageClusterings extends Clusterings {
 		return Math.exp(-val/b);
 	}
 	
+	private static final double distanceSq(double[] v1, double[] v2){
+		double sum = 0.0;
+		for(int i = 0, end = v1.length; i < end; i++){
+			sum += (v1[i]-v2[i])*(v1[i]-v2[i]);
+		}
+		return sum;
+	}
+	
 }
