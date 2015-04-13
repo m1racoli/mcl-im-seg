@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import util.PathConverter;
 import zookeeper.server.EmbeddedZkServer;
-import classic.InMemoryMCLStep;
-import classic.InMemoryTransposeJob;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -88,9 +86,6 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 	
 	@Parameter(names = "-zk", description = "run an embedded zookeeper server on <THIS_NODES_IP>:2181 for the distributed metrics")
 	private boolean embeddedZkServer = false;
-	
-	@Parameter(names = "--in-memory", description = "run in manual (non MapReduce) mode (experimental)")
-	private boolean in_memory;
 	
 	@Parameter(names = "--force-iter", description = "force the number of iterations")
 	private int fixed_iterations = 0;
@@ -151,15 +146,9 @@ public abstract class AbstractMCLAlgorithm extends Configured implements Tool {
 			EmbeddedZkServer.init(getConf());
 		}
 		
-		if(in_memory){
-			// use direct implementations of the jobs runnig in heap
-			transposeJob = new InMemoryTransposeJob();
-			stepJob = new InMemoryMCLStep();
-		} else {
-			// use MapReduce implementations of the jobs
-			transposeJob = new TransposeJob();
-			stepJob = new MCLStep();
-		}
+		// use MapReduce implementations of the jobs
+		transposeJob = new TransposeJob();
+		stepJob = new MCLStep();
 		
 		if(MCLConfigHelper.hasNativeLib(getConf())){
 			// if native library is provided (set by launch script)
