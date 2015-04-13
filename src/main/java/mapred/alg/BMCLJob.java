@@ -27,7 +27,7 @@ public class BMCLJob extends AbstractMCLAlgorithm {
 	private static final Logger logger = LoggerFactory.getLogger(BMCLJob.class);
 	
 	@Parameter(names = {"-b","--balance"})
-	private double balance = 1.0;
+	protected double balance = 1.0;
 	
 	@Override
 	public int run(Path input, Path output) throws Exception {
