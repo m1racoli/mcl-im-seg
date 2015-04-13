@@ -24,6 +24,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
+ * the transpose job generates a transposed block matrix from an input slice matrix
+ * 
  * @author Cedrik
  *
  */

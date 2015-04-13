@@ -41,6 +41,12 @@ import zookeeper.DistributedInt;
 import zookeeper.DistributedIntMaximum;
 import zookeeper.ZkMetric;
 
+/**
+ * the mclstep performs expansion, inflation and pruning in one job
+ * 
+ * @author Cedrik
+ *
+ */
 public class MCLStep extends AbstractMCLJob {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
