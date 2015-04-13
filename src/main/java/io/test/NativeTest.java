@@ -3,6 +3,13 @@ package io.test;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/**
+ * 
+ * This class provides a basic test for the existence of the native library.
+ * 
+ * @author Cedrik
+ *
+ */
 public class NativeTest {
 
 	public static final String NATIVE_TEST_LIB_NAME = "mclnative";
