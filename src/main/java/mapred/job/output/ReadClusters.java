@@ -36,6 +36,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 
+ * this class interpretes a given stochastic matrix into clusterings.
+ * moreover it computes the weak connected components from the subgraph resulting by removing all edges, which are not adjacent
+ * to an attractor node. 
+ * 
  * @author Cedrik
  *
  */

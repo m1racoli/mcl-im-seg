@@ -6,6 +6,8 @@ package transform;
 import java.awt.Point;
 
 /**
+ * transforms an integer to a point where a height need to be provided
+ * 
  * @author Cedrik
  *
  */

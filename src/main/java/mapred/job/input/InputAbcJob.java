@@ -52,6 +52,8 @@ import zookeeper.ZkMetric;
 import com.beust.jcommander.Parameter;
 
 /**
+ * the InputAbcJob generates a distributed slice matrix from text input in abc format
+ * 
  * @author Cedrik
  *
  */

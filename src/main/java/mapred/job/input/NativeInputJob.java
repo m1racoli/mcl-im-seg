@@ -16,6 +16,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
+ * this just copies data to the target folder
+ * 
  * @author Cedrik
  *
  */

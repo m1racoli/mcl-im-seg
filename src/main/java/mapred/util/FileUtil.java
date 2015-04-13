@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * some hadoop file utilities
+ * 
  * @author Cedrik
  *
  */
