@@ -17,6 +17,8 @@ import java.awt.image.WritableRaster;
 import java.util.Collection;
 
 /**
+ * utility functions for images
+ * 
  * @author Cedrik
  *
  */
