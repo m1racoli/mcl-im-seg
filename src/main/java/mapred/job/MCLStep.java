@@ -9,14 +9,14 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
 import io.writables.SubBlock;
-import mapred.Applyable;
 import mapred.Counters;
-import mapred.MCLAlgorithmParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLContext;
 import mapred.MCLResult;
 import mapred.MCLStats;
 import mapred.SlicePartitioner;
+import mapred.params.Applyable;
+import mapred.params.MCLAlgorithmParams;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

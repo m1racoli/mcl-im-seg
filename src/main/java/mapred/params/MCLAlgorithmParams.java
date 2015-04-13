@@ -1,12 +1,18 @@
 /**
  * 
  */
-package mapred;
+package mapred.params;
+
+import mapred.MCLConfigHelper;
+import mapred.MCLDefaults;
 
 import org.apache.hadoop.conf.Configuration;
+
 import com.beust.jcommander.Parameter;
 
 /**
+ * parameters crucial to the algorithmic behavior
+ * 
  * @author Cedrik Neumann
  *
  */

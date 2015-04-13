@@ -1,11 +1,19 @@
-package mapred;
+package mapred.params;
 
 import io.writables.MCLMatrixSlice;
+import mapred.MCLConfigHelper;
+import mapred.MCLDefaults;
 
 import org.apache.hadoop.conf.Configuration;
 
 import com.beust.jcommander.Parameter;
 
+/**
+ * parameters for the MatrixSlice instance
+ * 
+ * @author Cedrik
+ *
+ */
 public class MCLInitParams implements Applyable {
 	
 	@Parameter(names = "-nsub", description = "width of matrix slice")

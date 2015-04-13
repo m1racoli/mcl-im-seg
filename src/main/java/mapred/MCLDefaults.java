@@ -4,6 +4,13 @@ import io.writables.CSCSlice;
 import io.writables.MCLMatrixSlice;
 import io.writables.nat.NativeCSCSlice;
 
+/**
+ * 
+ * all default values
+ * 
+ * @author Cedrik
+ *
+ */
 public class MCLDefaults {
 	
 	//matrix related
@@ -19,7 +26,6 @@ public class MCLDefaults {
 	public static final long n = -1;
 	
 	//generic
-	public static final Class<? extends Selector> selectorClass = Selector.class;
 	public static final PrintMatrix printMatrix = PrintMatrix.NNZ;
 	public static final boolean local = false;
 	

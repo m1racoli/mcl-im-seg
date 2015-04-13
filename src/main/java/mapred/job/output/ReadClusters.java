@@ -17,10 +17,10 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
-import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLResult;
 import mapred.job.AbstractMCLJob;
+import mapred.params.MCLCompressionParams;
 import math.ConnectedComponents;
 
 import org.apache.hadoop.fs.FileSystem;

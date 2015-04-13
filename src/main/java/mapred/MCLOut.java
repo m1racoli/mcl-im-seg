@@ -10,6 +10,8 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.hadoop.fs.Path;
 
 /**
+ * utility for printing the progress of the algorithm to output
+ * 
  * @author Cedrik
  *
  */

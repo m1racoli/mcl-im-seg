@@ -8,12 +8,12 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import mapred.Applyable;
-import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
-import mapred.MCLCoreParams;
 import mapred.MCLResult;
 import mapred.alg.MCLOperation;
+import mapred.params.Applyable;
+import mapred.params.MCLCompressionParams;
+import mapred.params.MCLCoreParams;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;

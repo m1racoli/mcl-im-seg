@@ -1,6 +1,10 @@
-package mapred;
+package mapred.params;
 
 import java.util.Map.Entry;
+
+import mapred.MCLConfigHelper;
+import mapred.MCLDefaults;
+import mapred.PrintMatrix;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
@@ -10,6 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
+/**
+ * general params for the algorithms
+ * 
+ * @author Cedrik
+ *
+ */
 public class MCLCoreParams implements Applyable {
 
 	private static final Logger logger = LoggerFactory.getLogger(MCLCoreParams.class);

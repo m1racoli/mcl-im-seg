@@ -16,14 +16,14 @@ import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
 import iterators.ReadOnlyIterator;
-import mapred.Applyable;
 import mapred.Counters;
 import mapred.MCLConfigHelper;
 import mapred.MCLContext;
-import mapred.MCLInitParams;
 import mapred.MCLResult;
 import mapred.SlicePartitioner;
 import mapred.job.AbstractMCLJob;
+import mapred.params.Applyable;
+import mapred.params.MCLInitParams;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

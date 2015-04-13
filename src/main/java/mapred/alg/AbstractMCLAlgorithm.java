@@ -14,18 +14,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import mapred.Applyable;
-import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
-import mapred.MCLCoreParams;
 import mapred.MCLDefaults;
 import mapred.MCLOut;
-import mapred.MCLAlgorithmParams;
 import mapred.MCLResult;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
 import mapred.job.input.NativeInputJob;
 import mapred.job.output.ReadClusters;
+import mapred.params.Applyable;
+import mapred.params.MCLAlgorithmParams;
+import mapred.params.MCLCompressionParams;
+import mapred.params.MCLCoreParams;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;

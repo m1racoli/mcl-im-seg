@@ -4,6 +4,8 @@
 package mapred;
 
 /**
+ * container for mcl algorithm specific metrics in the inflation phase
+ * 
  * @author Cedrik
  *
  */

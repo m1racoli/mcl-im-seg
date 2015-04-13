@@ -13,6 +13,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.TaskCounter;
 
 /**
+ * result instance of an mcl job.
+ * 
  * @author Cedrik Neumann
  *
  */
