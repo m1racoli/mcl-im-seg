@@ -26,7 +26,6 @@ set(SOURCE_FILES
     src/io/writables/nat/alloc.c
     src/io/writables/nat/item.c
     src/io/writables/nat/NativeCSCSliceHelper.c
-    src/io/writables/nat/NativeArrayCSCSliceHelper.c
     src/io/writables/nat/slice.c
     src/io/writables/nat/vector.c
     src/io/writables/nat/types.h
