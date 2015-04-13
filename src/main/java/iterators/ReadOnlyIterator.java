@@ -6,6 +6,8 @@ package iterators;
 import java.util.Iterator;
 
 /**
+ * an iterator where deletions are not allowed
+ * 
  * @author Cedrik
  *
  */

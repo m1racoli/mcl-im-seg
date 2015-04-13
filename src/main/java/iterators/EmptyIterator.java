@@ -4,6 +4,8 @@
 package iterators;
 
 /**
+ * an iterator which is empty
+ * 
  * @author Cedrik
  *
  */

@@ -2,6 +2,13 @@ package iterators;
 
 import java.util.Iterator;
 
+/**
+ * this class helps to iterate over an array of iterators of the same type
+ * 
+ * @author Cedrik
+ *
+ * @param <E>
+ */
 public class ConcatenatedIterator<E> implements Iterator<E> {
 
 	private final Iterator<E>[] its;

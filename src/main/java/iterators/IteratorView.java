@@ -6,6 +6,8 @@ package iterators;
 import java.util.Iterator;
 
 /**
+ * an interatorview provides an iterator of type V backed by an iterator of type E, where a transformation E->V is provided
+ * 
  * @author Cedrik
  *
  */
