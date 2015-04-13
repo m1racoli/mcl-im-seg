@@ -5,6 +5,12 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.IStringConverterFactory;
 
+/**
+ * for Jcommander
+ * 
+ * @author Cedrik
+ *
+ */
 public class PathConverter implements IStringConverter<Path> {
 
 	@Override

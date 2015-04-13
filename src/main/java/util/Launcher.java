@@ -16,6 +16,8 @@ import mapred.job.input.InputAbcJob;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
+ * Main class of the project
+ * 
  * @author Cedrik
  *
  */
@@ -47,8 +49,6 @@ public class Launcher {
 			System.exit(ToolRunner.run(new RMCLJob(), args));
 		case "bmcl":
 			System.exit(ToolRunner.run(new BMCLJob(), args));
-		case "test":
-			TestRunner.main(args);
 		case "load-img":
 			System.exit(ToolRunner.run(new ImageTool(), args));
 		case "load-mat":
