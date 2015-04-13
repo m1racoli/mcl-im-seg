@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
+ * the csvwriter provides a textformatwriter with comma delimited output
+ * 
  * @author Cedrik
  *
  */

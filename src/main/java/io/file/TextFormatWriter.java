@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * a textformatwriter provides an interface to write tables as textoutput.
+ *  the table layout is determined on write of the first row.
+ * 
  * @author Cedrik
  *
  */
