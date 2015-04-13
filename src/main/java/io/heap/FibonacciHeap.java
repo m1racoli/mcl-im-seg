@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
+ * Fibonacci Heap implementation adopted from Nathan L. Fiedler's implementation
+ * 
  * @author Cedrik Neumann
  *
  */
