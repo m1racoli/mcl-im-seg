@@ -10,6 +10,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 /**
+ * a general utility function, which has an input and an output
+ * 
  * @author Cedrik
  *
  */
