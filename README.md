@@ -47,7 +47,7 @@ reads the image(s) and generates a matrix representation in ABC format with the 
 * -r: the radius in which pixel similarities are considered (default: 3.0)
 * -sF: scale factor for the value differences (default: 1.0)
 * -sX: scale factor for the spatial differences (default: 1.0)
-* -cielab: calculate pixel similarities with respect to the CIElab colour space
+* -cielab: calculate pixel similarities with respect to the CIELab colour space
 * -te: number of threads to use and number of output files (default: 1)
 
 This step is done outside the Hadoop framework and thus doesn't require to have running HDFS or YARN.
@@ -126,7 +126,7 @@ with following parameters:
 * -c: clustering file (output from the algorithm)
 * -o: output folder
 * -f: output format (default: jpg)
-* -lc: gray scale line colour if the rendered clusters (default: 1.0)
+* -lc: gray scale line color if the rendered clusters (default: 1.0)
 * --component: for .mat files the component to render (default: I)
 * --imin: for .mat files min threshold to render pixel value (default: 0.0)
 * --imax: for .mat files max threshold to render pixel value (default: 65535.0)
@@ -137,8 +137,12 @@ The main algorithm is implemented by *mapred.alg.BMCLJob* extending *mapred.alg.
 The transpose and mcl job are implemented by *mapred.job.TransposeJob* and *mapred.job.MCLStep* respectively extending *mapred.job.AbstractMCLJob*.
 The matrix slice implementations providing methods for serialization and oparations on the slice matrix must extend *io.writables.MCLMatrixSlice*. *io.writables.CSCslice* and *io.writables.nat.NativeCSCSlice* (with native code in src/main/native/src/io/writables/nat) are the provided matrix slice implementations in this project.
 
+## Other software used in the project ##
+
+* [JCommander](http://jcommander.org/): the excellent command line parser for Java.
+* JMatIO 1.0 from the Maven repository: for reading MAT files in Java.
+* Parts of Nathan Fiedler's [Fibonacci Heap](http://nlfiedler.github.io/2008/05/31/analysis-of-java-implementations-of-fibonacci-heap.html) implementation in [GraphMaker](https://github.com/nlfiedler/graphmaker/blob/990227c766a9891be1d4669c582975f7c1a4db87/core/src/com/bluemarsh/graphmaker/core/util/FibonacciHeap.java): used as a basic implementation for a priority queue in Java and C.
+
 ## Contact ##
 
 This project is part of the diploma thesis "Large Scale Image Segmentation Using Markov Flows" of Cedrik Neumann at the Technical University of Berlin.
-
-//TODO license
