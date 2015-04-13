@@ -15,6 +15,8 @@ import java.util.Iterator;
 import transform.IntTo2D;
 
 /**
+ * an imageclustering backed by an arrayclustering
+ * 
  * @author Cedrik
  *
  */

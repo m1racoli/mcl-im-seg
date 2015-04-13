@@ -12,6 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
+ * utilities for clusterings
+ * 
  * @author Cedrik
  *
  */

@@ -6,6 +6,8 @@ package io.cluster;
 import transform.Transformation;
 
 /**
+ * an indexedclustering view is a clustering view which an clustering of type Integer as the backing clustering
+ * 
  * @author Cedrik
  *
  */

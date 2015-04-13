@@ -10,6 +10,8 @@ import java.util.Iterator;
 import transform.Transformation;
 
 /**
+ * given a transformation K->V, a clustering view represents a clustering of type V backed by a clustering of type K.
+ * 
  * @author Cedrik
  *
  */

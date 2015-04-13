@@ -25,6 +25,8 @@ import util.CIELab;
 import util.MatrixMaker;
 
 /**
+ * utility functions for image clusterings
+ * 
  * @author Cedrik
  *
  */

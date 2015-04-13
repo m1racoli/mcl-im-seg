@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * array backed cluster set
+ * array backed clustering of type Integer
  * 
  * @author Cedrik
  *
