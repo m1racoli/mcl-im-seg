@@ -1,11 +1,10 @@
 /target/
-/.settings/
 /examples/
-Thumbs.db
-dump/
 results/
+/matlab/
+/scripts/
+.*
+!/.gitignore
 *.m~
 ~$*
-src/main/native/.idea/
-matlab/
-scripts/
+Thumbs.db
