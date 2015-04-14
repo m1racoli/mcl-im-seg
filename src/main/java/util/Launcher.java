@@ -11,11 +11,13 @@ import mapred.alg.MCLJob;
 import mapred.alg.RMCLJob;
 import mapred.job.MCLStep;
 import mapred.job.TransposeJob;
-import mapred.job.input.InputJob;
+import mapred.job.input.InputAbcJob;
 
 import org.apache.hadoop.util.ToolRunner;
 
 /**
+ * Main class of the project
+ * 
  * @author Cedrik
  *
  */
@@ -35,8 +37,8 @@ public class Launcher {
 		args = Arrays.copyOfRange(args, 1, args.length);
 		
 		switch(command){
-		case "input":
-			InputJob.main(args);
+		case "abc":
+			InputAbcJob.main(args);
 		case "transpose":
 			TransposeJob.main(args);
 		case "step":
@@ -47,8 +49,12 @@ public class Launcher {
 			System.exit(ToolRunner.run(new RMCLJob(), args));
 		case "bmcl":
 			System.exit(ToolRunner.run(new BMCLJob(), args));
-		case "test":
-			TestRunner.main(args);
+		case "load-img":
+			System.exit(ToolRunner.run(new ImageTool(), args));
+		case "load-mat":
+			System.exit(ToolRunner.run(new MatTool(), args));
+		case "result":
+			VisualizeClusters.main(args);
 		default:
 			break;
 		}

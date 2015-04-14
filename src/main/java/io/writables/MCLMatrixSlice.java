@@ -10,11 +10,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 import mapred.MCLConfigHelper;
 import mapred.MCLDefaults;
@@ -24,7 +22,6 @@ import mapred.PrintMatrix;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import com.beust.jcommander.IStringConverter;
 
@@ -42,6 +39,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	protected boolean auto_prune = MCLDefaults.autoPrune;
 	protected float pruneA = MCLDefaults.pruneA;
 	protected float pruneB = MCLDefaults.pruneB;
+	protected boolean javaQueue = MCLDefaults.javaQueue;
 	
 	/**
 	 *  clear contents
@@ -64,13 +62,11 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 */
 	public abstract void add(final M m);
 	
-	//TODO column -> slice matcher
-	
 	/**
-	 * @param M to multiply with
-	 * @return this multiplied by m
+	 * @param m to multiply with
+	 * @return this = m * this
 	 */
-	public abstract M multipliedBy(M m, TaskAttemptContext context);
+	public abstract M multipliedBy(M m);
 	
 	/**
 	 * @param id to write index of current sub block to
@@ -87,19 +83,23 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	 * inflate, prune and normalize
 	 * @return max column size
 	 */
-	public abstract void inflateAndPrune(MCLStats stats, TaskAttemptContext context);
+	public abstract void inflateAndPrune(MCLStats stats);
 	
 	/**
 	 * @param context
 	 * @return chaos
 	 */
-	public abstract void makeStochastic(TaskAttemptContext context);
+	public abstract void makeStochastic();
 	
 	/**
 	 * equality test on implementation level
 	 */
 	public abstract boolean equals(Object obj);
 
+	/**
+	 * adds self loops to the matrix
+	 * @param id
+	 */
 	public abstract void addLoops(SliceIndex id);
 	
 	/**
@@ -132,26 +132,6 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 			}
 		};
 	}
-	
-	/**
-	 *  for testing. input does not need to be sorted.
-	 */
-	public void fill(int[] col, long[] row, float[] val) {
-		
-		int l = col.length;
-		
-		if(l != row.length || l != val.length) {
-			throw new IllegalArgumentException("dimension missmatch of input arrays col,row,val");
-		}
-		
-		List<SliceEntry> entries = new ArrayList<SliceEntry>(l);
-		for(int i = 0; i < l; i++) {
-			entries.add(SliceEntry.get(col[i], row[i], val[i]));
-		}
-		Collections.sort(entries);
-		
-		fill(entries);
-	}
 
 	@Override
 	public void setConf(Configuration conf) {
@@ -165,6 +145,7 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		auto_prune = MCLConfigHelper.getAutoPrune(conf);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Configuration getConf() {
 		Configuration conf = super.getConf();
@@ -172,7 +153,8 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 		MCLConfigHelper.setCutoff(conf, cutoff);
 		MCLConfigHelper.setSelection(conf, select);
 		MCLConfigHelper.setPrintMatrix(conf, print_matrix);
-		MCLConfigHelper.setAutoPrune(conf, auto_prune);		
+		MCLConfigHelper.setAutoPrune(conf, auto_prune);
+		MCLConfigHelper.setMatrixSliceClass(conf, (Class<? extends MCLMatrixSlice<?>>) getClass());
 		return conf;
 	}
 	
@@ -211,14 +193,18 @@ public abstract class MCLMatrixSlice<M extends MCLMatrixSlice<M>> extends MCLIns
 	
 	public static class ClassConverter implements IStringConverter<Class<? extends MCLMatrixSlice<?>>> {
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Class<? extends MCLMatrixSlice<?>> convert(String str) {
-			try {
-				return (Class<? extends MCLMatrixSlice<?>>) Class.forName(str);
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(e);
-			}
+			return classFromString(str);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static final Class<? extends MCLMatrixSlice<?>> classFromString(String name){
+		try {
+			return (Class<? extends MCLMatrixSlice<?>>) Class.forName(name);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	

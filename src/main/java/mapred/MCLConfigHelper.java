@@ -4,16 +4,22 @@
 package mapred;
 
 import io.writables.MCLMatrixSlice;
+import io.writables.nat.NativeSlice;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
+ * utility function for retrieving and setting configuration parameters
+ * 
  * @author Cedrik
  *
  */
 public class MCLConfigHelper {
 
+	private static final Logger logger = LoggerFactory.getLogger(MCLConfigHelper.class);
+	
 	private static final String KMAX_CONF =			"mcl.matrix.kmax";
 	private static final String N_CONF =			"mcl.matrix.n";
 	private static final String NSUB_CONF =			"mcl.matrix.nsub";
@@ -23,12 +29,13 @@ public class MCLConfigHelper {
 	private static final String INFLATION_CONF = 	"mcl.inflation";
 	private static final String CUTOFF_CONF =		"mcl.prune.cutoff";
 	private static final String SELECTION_CONF =		"mcl.prune.selection";
-	private static final String SELECTOR_CLS_CONF = "mcl.selector.class";
 	private static final String PRINT_MATRIX_CONF =	"mcl.print.matrix";
 	private static final String DEBUG_CONF =		"mcl.debug";
 	private static final String ZK_HOSTS_CONF =		"mcl.zk.hosts";
 	private static final String AUTO_PRUNE =		"mcl.auto.prune";
 	private static final String LOCAL_MODE =		"mcl.local.mode";
+	private static final String HAS_NATIVE_LIB =	"mcl.has.native.lib";
+	private static final String JAVA_QUEUE =		"mcl.java.queue";
 	
 	public static final void setKMax(Configuration conf, int kmax) {
 		conf.setInt(KMAX_CONF, kmax);
@@ -103,15 +110,6 @@ public class MCLConfigHelper {
 		return conf.getInt(SELECTION_CONF, MCLDefaults.selection);
 	}
 	
-	public static final <S extends Selector> void setSelectorClass(Configuration conf, Class<S> cls){
-		conf.setClass(SELECTOR_CLS_CONF, cls, Selector.class);
-	}
-	
-	@SuppressWarnings("unchecked")
-	public static final <S extends Selector> Class<S> getSelectorClass(Configuration conf){
-		return (Class<S>) conf.getClass(SELECTOR_CLS_CONF, MCLDefaults.selectorClass, Selector.class);
-	}
-	
 	public static final void setPrintMatrix(Configuration conf, PrintMatrix printMatrix) {
 		conf.setEnum(PRINT_MATRIX_CONF, printMatrix);
 	}
@@ -126,10 +124,6 @@ public class MCLConfigHelper {
 	
 	public static final boolean getDebug(Configuration conf) {
 		return conf.getBoolean(DEBUG_CONF, false);
-	}
-	
-	public static final <S extends Selector> S getSelectorInstance(Configuration conf) {
-		return ReflectionUtils.newInstance(MCLConfigHelper.<S>getSelectorClass(conf), conf);
 	}
 	
 	public static final void setZkHosts(Configuration conf, String ... hosts){
@@ -154,5 +148,27 @@ public class MCLConfigHelper {
 	
 	public static final boolean getLocal(Configuration conf){
 		return conf.getBoolean(LOCAL_MODE, MCLDefaults.local);
+	}
+	
+	public static final void applyNative(Configuration conf){
+		Class<?> cls = getMatrixSliceClass(conf);
+		
+		if(NativeSlice.class.isAssignableFrom(cls)){
+			logger.debug("{} is native slice",cls);
+			conf.set("mapreduce.map.java.opts", String.format("-Xmx%dm",MCLDefaults.nat_map_xmxm));
+			conf.set("mapreduce.reduce.java.opts", String.format("-Xmx%dm",MCLDefaults.nat_reduce_xmxm));
+		}
+	}
+	
+	public static final void setUseJavaQueue(Configuration conf, boolean value){
+		conf.setBoolean(JAVA_QUEUE, value);
+	}
+	
+	public static final boolean useJavaQueue(Configuration conf){
+		return conf.getBoolean(JAVA_QUEUE, MCLDefaults.javaQueue);
+	}
+	
+	public static final boolean hasNativeLib(Configuration conf){
+		return conf.getBoolean(HAS_NATIVE_LIB, false);
 	}
 }

@@ -1,9 +1,10 @@
 package mapred.job;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
-import io.writables.CSCSlice;
 import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceId;
@@ -14,6 +15,8 @@ import mapred.MCLContext;
 import mapred.MCLResult;
 import mapred.MCLStats;
 import mapred.SlicePartitioner;
+import mapred.params.Applyable;
+import mapred.params.MCLAlgorithmParams;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -38,12 +41,20 @@ import zookeeper.DistributedInt;
 import zookeeper.DistributedIntMaximum;
 import zookeeper.ZkMetric;
 
+/**
+ * the mclstep performs expansion, inflation and pruning in one job
+ * 
+ * @author Cedrik
+ *
+ */
 public class MCLStep extends AbstractMCLJob {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MCLStep.class);
 	private static final String CHAOS = "/chaos";
 	private static final String SSD = "/ssd";
 	private static final String KMAX = "/kmax";	
+	
+	private final MCLAlgorithmParams algorithmParams = new MCLAlgorithmParams();
 	
 	private static final class MCLMapper<M extends MCLMatrixSlice<M>> extends Mapper<SliceId, TupleWritable, SliceId, M> {
 		
@@ -65,6 +76,7 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void map(SliceId key, TupleWritable tuple, Context context)
 				throws IOException, InterruptedException {
+//			logger.debug("MAP START");
 			
 			long start = System.nanoTime();
 			
@@ -90,8 +102,9 @@ public class MCLStep extends AbstractMCLJob {
 				return;
 			}
 			
-			SubBlock<M> subBlock = (SubBlock<M>) tuple.get(1);
+			SubBlock<M> subBlock = (SubBlock<M>) mw;
 			if(!subBlock.newData()){
+				logger.debug("slice without blocks");
 				context.getCounter(Counters.SLICE_WITHOUT_BLOCKS).increment(1);
 				return;
 			}
@@ -101,8 +114,7 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.MAP_INPUT_BLOCKS).increment(1);
 			context.getCounter(Counters.MAP_INPUT_BLOCK_VALUES).increment(subBlock.subBlock.size());
 			
-			//context.getCounter(Counters.MAP_INPUT_VALUES).increment(subBlock.subBlock.size());
-			M product = subBlock.subBlock.multipliedBy(m, context);
+			M product = subBlock.subBlock.multipliedBy(m);
 			
 			//count output records on diagonal and off diagonal
 			if(id.get() == key.get()){
@@ -112,7 +124,10 @@ public class MCLStep extends AbstractMCLJob {
 			}
 			context.getCounter(Counters.MAP_OUTPUT_VALUES).increment(product.size());
 			cpu_nanos += System.nanoTime() - start;
+			//logger.debug("write slice with id={} and slice={}",id,product);
+			
 			context.write(id, product);
+			//logger.debug("MAP END");
 		}
 		
 		@Override
@@ -143,6 +158,8 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+//			logger.debug("COMBINE START");
+			
 			long start; // = System.nanoTime();
 			vec.clear();
 			
@@ -155,6 +172,8 @@ public class MCLStep extends AbstractMCLJob {
 			
 			context.getCounter(Counters.COMBINE_OUTPUT_VALUES).increment(vec.size());
 			context.write(col, vec);
+			
+//			logger.debug("COMBINE END");
 		}
 		
 		@Override
@@ -187,6 +206,8 @@ public class MCLStep extends AbstractMCLJob {
 		@Override
 		protected void reduce(SliceId col, Iterable<M> values, Context context)
 				throws IOException, InterruptedException {
+//			logger.debug("REDUCE START");
+			
 			long start; // = System.nanoTime();
 			vec.clear();
 			for(M m : values){
@@ -196,12 +217,14 @@ public class MCLStep extends AbstractMCLJob {
 				cpu_nanos += System.nanoTime() - start;
 			}
 			start = System.nanoTime();
-			vec.inflateAndPrune(stats, context);
+			vec.inflateAndPrune(stats);
 			k_max.set(stats.kmax);
-			chaos.set(stats.maxChaos);
+			chaos.set(stats.chaos);
 			context.getCounter(Counters.REDUCE_OUTPUT_VALUES).increment(vec.size());
 			cpu_nanos += System.nanoTime() - start;
 			context.write(col, vec);
+			
+//			logger.debug("REDUCE END");
 		}
 		
 		@Override
@@ -214,6 +237,8 @@ public class MCLStep extends AbstractMCLJob {
 			context.getCounter(Counters.REDUCE_CPU_MILLIS).increment(cpu_nanos/1000000L);
 			context.getCounter(Counters.PRUNE).increment(stats.prune);
 			context.getCounter(Counters.CUTOFF).increment(stats.cutoff);
+			context.getCounter(Counters.ATTRACTORS).increment(stats.attractors);
+			context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(stats.homogen);
 		}
 	}
 	
@@ -256,9 +281,9 @@ public class MCLStep extends AbstractMCLJob {
 		
 		job.setMapperClass(MCLMapper.class);
 		job.setMapOutputKeyClass(SliceId.class);
-		job.setMapOutputValueClass(CSCSlice.class);
+		job.setMapOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setOutputKeyClass(SliceId.class);
-		job.setOutputValueClass(CSCSlice.class);
+		job.setOutputValueClass(MCLConfigHelper.getMatrixSliceClass(conf));
 		job.setCombinerClass(MCLCombiner.class);
 		job.setReducerClass(MCLReducer.class);
 		job.setGroupingComparatorClass(IntWritable.Comparator.class);
@@ -286,6 +311,16 @@ public class MCLStep extends AbstractMCLJob {
 		result.chaos = ZkMetric.<DistributedDouble>get(conf, CHAOS).get();
 		result.changeInNorm = computeChange ? Math.sqrt(ZkMetric.<DistributedDouble>get(conf, SSD).get())/meta.getN() : Double.POSITIVE_INFINITY;
 		return result;
+	}
+	
+	@Override
+	protected Collection<? extends Applyable> getParams() {
+		return Collections.singletonList(algorithmParams);
+	}
+	
+	@Override
+	protected void setCommander(List<Object> list) {
+		list.add(algorithmParams);
 	}
 	
 	public static void main(String[] args) throws Exception {

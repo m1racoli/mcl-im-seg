@@ -1,5 +1,11 @@
 package mapred;
 
+/**
+ * counters used in the MapReduce jobs
+ * 
+ * @author Cedrik
+ *
+ */
 public enum Counters {
 	HOMOGENEOUS_COLUMNS,
 	CUTOFF,
@@ -22,5 +28,5 @@ public enum Counters {
 	MAP_INPUT_SLICES,
 	MAP_INPUT_BLOCKS,
 	MAP_INPUT_BLOCK_VALUES,
-	SLICE_WITHOUT_BLOCKS, NULL_BLOCKS
+	SLICE_WITHOUT_BLOCKS, NULL_BLOCKS, MAP_OUTPUT_BLOCKS
 }

@@ -12,7 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 /**
- * computes connected components
+ * computes weak connected components
  * 
  * @author Cedrik
  *

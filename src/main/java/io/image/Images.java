@@ -4,10 +4,21 @@
 package io.image;
 
 import java.awt.Point;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 import java.util.Collection;
 
 /**
+ * utility functions for images
+ * 
  * @author Cedrik
  *
  */
@@ -76,6 +87,34 @@ public class Images {
 	public static void bound(double[] v) {
 		for(int i = 2; i >= 0; --i)
 			v[i] = Math.max(0.0, Math.min(255.0, v[i]));		
+	}
+	
+	public static ColorModel createGrayScaleColorModel(){
+		ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+	    int[] nBits = { 8 };
+	    return new ComponentColorModel(cs, nBits, false, true,
+	            Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+	}
+	
+	/**
+	 * @param vals values in range [0.0,1.0]
+	 * @param w width
+	 * @param h height
+	 * @return BufferedImage
+	 */
+	public static BufferedImage createGrayScaleImage(double[] vals, int w, int h) {
+		if(w * h != vals.length) throw new IllegalArgumentException("val dim does not match image dim");
+		
+		final byte[] buffer = new byte[vals.length];
+		for (int i = buffer.length - 1; i >= 0; --i) {
+	    	buffer[i] = (byte) (255.0 * vals[i]);
+	    }
+		
+	    ColorModel cm = createGrayScaleColorModel();
+	    SampleModel sm = cm.createCompatibleSampleModel(w, h);
+	    DataBufferByte db = new DataBufferByte(buffer, w * h);
+	    WritableRaster raster = Raster.createWritableRaster(sm, db, null);
+	    return new BufferedImage(cm, raster, false, null);
 	}
 	
 }

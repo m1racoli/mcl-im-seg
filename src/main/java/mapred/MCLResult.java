@@ -7,10 +7,14 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringWriter;
+
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.TaskCounter;
 
 /**
+ * result instance of an mcl job.
+ * 
  * @author Cedrik Neumann
  *
  */
@@ -41,7 +45,22 @@ public class MCLResult {
 	
 	@Override
 	public String toString() {
-		return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d",success,kmax,n,in_nnz,out_nnz,attractors,homogenous_columns,cutoff,prune,runningtime,cpu_millis);
+		StringWriter writer = new StringWriter();
+		
+		writer.append("Result[status: " + (success ? "SUCCESS": "FAILED"));
+		
+		if(kmax >= 0) writer.append(", kmax: " + kmax);
+		if(n >= 0) writer.append(", n: "+n);
+		if(in_nnz >= 0) writer.append(", in_nnz: "+in_nnz);
+		if(out_nnz >= 0) writer.append(", out_nnz: "+out_nnz);
+		if(attractors >= 0) writer.append(", attractors: "+attractors);
+		if(homogenous_columns >= 0) writer.append(", homogenous_columns: "+homogenous_columns);
+		if(cutoff >= 0) writer.append(", cutoff: "+cutoff);
+		if(prune >= 0) writer.append(", prune: "+prune);
+		if(runningtime >= 0) writer.append(", runningtime: "+runningtime);
+		if(cpu_millis >= 0) writer.append(", cpu_millis: "+cpu_millis);
+		
+		return writer.toString();
 	}
 	
 	public static void prepareCounters(File file) throws IOException {

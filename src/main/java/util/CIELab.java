@@ -13,6 +13,8 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 
 /**
+ * implementation of the CIELab color space including a utility function to generate a CIELab image from a buffered image.
+ * 
  * @author Cedrik
  *
  */

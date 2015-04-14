@@ -10,9 +10,12 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.Level;
 
 /**
+ * old utility class
+ * 
  * @author Cedrik Neumann
  *
  */
+@Deprecated
 public class MCLContext {
 
 	//TODO MCL ConfigHelper

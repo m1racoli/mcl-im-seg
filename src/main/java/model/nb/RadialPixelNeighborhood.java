@@ -7,6 +7,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * a model of a radial pixel neighborhood
+ * 
+ * @author Cedrik
+ *
+ */
 public class RadialPixelNeighborhood implements Iterable<Point> {
 
 	private final int[] x_off;

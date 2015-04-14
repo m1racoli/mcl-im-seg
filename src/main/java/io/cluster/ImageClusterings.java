@@ -22,9 +22,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import util.CIELab;
-import util.MatrixMaker;
 
 /**
+ * utility functions for image clusterings
+ * 
  * @author Cedrik
  *
  */
@@ -34,6 +35,7 @@ public class ImageClusterings extends Clusterings {
 		return new DefaultImageClustering(file, w, h);
 	}
 	
+	@SuppressWarnings("unused")
 	public static void testInverse(ImageClustering clustering){
 		Integer total = null;
 		for(ImageCluster cluster : clustering){
@@ -177,7 +179,7 @@ public class ImageClusterings extends Clusterings {
 		for(int y = 0, h = raster.getHeight(); y < h; y++){
 			for(int x = 0, w = raster.getWidth(); x < w; x++){
 				v2 = raster.getPixel(x, y, v2);
-				cut += MatrixMaker.getMeasure(v1, v2);
+				cut += getMeasure(v1, v2);
 			}			
 		}
 
@@ -190,10 +192,28 @@ public class ImageClusterings extends Clusterings {
 		
 		for(Point p2 : cl){
 			v2 = raster.getPixel(p2.x, p2.y, v2);
-			cut += MatrixMaker.getMeasure(v1, v2);
+			cut += getMeasure(v1, v2);
 		}
 
 		return cut;
+	}
+	
+	public static double getMeasure(double[] p1, double[] p2){
+		double val = distanceSq(p1, p2);
+		return Math.exp(-val);
+	}
+	
+	public static double getMeasure(double[] p1, double[] p2, double b){
+		double val = distanceSq(p1, p2);
+		return Math.exp(-val/b);
+	}
+	
+	private static final double distanceSq(double[] v1, double[] v2){
+		double sum = 0.0;
+		for(int i = 0, end = v1.length; i < end; i++){
+			sum += (v1[i]-v2[i])*(v1[i]-v2[i]);
+		}
+		return sum;
 	}
 	
 }

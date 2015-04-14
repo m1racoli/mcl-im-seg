@@ -4,6 +4,8 @@
 package transform;
 
 /**
+ * a transformation, which also has an inverse
+ * 
  * @author Cedrik
  *
  */

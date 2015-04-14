@@ -69,6 +69,13 @@ public class ImageTool extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 
+		JCommander cmd = new JCommander(this, args);
+		
+		if(help){
+			cmd.usage();
+			System.exit(1);
+		}
+		
 		if(input == null){
 			logger.error("specify input! {}",input);
 			return 1;
@@ -148,15 +155,7 @@ public class ImageTool extends Configured implements Tool {
 	}
 
 	public static void main(String[] args) throws Exception {
-		ImageTool tool = new ImageTool();
-		JCommander cmd = new JCommander(tool, args);
-		
-		if(tool.help){
-			cmd.usage();
-			System.exit(1);
-		}
-		
-		System.exit(ToolRunner.run(tool, args));
+		System.exit(ToolRunner.run(new ImageTool(), args));
 	}
 	
 	private static final double r = 3.0;

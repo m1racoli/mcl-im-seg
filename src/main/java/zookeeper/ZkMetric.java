@@ -129,11 +129,9 @@ public class ZkMetric {
 				Class<DistributedMetric<DistributedMetric<?>>> cls = (Class<DistributedMetric<DistributedMetric<?>>>) Class.forName(classNamme);
 				final DistributedMetric<DistributedMetric<?>> v = ReflectionUtils.newInstance(cls, conf);
 				v.readFields(in);
-				System.out.printf("merge: %s = %s <- %s = %s\n",v.getClass().getName(),v,m.getClass().getName(),m);
 				v.merge(m);		
 				out.writeUTF(classNamme);
 				v.write(out);
-				System.out.printf("write value: %s = %s @ %s\n",v.getClass().getName(),v,path);
 			} else {
 				out.writeUTF(m.getClass().getName());
 				m.write(out);

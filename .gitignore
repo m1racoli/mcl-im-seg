@@ -6,3 +6,6 @@ dump/
 results/
 *.m~
 ~$*
+src/main/native/.idea/
+matlab/
+scripts/

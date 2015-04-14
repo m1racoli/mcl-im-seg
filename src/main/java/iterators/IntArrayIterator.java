@@ -2,6 +2,12 @@ package iterators;
 
 import java.util.Iterator;
 
+/**
+ * an iterator over an array of ints
+ * 
+ * @author Cedrik
+ *
+ */
 public class IntArrayIterator extends ReadOnlyIterator<Integer> implements Iterator<Integer> {
 
 	private final int[] ar;

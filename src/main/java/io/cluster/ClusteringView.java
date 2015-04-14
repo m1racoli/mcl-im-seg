@@ -7,11 +7,11 @@ import iterators.IteratorView;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
-import java.util.Set;
-
 import transform.Transformation;
 
 /**
+ * given a transformation K->V, a clustering view represents a clustering of type V backed by a clustering of type K.
+ * 
  * @author Cedrik
  *
  */

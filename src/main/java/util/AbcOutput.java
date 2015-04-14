@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * transforms a distributed slice matrix to abc format
+ * 
  * @author Cedrik
  *
  */

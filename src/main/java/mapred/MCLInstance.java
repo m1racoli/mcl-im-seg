@@ -12,6 +12,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
+ * base instance class, from which subclasses can inherit parameters from the algorithms instance
+ * 
  * @author Cedrik
  *
  */

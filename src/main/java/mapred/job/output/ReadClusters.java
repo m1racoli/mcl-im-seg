@@ -17,10 +17,10 @@ import io.writables.MCLMatrixSlice;
 import io.writables.MatrixMeta;
 import io.writables.SliceEntry;
 import io.writables.SliceId;
-import mapred.MCLCompressionParams;
 import mapred.MCLConfigHelper;
 import mapred.MCLResult;
 import mapred.job.AbstractMCLJob;
+import mapred.params.MCLCompressionParams;
 import math.ConnectedComponents;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +36,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 
+ * this class interpretes a given stochastic matrix into clusterings.
+ * moreover it computes the weak connected components from the subgraph resulting by removing all edges, which are not adjacent
+ * to an attractor node. 
+ * 
  * @author Cedrik
  *
  */

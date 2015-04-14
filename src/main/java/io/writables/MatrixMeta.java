@@ -4,8 +4,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import mapred.Applyable;
+
 import mapred.MCLConfigHelper;
+import mapred.params.Applyable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -30,16 +31,17 @@ public class MatrixMeta implements Writable, Applyable {
 	private int nsub;
 	private boolean varints;
 	private int te;
-	//TODO MatrixSlice class!
+	private Class<? extends MCLMatrixSlice<?>> matrixSliceClass;
 	
 	private MatrixMeta() {}
 	
-	public MatrixMeta(long n, int kmax, int nsub, boolean varints, int te) {
+	public MatrixMeta(long n, int kmax, int nsub, boolean varints, int te, Class<? extends MCLMatrixSlice<?>> matrixSliceClass) {
 		this.n = n;
 		this.kmax = kmax;
 		this.nsub = nsub;
 		this.varints = varints;
 		this.te = te;
+		this.matrixSliceClass = matrixSliceClass;
 	}
 	
 	public int getKmax(){
@@ -70,6 +72,7 @@ public class MatrixMeta implements Writable, Applyable {
 		out.writeInt(kmax);
 		out.writeBoolean(varints);
 		out.writeInt(te);
+		out.writeUTF(matrixSliceClass.getName());
 	}
 
 	@Override
@@ -79,6 +82,7 @@ public class MatrixMeta implements Writable, Applyable {
 		kmax = in.readInt();
 		varints = in.readBoolean();
 		te = in.readInt();
+		matrixSliceClass = MCLMatrixSlice.classFromString(in.readUTF());
 	}
 	
 	public <M extends MCLMatrixSlice<M>> void write(Reducer<SliceId, M, SliceId, M>.Context context) throws IOException {
@@ -140,6 +144,7 @@ public class MatrixMeta implements Writable, Applyable {
 		meta.nsub = MCLConfigHelper.getNSub(conf);
 		meta.varints = MCLConfigHelper.getUseVarints(conf);
 		meta.te = MCLConfigHelper.getNumThreads(conf);
+		meta.matrixSliceClass = MCLConfigHelper.getMatrixSliceClass(conf);
 		MCLConfigHelper.setN(conf, n);
 		MCLConfigHelper.setKMax(conf, kmax);
 		logger.debug("created {} ",meta);
@@ -215,7 +220,7 @@ public class MatrixMeta implements Writable, Applyable {
 	
 	@Override
 	public String toString() {
-		return String.format("[n: %d, n_sub: %d, k_max: %d, varints: %s, threads: %d]", n,nsub,kmax,varints,te);
+		return String.format("MatrixMeta[n: %d, n_sub: %d, k_max: %d, varints: %s, threads: %d, sliceClass: %s]", n,nsub,kmax,varints,te,matrixSliceClass.getName());
 	}
 
 	@Override
@@ -225,6 +230,8 @@ public class MatrixMeta implements Writable, Applyable {
 		MCLConfigHelper.setNSub(conf, nsub);
 		MCLConfigHelper.setUseVarints(conf, varints);
 		MCLConfigHelper.setNumThreads(conf, te);
+		MCLConfigHelper.setMatrixSliceClass(conf, matrixSliceClass);
+		MCLConfigHelper.applyNative(conf);
 		logger.debug("apply {}",this);
 	}
 }

@@ -6,6 +6,8 @@ package io.cluster;
 import java.util.Set;
 
 /**
+ * a set of clusters of type E which is refered to as clustering.
+ * 
  * @author Cedrik
  *
  */

@@ -7,6 +7,8 @@ import java.awt.Point;
 import java.util.Set;
 
 /**
+ * an image clustering is a clustering of imageclusters
+ * 
  * @author Cedrik
  *
  */

@@ -3,6 +3,7 @@
  */
 package io.writables;
 
+import io.heap.FibonacciHeap;
 import iterators.ReadOnlyIterator;
 
 import java.io.DataInput;
@@ -15,11 +16,9 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import mapred.Counters;
 import mapred.MCLStats;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +127,6 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		colPtr[0] = 0;
 		int kmax = 0;
 		int cs = 0;
-		int max_nnz = this.max_nnz;
 		
 		for(SliceEntry entry : entries){
 			
@@ -210,7 +208,7 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 
 	@Override
-	public CSCSlice multipliedBy(CSCSlice m, TaskAttemptContext context) {
+	public CSCSlice multipliedBy(CSCSlice m) {
 
 		assert top_aligned;
 		
@@ -285,7 +283,37 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	private final int addForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
-		return addMultForw(s1, t1, m, s2, t2, pos, 1.0f);
+		int p = pos, i1 = s1, i2 = s2;
+		
+		while (i1 < t1 && i2 < t2) {
+			final long r1 = rowInd[i1];
+			final long r2 = m.rowInd[i2];
+			
+			if (r1 == r2) {
+				rowInd[p] = r1;
+				val[p++] = val[i1++] + m.val[i2++];				
+			} else {
+				if (r1 < r2) {
+					rowInd[p] = r1;
+					val[p++] = val[i1++];	
+				} else {
+					rowInd[p] = r2;
+					val[p++] = m.val[i2++];
+				}
+			}
+		}
+		
+		while (i1 < t1) {
+			rowInd[p] = rowInd[i1];
+			val[p++] = val[i1++];
+		}
+
+		while(i2 < t2) {
+			rowInd[p] = m.rowInd[i2];
+			val[p++] = m.val[i2++];
+		}
+		
+		return p - pos;
 	}
 	
 	private final int addMultForw(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
@@ -324,7 +352,37 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	private final int addBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos) {
-		return addMultBack(s1, t1, m, s2, t2, pos, 1.0f);
+		int p = pos, i1 = t1 - 1, i2 = t2 - 1 ;
+		
+		while (i1 >= s1 && i2 >= s2) {
+			long r1 = rowInd[i1];
+			long r2 = m.rowInd[i2];
+			
+			if (r1 == r2) {
+				rowInd[--p] = r1;
+				val[p] = val[i1--] + m.val[i2--];
+			} else {
+				if (r1 > r2) {
+					rowInd[--p] = r1;
+					val[p] = val[i1--];
+				} else {
+					rowInd[--p] = r2;
+					val[p] = m.val[i2--];
+				}
+			}
+		}
+			
+		while (i1 >= s1) {
+			rowInd[--p] = rowInd[i1];
+			val[p] = val[i1--];
+		}			
+		
+		while (i2 >= s2) {
+			rowInd[--p] = m.rowInd[i2];
+			val[p] = m.val[i2--];	
+		}
+		
+		return pos - p;
 	}
 	
 	private final int addMultBack(int s1, int t1, CSCSlice m, int s2, int t2, int pos, float factor) {
@@ -363,89 +421,114 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	}
 	
 	@Override
-	public void inflateAndPrune(MCLStats stats, TaskAttemptContext context) {
+	public void inflateAndPrune(MCLStats stats) {
 		
 		final int[] selection = new int[kmax];
 		int valPtr = 0;
-		final double I = inflation;
-				
+		float threshold;
+		
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
 
 			int cs = colPtr[col_start];
 			int ct = colPtr[col_end];
+			int v_n = ct-cs;
 			
 			colPtr[col_start] = valPtr;
 			
-			switch(ct-cs){
+			switch(v_n){
 			case 0:
 				continue;
 			case 1:				
 				rowInd[valPtr] = rowInd[cs];
 				val[valPtr++] = 1.0f;
 				if(stats.kmax < 1) stats.kmax = 1;
-				if(context != null) {
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-				}
+				stats.attractors++;
+				stats.homogen++;
 				continue;
 			default:
 				break;
 			}
 			
 			if(auto_prune){
+				double s = 0.0;
+				double m = 0.0;
+				
 				for(int i = ct-1; i >= cs; --i) {
-					val[i] = (float) Math.pow(val[i], I);
+					float v = (float) Math.pow(val[i], inflation);
+					val[i] = v;
+					if(m < v) m = v;
+					s += v;
 				}
+				
+				threshold = computeTreshold(s/v_n, m);
+			} else {
+				threshold = cutoff;
 			}
 			
+			v_n = threshPrune(val, cs, ct, selection, stats, threshold);
 			
-			final int selected = prune(val, cs, ct, selection, stats, auto_prune);
-			if(stats.kmax < selected) stats.kmax = selected;
+			if(v_n > select){
+				stats.prune += v_n - select;
+				selectionPrune(val, selection, v_n, select);
+				v_n = select;
+			}
 			
-			if(selected == 1){
+			if(v_n == 1){
 				rowInd[valPtr] = rowInd[selection[0]];
 				val[valPtr++] = 1.0f;
-				if(context != null) {
-					context.getCounter(Counters.ATTRACTORS).increment(1);
-					context.getCounter(Counters.HOMOGENEOUS_COLUMNS).increment(1);
-				}
+				stats.homogen++;
+				stats.attractors++;
 				continue;
 			}
 			
-			for(int i  = 0; i < selected; i++){
+			for(int i  = 0; i < v_n; i++){
 				final int idx = selection[i];
 				rowInd[valPtr] = rowInd[idx];
 				val[valPtr++] = val[idx];
 			}
 			
 			ct = valPtr;
-			cs = ct - selected;
-			
-			normalize(val, cs, ct, context);
+			cs = ct - v_n;
 			
 			double max = 0.0;
-			double new_center = 0.0;
-
-			for(int i = cs; i < ct; i++){
-				if(max < val[i]) max = val[i];
-				new_center += val[i]*val[i];
-			}			
+			double center = 0.0;
+			double s = 0.0;
 			
-			double chaos = ((double) max - new_center) * (ct-cs);
-			if(stats.maxChaos < chaos) stats.maxChaos = chaos;
-			
-			if(!auto_prune){
-				inflate(val, cs, ct);
+			if(auto_prune){
+				for(int i = cs; i < ct; i++){
+					s += val[i];
+				}
+			} else {
+				for(int i = cs; i < ct; i++){
+					float v = (float) Math.pow(val[i], inflation);
+					val[i] = v;
+					s += v;
+				}
 			}
+			
+			float sf = (float) s;
+			
+			for(int i = cs; i < ct; i++){
+				float v = val[i] / sf;
+				val[i] = v;
+				if(max < v) max = v;
+				center += v*v;
+			}
+			
+			double chaos = (max - center) * (ct-cs);
+			if(max > 0.5) stats.attractors++;
+			if(chaos < 1.0e-4) stats.homogen++;
+			if(stats.chaos < chaos) stats.chaos = chaos;
+			if(stats.kmax < v_n) stats.kmax = v_n;
 		}
 		
 		colPtr[nsub] = valPtr;
 	}
 	
 	@Override
-	public void makeStochastic(TaskAttemptContext context) {
+	public void makeStochastic() {
 		for(int col_start = 0, col_end = 1, end = nsub; col_start < end; col_start = col_end++) {
-			normalize(val, colPtr[col_start], colPtr[col_end], context);
+			normalize(val, colPtr[col_start], colPtr[col_end]);
 		}
 	}
 	
@@ -479,7 +562,9 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private final class SubBlockIterator extends ReadOnlyIterator<CSCSlice>{
 		private final int nsub = CSCSlice.this.nsub;
 		private SliceId id = null;
-		private final Queue<SubBlockSlice> queue = new PriorityQueue<CSCSlice.SubBlockSlice>(nsub);
+		private final Queue<SubBlockSlice> queue = javaQueue ?
+						new PriorityQueue<CSCSlice.SubBlockSlice>(nsub):
+						new FibonacciHeap<CSCSlice.SubBlockSlice>(nsub);
 		private final List<SubBlockSlice> list = new ArrayList<CSCSlice.SubBlockSlice>(nsub);
 		private final int[] offset = new int[nsub];
 		
@@ -500,11 +585,13 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 		@Override
 		public CSCSlice next() {
 			
-			final SubBlockSlice first = queue.remove();
+			final SubBlockSlice first = queue.poll();
 			list.add(first);
 			
-			while(queue.peek() != null && first.id == queue.peek().id) {
-				list.add(queue.remove());
+			SubBlockSlice current = queue.peek();
+			while(current != null && first.id == current.id) {
+				list.add(queue.poll());
+				current = queue.peek();
 			}			
 			
 			for(SubBlockSlice slice : list) {
@@ -533,11 +620,11 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 			int id = (int) (rowInd[s] / nsub), i = s + 1;
 			long end = (long) (id + 1) * (long) nsub;
 			
-			while(i < t && rowInd[i] < end){
+			while(i != t && rowInd[i] < end){
 				i++;
 			}
 			
-			queue.add(new SubBlockSlice(column, i - s, id));
+			queue.offer(new SubBlockSlice(column, i - s, id));
 			offset[column] = i;
 		}
 	}
@@ -583,24 +670,24 @@ public final class CSCSlice extends FloatMatrixSlice<CSCSlice> {
 	private final class EntryIterator extends ReadOnlyIterator<SliceEntry> {
 
 		private final SliceEntry entry = new SliceEntry();
-		private final int l = colPtr[nsub]-colPtr[0];
+		private final int t = colPtr[nsub];
 		private int col_end = colPtr[1];
-		private int col = 0;
+		private int col = 1;
 		private int i = colPtr[0];
 		
 		@Override
 		public boolean hasNext() {
-			return i < l;
+			return i < t;
 		}
 
 		@Override
 		public SliceEntry next() {
 
 			while(i == col_end) {
-				col_end = colPtr[++col + 1];
+				entry.col = col;
+				col_end = colPtr[++col];
 			}
 			
-			entry.col = col;
 			entry.row = rowInd[i];
 			entry.val = val[i++];
 			
